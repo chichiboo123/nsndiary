@@ -1,0 +1,813 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', Arial, sans-serif;
+  padding: 20px;
+  background: #eaf3ff;
+  text-align: center;
+}
+h1{ color:#1e40af }
+button{
+  background:#2563eb; color:white; border:0; padding:10px 18px; border-radius:10px;
+}
+button:hover{ filter:brightness(.95) }</style></head>
+<body><!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나세나반 다이어리</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 폰트 추가: Grandiflora One & Pretendard GOV -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Grandiflora+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-gov.min.css" />
+    
+    <style>
+        :root {
+            /* 영감노트 감성의 차분한 블루 테마로 변경 */
+            --bg-body: #EBEFF2;       /* 우측 작성 공간 배경 */
+            --bg-sidebar: #7392C1;    /* 왼쪽 메뉴 선택 배경 */
+            --accent-color: #7392C1;  /* 강조 색상 */
+            --text-main: #2C3E50;     /* 본문 텍스트 색상 */
+            --text-sidebar: #FFFFFF;  /* 사이드바 텍스트 색상 */
+            --btn-hover: #5A7AA8;
+        }
+
+        [data-theme="green"] {
+            --bg-body: #F0FFF0;
+            --bg-sidebar: #81C784;
+            --accent-color: #81C784;
+            --text-main: #1B5E20;
+            --text-sidebar: #FFFFFF;
+            --btn-hover: #66BB6A;
+        }
+
+        [data-theme="yellow"] {
+            --bg-body: #FFFDE7;
+            --bg-sidebar: #FFE082;
+            --accent-color: #FFCA28;
+            --text-main: #F57F17;
+            --text-sidebar: #5D4037;
+            --btn-hover: #FFB300;
+        }
+
+        [data-theme="red"] {
+            --bg-body: #FFF0F5;
+            --bg-sidebar: #F48FB1;
+            --accent-color: #F48FB1;
+            --text-main: #880E4F;
+            --text-sidebar: #FFFFFF;
+            --btn-hover: #F06292;
+        }
+
+        body {
+            font-family: 'Pretendard GOV', 'Pretendard', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            transition: all 0.5s ease;
+        }
+
+        .title-font {
+            font-family: 'Grandiflora One', cursive;
+            font-weight: 700;
+        }
+
+        .sidebar {
+            background-color: var(--bg-sidebar);
+            color: var(--text-sidebar);
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background-color: rgba(255, 255, 255, 0.25);
+            border-radius: 0.75rem;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: var(--text-sidebar);
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            filter: brightness(0.95);
+            transform: translateY(-1px);
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        /* Toast Message */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 50;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 h-full flex flex-col shadow-lg relative z-10 hidden md:flex">
+        <!-- 타이틀 -->
+        <div class="p-6 text-center mt-4 mb-2">
+            <h1 class="title-font text-3xl font-bold mb-2">나세나반<br>다이어리</h1>
+        </div>
+        
+        <nav class="flex-1 px-4 space-y-2 overflow-y-auto">
+            <a href="#" onclick="showPage('page-schedule', this)" class="menu-item active flex items-center p-3 text-lg"><i class="fa-regular fa-calendar w-8"></i> 일정</a>
+            <a href="#" onclick="showPage('page-students', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-users w-8"></i> 학생정보</a>
+            <a href="#" onclick="showPage('page-attendance', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-check-to-slot w-8"></i> 출결기록</a>
+            <a href="#" onclick="showPage('page-class', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-book-open w-8"></i> 수업기록</a>
+            <a href="#" onclick="showPage('page-daily', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-mug-hot w-8"></i> 일상기록</a>
+            <a href="#" onclick="showPage('page-student-record', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-user-pen w-8"></i> 학생기록</a>
+            <a href="#" onclick="showPage('page-counsel', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-comments w-8"></i> 상담기록</a>
+            <a href="#" onclick="showPage('page-tools', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-toolbox w-8"></i> 디지털도구</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full relative overflow-y-auto">
+        
+        <!-- Header & Theme Switcher -->
+        <header class="p-6 flex justify-between items-center z-10">
+            <div class="md:hidden">
+                <h1 class="title-font text-xl font-bold">나세나반 다이어리</h1>
+            </div>
+            <div class="hidden md:block text-xl font-bold" id="current-page-title">
+                일정
+            </div>
+            
+            <!-- Theme Switcher (드롭다운 방식) -->
+            <div class="relative">
+                <button onclick="toggleThemeMenu()" class="flex items-center justify-center w-10 h-10 bg-white bg-opacity-50 hover:bg-opacity-80 rounded-full shadow-sm transition">
+                    <i class="fa-solid fa-palette text-gray-700"></i>
+                </button>
+                <div id="theme-menu" class="hidden absolute right-0 mt-2 p-3 bg-white rounded-xl shadow-lg flex-col space-y-3 border z-50">
+                    <button onclick="setTheme('blue')" class="w-8 h-8 rounded-full shadow-md transition transform hover:scale-110" style="background-color: #7392C1;" title="영감 블루"></button>
+                    <button onclick="setTheme('green')" class="w-8 h-8 rounded-full shadow-md transition transform hover:scale-110" style="background-color: #81C784;" title="바오밥 그린"></button>
+                    <button onclick="setTheme('yellow')" class="w-8 h-8 rounded-full shadow-md transition transform hover:scale-110" style="background-color: #FFE082;" title="사막의 여우 옐로우"></button>
+                    <button onclick="setTheme('red')" class="w-8 h-8 rounded-full shadow-md transition transform hover:scale-110" style="background-color: #F48FB1;" title="장미 레드"></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Pages Container -->
+        <div class="p-6 flex-1 w-full max-w-5xl mx-auto pb-20">
+            
+            <!-- 1. 일정 페이지 -->
+            <section id="page-schedule" class="page-section active glass-panel p-8 rounded-2xl h-full">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-regular fa-calendar mr-2"></i> 학급 및 학교 일정</h2>
+                <div class="bg-white bg-opacity-60 rounded-xl p-6 text-center text-gray-500 min-h-[300px] flex flex-col justify-center items-center">
+                    <i class="fa-solid fa-calendar-days text-5xl mb-4 opacity-50"></i>
+                    <p>스프레드시트의 [일정] 시트 데이터가 이곳에 캘린더나 리스트 형태로 표시됩니다.</p>
+                </div>
+            </section>
+
+            <!-- 2. 학생정보 페이지 -->
+            <section id="page-students" class="page-section hidden glass-panel p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들 (총 21명)</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left bg-white bg-opacity-60 rounded-xl overflow-hidden shadow-sm">
+                        <thead class="bg-opacity-50 bg-gray-200">
+                            <tr>
+                                <th class="p-3 font-semibold text-gray-700">번호</th>
+                                <th class="p-3 font-semibold text-gray-700">이름</th>
+                                <th class="p-3 font-semibold text-gray-700">학생 연락처</th>
+                                <th class="p-3 font-semibold text-gray-700">보호자 연락처1</th>
+                                <th class="p-3 font-semibold text-gray-700">보호자 연락처2</th>
+                                <th class="p-3 font-semibold text-gray-700">특이사항</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-table-body">
+                            <!-- JS로 렌더링 됨 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 3. 출결기록 페이지 -->
+            <section id="page-attendance" class="page-section hidden glass-panel p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-check-to-slot mr-2"></i> 오늘의 출결 기록</h2>
+                <form onsubmit="submitForm(event, '출결이 저장되었습니다.')" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block mb-2 font-bold">날짜</label>
+                            <input type="date" class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2" required id="att-date">
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-bold">대상 학생</label>
+                            <select class="student-select w-full p-3 rounded-lg border focus:outline-none focus:ring-2" required>
+                                <option value="">학생을 선택하세요</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-bold">출결 상태</label>
+                            <select class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2" required>
+                                <option value="질병결석">질병결석</option>
+                                <option value="체험학습">체험학습</option>
+                                <option value="미인정결석">미인정결석</option>
+                                <option value="질병조퇴">질병조퇴</option>
+                                <option value="질병지각">질병지각</option>
+                                <option value="미인정지각">미인정지각</option>
+                                <option value="미인정조퇴">미인정조퇴</option>
+                                <option value="기타결석">기타결석</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-bold">증빙 자료</label>
+                            <select class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2" required>
+                                <option value="X">X (미제출)</option>
+                                <option value="O">O (제출 완료)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-bold">상세 사유</label>
+                        <input type="text" placeholder="예: 심한 감기로 인한 병원 진료" class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2">
+                    </div>
+                    <button type="submit" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md">
+                        출결 기록 저장하기
+                    </button>
+                </form>
+            </section>
+
+            <!-- 4. 수업기록 페이지 -->
+            <section id="page-class" class="page-section hidden glass-panel p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-book-open mr-2"></i> 오늘 수업은 어땠나요?</h2>
+                
+                <!-- 입력 폼 -->
+                <form onsubmit="submitForm(event, '수업 기록이 저장되었습니다.')" class="space-y-5 bg-white bg-opacity-40 p-5 rounded-xl border border-white">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-1 font-bold text-sm text-gray-700">날짜</label>
+                            <input type="date" class="w-full p-3 rounded-lg border focus:outline-none" required id="class-date">
+                        </div>
+                        <div>
+                            <label class="block mb-1 font-bold text-sm text-gray-700">단원/차시</label>
+                            <input type="text" placeholder="예: 1단원 3차시" class="w-full p-3 rounded-lg border focus:outline-none" required>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block mb-2 font-bold text-sm text-gray-700">교시 선택</label>
+                            <select id="period-select" class="p-3 rounded-lg border w-full mb-2 cursor-pointer hover:bg-gray-50 transition" onchange="addClassTag('period', this)"></select>
+                            <div id="selected-periods-tags" class="flex flex-wrap gap-2 min-h-[42px] p-2 bg-white rounded-lg border border-gray-300 items-center">
+                                <span class="text-sm text-gray-400" id="empty-period-msg">선택된 교시가 없습니다.</span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block mb-2 font-bold text-sm text-gray-700">과목 선택</label>
+                            <select id="subject-select" class="p-3 rounded-lg border w-full mb-2 cursor-pointer hover:bg-gray-50 transition" onchange="addClassTag('subject', this)"></select>
+                            <div id="selected-subjects-tags" class="flex flex-wrap gap-2 min-h-[42px] p-2 bg-white rounded-lg border border-gray-300 items-center">
+                                <span class="text-sm text-gray-400" id="empty-subject-msg">선택된 과목이 없습니다.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block mb-1 font-bold text-sm text-gray-700">학습 주제</label>
+                        <input type="text" placeholder="학습 주제를 입력하세요." class="w-full p-3 rounded-lg border" required>
+                    </div>
+                    
+                    <div>
+                        <label class="block mb-1 font-bold text-sm text-gray-700">수업 성찰</label>
+                        <textarea placeholder="수업 성찰" rows="3" class="w-full p-3 rounded-lg border resize-none"></textarea>
+                    </div>
+                    
+                    <div class="bg-white bg-opacity-50 p-4 rounded-xl space-y-3">
+                        <h3 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-link"></i> 자료 첨부</h3>
+                        <input type="url" placeholder="참고 웹사이트 URL 링크" class="w-full p-3 rounded-lg border text-sm">
+                        <div class="flex items-center">
+                            <input type="file" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept="image/*, .pdf">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md">기록 남기기</button>
+                </form>
+
+                <!-- 데이터 디스플레이 예시 -->
+                <div class="mt-10">
+                    <h3 class="text-xl font-bold mb-4 flex items-center justify-between">
+                        <span><i class="fa-solid fa-box-archive mr-2 text-gray-500"></i> 기록 보관함</span>
+                    </h3>
+                    
+                    <!-- 방대한 데이터 검색용 필터 박스 (구조 튼튼하게 개선) -->
+                    <div class="bg-white bg-opacity-70 p-4 rounded-xl mb-6 shadow-sm border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <input type="date" class="p-2 rounded border text-sm w-full" title="시작일">
+                            <input type="date" class="p-2 rounded border text-sm w-full" title="종료일">
+                            <select id="subject-filter" class="p-2 rounded border text-sm w-full text-gray-700">
+                                <!-- JS에서 옵션 렌더링 -->
+                            </select>
+                            
+                            <!-- 넘침 방지(overflow-hidden) 처리된 검색창 영역 -->
+                            <div class="flex w-full overflow-hidden rounded border bg-white">
+                                <input type="text" placeholder="검색어 (주제, 성찰 등)" class="p-2 flex-1 min-w-0 text-sm outline-none border-none">
+                                <button class="bg-[var(--accent-color)] text-[var(--text-sidebar)] font-bold px-4 text-sm transition hover:brightness-95 flex-shrink-0">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- 카드 예시 1 (테두리 색상 테마 동기화) -->
+                        <div class="bg-white rounded-xl p-5 shadow-sm border-l-4" style="border-left-color: var(--accent-color);">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-sm font-bold text-gray-500">2026. 03. 02.</span>
+                                    <span class="ml-2 px-2 py-1 bg-gray-100 rounded text-xs font-bold text-gray-700">1교시, 2교시</span>
+                                    <span class="ml-1 px-2 py-1 bg-[var(--accent-color)] bg-opacity-20 rounded text-xs font-bold text-[var(--text-main)]">국어</span>
+                                    <span class="ml-1 px-2 py-1 bg-[var(--accent-color)] bg-opacity-20 rounded text-xs font-bold text-[var(--text-main)]">창체</span>
+                                </div>
+                                <span class="text-xs text-gray-400">ID: SCH-0012</span>
+                            </div>
+                            <h4 class="font-bold text-lg mb-1">1단원 3차시: 인물의 성격 짐작하기 (연차시 융합)</h4>
+                            <p class="text-sm text-gray-700 mb-3 whitespace-pre-line">아이들이 역할극을 하면서 인물의 마음을 더 잘 이해하는 모습이 보였다. 다만 시간이 부족해서 발표를 다 듣지 못한 점이 아쉽다. 다음에는 타이머를 적극적으로 활용해야겠다.</p>
+                            <div class="flex gap-2">
+                                <a href="#" class="inline-block px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs hover:bg-gray-200 transition"><i class="fa-solid fa-link"></i> 활동지 링크</a>
+                                <a href="#" class="inline-block px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs hover:bg-gray-200 transition"><i class="fa-solid fa-file-pdf"></i> 판서사진.jpg</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. 일상기록 페이지 -->
+            <section id="page-daily" class="page-section hidden glass-panel p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-mug-hot mr-2"></i> 교실의 소소한 일상</h2>
+                <form onsubmit="submitForm(event, '일상 기록이 저장되었습니다.')" class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="date" class="p-3 rounded-lg border" required id="daily-date">
+                        <input type="text" placeholder="핵심 키워드 (예: 학부모 총회, 교실 청소)" class="p-3 rounded-lg border" required>
+                    </div>
+                    <textarea placeholder="오늘 하루 어떤 일이 있었나요? 자유롭게 남겨주세요." rows="6" class="w-full p-3 rounded-lg border resize-none" required></textarea>
+                    
+                    <div class="bg-white bg-opacity-50 p-4 rounded-xl space-y-3">
+                        <h3 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-paperclip"></i> 파일 및 링크 첨부</h3>
+                        <input type="url" placeholder="관련 URL 링크 (공문 링크 등)" class="w-full p-3 rounded-lg border text-sm">
+                        <input type="file" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept="image/*, .pdf">
+                    </div>
+
+                    <button type="submit" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md">일기장 덮기 (저장)</button>
+                </form>
+            </section>
+
+            <!-- 6. 학생기록 페이지 -->
+            <section id="page-student-record" class="page-section hidden glass-panel p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-user-pen mr-2"></i> 학생 행동 발달 기록</h2>
+                <div class="grid gap-4">
+                    <select class="student-select p-3 rounded-lg border w-full md:w-1/2"></select>
+                    <select class="p-3 rounded-lg border w-full md:w-1/2 text-gray-700">
+                        <option>학습 태도</option><option>생활 태도</option><option>교우 관계</option><option>기타</option>
+                    </select>
+                    <textarea placeholder="관찰 내용..." class="p-3 rounded-lg border" rows="3"></textarea>
+                    <button class="btn-primary p-3 rounded-lg font-bold" onclick="submitForm(event, '학생 기록 저장 완료')">저장</button>
+                </div>
+            </section>
+
+            <!-- 7. 상담기록 페이지 -->
+            <section id="page-counsel" class="page-section hidden glass-panel p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-comments mr-2"></i> 상담 일지</h2>
+                
+                <div class="bg-white bg-opacity-40 p-5 rounded-xl border border-white">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                        <div>
+                            <label class="block mb-2 font-bold text-sm text-gray-700">상담 대상 학생</label>
+                            <!-- 학생 추가용 드롭다운 -->
+                            <select class="student-select p-3 rounded-lg border w-full mb-2 cursor-pointer hover:bg-gray-50 transition" onchange="addStudentTag(this)"></select>
+                            <!-- 선택된 학생 태그 -->
+                            <div id="selected-students-tags" class="flex flex-wrap gap-2 min-h-[42px] p-2 bg-white rounded-lg border border-gray-300 items-center">
+                                <span class="text-sm text-gray-400" id="empty-tag-msg">선택된 학생이 없습니다.</span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block mb-2 font-bold text-sm text-gray-700">상담 대상자 구분</label>
+                            <select class="p-3 rounded-lg border w-full text-gray-700" required>
+                                <option value="학생 본인">학생 본인</option>
+                                <option value="보호자">보호자</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 font-bold text-sm text-gray-700">상담 방법</label>
+                            <select class="p-3 rounded-lg border w-full text-gray-700" required>
+                                <option value="대면">대면</option>
+                                <option value="전화">전화</option>
+                                <option value="온라인/메시지">온라인/메시지</option>
+                            </select>
+                        </div>
+                    </div>
+                    <textarea placeholder="상담 내용 및 추후 계획..." class="p-3 rounded-lg border w-full mb-4" rows="4" required></textarea>
+                    <button class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md" onclick="submitForm(event, '상담 기록 저장 완료')">상담 기록 저장하기</button>
+                </div>
+
+                <!-- 상담 보관함 -->
+                <div class="mt-10">
+                    <h3 class="text-xl font-bold mb-4 flex items-center justify-between">
+                        <span><i class="fa-solid fa-box-archive mr-2 text-gray-500"></i> 상담 보관함</span>
+                    </h3>
+
+                    <!-- 방대한 데이터 검색용 필터 박스 (구조 튼튼하게 개선) -->
+                    <div class="bg-white bg-opacity-70 p-4 rounded-xl mb-6 shadow-sm border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <input type="date" class="p-2 rounded border text-sm w-full" title="시작일">
+                            <input type="date" class="p-2 rounded border text-sm w-full" title="종료일">
+                            <select class="p-2 rounded border text-sm w-full text-gray-700">
+                                <option value="">모든 방법 보기</option>
+                                <option value="대면">대면</option>
+                                <option value="전화">전화</option>
+                                <option value="온라인/메시지">온라인/메시지</option>
+                            </select>
+                            
+                            <!-- 넘침 방지(overflow-hidden) 처리된 검색창 영역 -->
+                            <div class="flex w-full overflow-hidden rounded border bg-white">
+                                <input type="text" placeholder="검색어 (학생명, 내용 등)" class="p-2 flex-1 min-w-0 text-sm outline-none border-none">
+                                <button class="bg-[var(--accent-color)] text-[var(--text-sidebar)] font-bold px-4 text-sm transition hover:brightness-95 flex-shrink-0">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- 카드 예시 1 (테두리 색상 테마 동기화) -->
+                        <div class="bg-white rounded-xl p-5 shadow-sm border-l-4" style="border-left-color: var(--accent-color);">
+                            <div class="flex justify-between items-center mb-3">
+                                <div>
+                                    <span class="text-sm font-bold text-gray-500 mr-2">2026. 03. 01.</span>
+                                    <span class="px-2 py-1 bg-gray-100 rounded text-xs font-bold text-gray-600">보호자 상담</span>
+                                </div>
+                                <span class="text-xs px-2 py-1 bg-gray-200 rounded text-gray-600">전화</span>
+                            </div>
+                            
+                            <!-- 태그 표시 -->
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <span class="px-3 py-1 bg-[var(--accent-color)] bg-opacity-30 text-[var(--text-main)] rounded-full text-xs font-bold">1번 학생1</span>
+                                <span class="px-3 py-1 bg-[var(--accent-color)] bg-opacity-30 text-[var(--text-main)] rounded-full text-xs font-bold">2번 학생2</span>
+                            </div>
+                            
+                            <p class="text-sm text-gray-700 mb-2">학생1과 학생2 사이의 사소한 오해로 인한 다툼. 양측 학부모님께 상황 설명 및 가정에서의 지도 부탁드림.</p>
+                            <div class="bg-gray-50 p-2 rounded border border-gray-100 mt-2">
+                                <p class="text-xs text-gray-600"><span class="font-bold text-gray-800">추후계획:</span> 내일 쉬는 시간에 두 학생을 불러 화해의 시간 마련하기</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 8. 디지털 도구 페이지 -->
+            <section id="page-tools" class="page-section hidden glass-panel p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-toolbox mr-2"></i> 자주 쓰는 디지털 도구</h2>
+                
+                <div id="tools-container" class="space-y-6">
+                    <!-- JS로 렌더링 됨 -->
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast">메시지가 표시됩니다.</div>
+
+    <!-- 데이터 통신 로딩 오버레이 추가 -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-white bg-opacity-70 z-50 flex flex-col justify-center items-center">
+        <i class="fa-solid fa-spinner fa-spin text-5xl text-[var(--accent-color)] mb-4"></i>
+        <p class="font-bold text-gray-700">데이터를 처리 중입니다...</p>
+    </div>
+
+    <script>
+        // --- 1. 전역 변수 세팅 ---
+        // 기존에 하드코딩된 가상 학생 데이터를 빈 배열로 변경
+        let students = [];
+
+        const digitalToolsData = {
+            "학급 운영": [
+                { name: "교실 타이머", icon: "fa-stopwatch", color: "text-blue-500", url: "#" },
+                { name: "발표자 뽑기", icon: "fa-dice", color: "text-green-500", url: "#" },
+                { name: "자리 바꾸기", icon: "fa-chair", color: "text-orange-500", url: "#" },
+                { name: "소음 측정기", icon: "fa-volume-high", color: "text-red-400", url: "#" }
+            ],
+            "수업 보조": [
+                { name: "집중 음악", icon: "fa-music", color: "text-yellow-500", url: "#" },
+                { name: "온라인 칠판", icon: "fa-chalkboard", color: "text-purple-500", url: "#" },
+                { name: "퀴즈앤", icon: "fa-q", color: "text-pink-500", url: "#" },
+                { name: "패들렛", icon: "fa-pager", color: "text-teal-500", url: "#" }
+            ],
+            "유틸리티": [
+                { name: "맞춤법 검사기", icon: "fa-spell-check", color: "text-red-500", url: "#" },
+                { name: "QR 생성기", icon: "fa-qrcode", color: "text-gray-700", url: "#" },
+                { name: "미리캔버스", icon: "fa-pen-nib", color: "text-indigo-500", url: "#" }
+            ]
+        };
+
+        // 데이터 관리를 위한 변수
+        let selectedCounselStudents = [];
+        let selectedClassPeriods = [];
+        let selectedClassSubjects = [];
+        const classPeriodsList = ['1교시', '2교시', '3교시', '4교시', '5교시', '6교시'];
+        const classSubjectsList = ['국어', '도덕', '사회', '수학', '과학', '실과', '체육', '음악', '미술', '영어', '창체', '융합'];
+
+        // --- 2. 초기화 함수 ---
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('att-date').value = today;
+            document.getElementById('class-date').value = today;
+            document.getElementById('daily-date').value = today;
+
+            const savedTheme = localStorage.getItem('diaryTheme') || 'blue';
+            setTheme(savedTheme);
+
+            // 구글 스프레드시트에서 진짜 학생 데이터 불러오기
+            showLoading();
+            if (typeof google !== 'undefined' && google.script) {
+                // 앱스스크립트 환경에서 실행될 때
+                google.script.run.withSuccessHandler(function(data) {
+                    students = data;
+                    renderStudents();
+                    populateStudentSelects();
+                    hideLoading();
+                }).getStudentList(); // Code.gs의 함수 호출
+            } else {
+                // 로컬(미리보기) 테스트 환경일 때 가상 데이터 삽입
+                students = Array.from({length: 21}, (_, i) => ({
+                    num: i + 1, name: `학생${i + 1}`, phone: '010-0000-0000',
+                    parentPhone1: '010-1111-0000', parentPhone2: i % 4 === 0 ? '010-2222-0000' : '',
+                    note: i === 2 ? '땅콩 알레르기' : ''
+                }));
+                renderStudents();
+                populateStudentSelects();
+                hideLoading();
+            }
+
+            populateClassSelects(); 
+            renderTools();
+        };
+
+        // --- 3. UI 렌더링 및 기능 ---
+        function renderStudents() {
+            const tbody = document.getElementById('student-table-body');
+            tbody.innerHTML = students.map(s => `
+                <tr class="border-b hover:bg-white transition text-gray-800">
+                    <td class="p-3">${s.num}</td>
+                    <td class="p-3 font-bold">${s.name}</td>
+                    <td class="p-3 text-sm">${s.phone}</td>
+                    <td class="p-3 text-sm">${s.parentPhone1}</td>
+                    <td class="p-3 text-sm">${s.parentPhone2}</td>
+                    <td class="p-3 text-sm text-red-500">${s.note}</td>
+                </tr>
+            `).join('');
+        }
+
+        function populateStudentSelects() {
+            const selects = document.querySelectorAll('.student-select');
+            selects.forEach(select => {
+                select.innerHTML = '<option value="">선택 (클릭하세요)</option>' + 
+                    students.map(s => `<option value="${s.num}">${s.num}번 ${s.name}</option>`).join('');
+            });
+        }
+
+        function addStudentTag(selectElement) {
+            const studentId = selectElement.value;
+            if (!studentId) return;
+
+            if (selectedCounselStudents.includes(studentId)) {
+                selectElement.value = ""; 
+                return;
+            }
+
+            selectedCounselStudents.push(studentId);
+            renderStudentTags();
+            selectElement.value = ""; 
+        }
+
+        window.removeStudentTag = function(studentId) {
+            selectedCounselStudents = selectedCounselStudents.filter(id => id !== studentId.toString());
+            renderStudentTags();
+        };
+
+        function renderStudentTags() {
+            const container = document.getElementById('selected-students-tags');
+
+            if (selectedCounselStudents.length === 0) {
+                container.innerHTML = '<span class="text-sm text-gray-400" id="empty-tag-msg">선택된 학생이 없습니다.</span>';
+                return;
+            }
+
+            container.innerHTML = selectedCounselStudents.map(id => {
+                const student = students.find(s => s.num == id);
+                return `
+                    <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold shadow-sm" style="background-color: var(--accent-color); color: var(--text-sidebar);">
+                        ${id}번 ${student.name}
+                        <button type="button" class="ml-2 w-5 h-5 flex items-center justify-center rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 transition focus:outline-none" onclick="removeStudentTag(${id})">
+                            <i class="fa-solid fa-times text-xs"></i>
+                        </button>
+                    </span>
+                `;
+            }).join('');
+        }
+
+        function populateClassSelects() {
+            const periodSelect = document.getElementById('period-select');
+            periodSelect.innerHTML = '<option value="">교시 선택 (클릭하여 추가)</option>' + 
+                classPeriodsList.map(p => `<option value="${p}">${p}</option>`).join('');
+
+            const subjectSelect = document.getElementById('subject-select');
+            subjectSelect.innerHTML = '<option value="">과목 선택 (클릭하여 추가)</option>' + 
+                classSubjectsList.map(s => `<option value="${s}">${s}</option>`).join('');
+
+            const subjectFilter = document.getElementById('subject-filter');
+            subjectFilter.innerHTML = '<option value="">모든 과목 보기</option>' + 
+                classSubjectsList.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        function addClassTag(type, selectElement) {
+            const val = selectElement.value;
+            if (!val) return;
+
+            let targetArray = type === 'period' ? selectedClassPeriods : selectedClassSubjects;
+            
+            if (targetArray.includes(val)) {
+                selectElement.value = ""; 
+                return;
+            }
+
+            targetArray.push(val);
+            if (type === 'period') targetArray.sort();
+
+            renderClassTags(type);
+            selectElement.value = ""; 
+        }
+
+        window.removeClassTag = function(type, val) {
+            if (type === 'period') {
+                selectedClassPeriods = selectedClassPeriods.filter(item => item !== val);
+            } else {
+                selectedClassSubjects = selectedClassSubjects.filter(item => item !== val);
+            }
+            renderClassTags(type);
+        };
+
+        function renderClassTags(type) {
+            const isPeriod = type === 'period';
+            const targetArray = isPeriod ? selectedClassPeriods : selectedClassSubjects;
+            const containerId = isPeriod ? 'selected-periods-tags' : 'selected-subjects-tags';
+            const emptyMsg = isPeriod ? '선택된 교시가 없습니다.' : '선택된 과목이 없습니다.';
+            
+            const container = document.getElementById(containerId);
+
+            if (targetArray.length === 0) {
+                container.innerHTML = `<span class="text-sm text-gray-400">${emptyMsg}</span>`;
+                return;
+            }
+
+            container.innerHTML = targetArray.map(val => {
+                return `
+                    <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold shadow-sm" style="background-color: var(--accent-color); color: var(--text-sidebar);">
+                        ${val}
+                        <button type="button" class="ml-2 w-5 h-5 flex items-center justify-center rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 transition focus:outline-none" onclick="removeClassTag('${type}', '${val}')">
+                            <i class="fa-solid fa-times text-xs"></i>
+                        </button>
+                    </span>
+                `;
+            }).join('');
+        }
+
+        function renderTools() {
+            const container = document.getElementById('tools-container');
+            let html = '';
+            for (const [category, tools] of Object.entries(digitalToolsData)) {
+                html += `
+                    <div>
+                        <h3 class="text-lg font-bold mb-3 border-l-4 border-[var(--accent-color)] pl-3 text-gray-800">${category}</h3>
+                        <div class="grid grid-cols-3 md:grid-cols-5 gap-3">
+                            ${tools.map(tool => `
+                                <a href="${tool.url}" target="_blank" class="bg-white p-3 rounded-xl shadow hover:shadow-md transition text-center block border border-transparent hover:border-[var(--accent-color)] flex flex-col items-center justify-center min-h-[90px]">
+                                    <i class="fa-solid ${tool.icon} text-2xl ${tool.color} mb-2"></i>
+                                    <h4 class="font-bold text-[12px] leading-tight break-keep-all text-gray-700">${tool.name}</h4>
+                                </a>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function toggleThemeMenu() {
+            const menu = document.getElementById('theme-menu');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                menu.classList.add('flex');
+            } else {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+            }
+        }
+
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('theme-menu');
+            const button = menu.previousElementSibling;
+            if (menu && !menu.contains(event.target) && !button.contains(event.target)) {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+            }
+        });
+
+        function showPage(pageId, element) {
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+
+            document.querySelectorAll('.page-section').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.remove('hidden');
+            
+            if(element) document.getElementById('current-page-title').innerText = element.innerText;
+        }
+
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('diaryTheme', themeName);
+            
+            if(selectedCounselStudents.length > 0) renderStudentTags();
+            if(selectedClassPeriods.length > 0) renderClassTags('period');
+            if(selectedClassSubjects.length > 0) renderClassTags('subject');
+            
+            showToast(`🎨 테마가 변경되었습니다!`);
+        }
+
+        // 로딩 화면 제어 함수
+        function showLoading() {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        // 저장 기능 (가상 처리 -> 실제 GAS 호출)
+        function submitForm(event, message) {
+            if(event) event.preventDefault();
+            showLoading();
+
+            if (typeof google !== 'undefined' && google.script) {
+                // 실제 구글 스프레드시트 통신 연결 부분
+                google.script.run.withSuccessHandler(function(response) {
+                    hideLoading();
+                    showToast(response);
+                }).withFailureHandler(function(err) {
+                    hideLoading();
+                    showToast("오류가 발생했습니다: " + err.message);
+                }).saveDummyData(); // (임시 연결) 향후 각 폼의 데이터를 객체로 넘기게 됩니다.
+            } else {
+                // 로컬 테스트 환경
+                setTimeout(() => {
+                    hideLoading();
+                    showToast(message);
+                }, 800);
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+    </script>
+</body>
+</html><script>function showAlert(){
+  const box = document.createElement('div');
+  box.textContent = '버튼이 클릭되었습니다! ' + new Date().toLocaleTimeString();
+  box.style.cssText = 'margin-top:20px;padding:12px;border:1px solid #93c5fd;background:#dbeafe;border-radius:10px;color:#1e40af';
+  document.body.appendChild(box);
+}
+console.log('콘솔 테스트: 정상 동작');</script></body></html>
