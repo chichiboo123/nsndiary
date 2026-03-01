@@ -147,6 +147,13 @@ button:hover{ filter:brightness(.95) }</style></head>
             <a href="#" onclick="showPage('page-counsel', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-comments w-8"></i> 상담기록</a>
             <a href="#" onclick="showPage('page-tools', this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-toolbox w-8"></i> 디지털도구</a>
         </nav>
+
+        <!-- 스프레드시트 재설정 버튼 -->
+        <div class="px-4 pb-5 border-t border-white border-opacity-30 pt-3">
+            <button onclick="resetSetup()" class="w-full flex items-center p-3 text-sm rounded-xl opacity-60 hover:opacity-100 hover:bg-white hover:bg-opacity-20 transition">
+                <i class="fa-solid fa-rotate-left w-8"></i> 스프레드시트 재설정
+            </button>
+        </div>
     </aside>
 
     <!-- Main Content -->
@@ -503,6 +510,50 @@ button:hover{ filter:brightness(.95) }</style></head>
         <p class="font-bold text-gray-700">데이터를 처리 중입니다...</p>
     </div>
 
+    <!-- 초기 설정 모달 (스프레드시트 URL 1회 입력) -->
+    <div id="setup-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div class="text-center mb-6">
+                <i class="fa-brands fa-google-drive text-5xl text-green-500 mb-4 block"></i>
+                <h2 class="text-2xl font-bold mb-2">처음 오셨군요!</h2>
+                <p class="text-gray-500 text-sm leading-relaxed">
+                    나세나반 다이어리를 사용하려면<br>
+                    구글 스프레드시트 URL이 필요합니다.<br>
+                    <strong class="text-blue-500">한 번만 입력하면 이 기기에서 자동 연결됩니다.</strong>
+                </p>
+            </div>
+
+            <div class="mb-5">
+                <label class="block mb-2 font-bold text-sm text-gray-700">
+                    <i class="fa-solid fa-table-cells-large mr-1 text-green-500"></i>
+                    구글 스프레드시트 URL
+                </label>
+                <input
+                    type="url"
+                    id="setup-url-input"
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    class="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-sm transition"
+                    onkeydown="if(event.key==='Enter') setupAndConnect()"
+                >
+                <p class="text-xs text-gray-400 mt-2">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    스프레드시트 상단 주소창의 URL을 붙여넣기 하세요.
+                </p>
+            </div>
+
+            <button
+                onclick="setupAndConnect()"
+                class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md mb-3">
+                <i class="fa-solid fa-plug mr-2"></i> 연동 시작하기
+            </button>
+
+            <p class="text-center text-xs text-gray-400">
+                <i class="fa-solid fa-shield-halved text-green-400 mr-1"></i>
+                URL은 서버에만 저장되며 소스코드에 노출되지 않습니다.
+            </p>
+        </div>
+    </div>
+
     <script>
         // --- 1. 전역 변수 세팅 ---
         // 기존에 하드코딩된 가상 학생 데이터를 빈 배열로 변경
@@ -545,18 +596,37 @@ button:hover{ filter:brightness(.95) }</style></head>
             const savedTheme = localStorage.getItem('diaryTheme') || 'blue';
             setTheme(savedTheme);
 
-            // 구글 스프레드시트에서 진짜 학생 데이터 불러오기
+            populateClassSelects();
+            renderTools();
+
             showLoading();
+
             if (typeof google !== 'undefined' && google.script) {
-                // 앱스스크립트 환경에서 실행될 때
-                google.script.run.withSuccessHandler(function(data) {
-                    students = data;
-                    renderStudents();
-                    populateStudentSelects();
-                    hideLoading();
-                }).getStudentList(); // Code.gs의 함수 호출
+                // ── GAS 환경 ──
+                // localStorage에 설정 완료 플래그가 있으면 바로 데이터 로드
+                // (매번 서버에 isSetupComplete를 물어보는 비용 절감)
+                if (localStorage.getItem('nsn_setup_done') === '1') {
+                    loadAppData();
+                } else {
+                    // 처음 접속 시: 서버(Script Properties)에 스프레드시트가 설정돼 있는지 확인
+                    google.script.run
+                        .withSuccessHandler(function(isComplete) {
+                            if (isComplete) {
+                                localStorage.setItem('nsn_setup_done', '1');
+                                loadAppData();
+                            } else {
+                                hideLoading();
+                                document.getElementById('setup-modal').classList.remove('hidden');
+                            }
+                        })
+                        .withFailureHandler(function(e) {
+                            hideLoading();
+                            showToast('설정 확인 중 오류: ' + e.message);
+                        })
+                        .isSetupComplete();
+                }
             } else {
-                // 로컬(미리보기) 테스트 환경일 때 가상 데이터 삽입
+                // ── 로컬 미리보기 테스트 환경 ──
                 students = Array.from({length: 21}, (_, i) => ({
                     num: i + 1, name: `학생${i + 1}`, phone: '010-0000-0000',
                     parentPhone1: '010-1111-0000', parentPhone2: i % 4 === 0 ? '010-2222-0000' : '',
@@ -566,10 +636,76 @@ button:hover{ filter:brightness(.95) }</style></head>
                 populateStudentSelects();
                 hideLoading();
             }
-
-            populateClassSelects(); 
-            renderTools();
         };
+
+        // GAS에서 학생 데이터 불러오기
+        function loadAppData() {
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    students = data;
+                    renderStudents();
+                    populateStudentSelects();
+                    hideLoading();
+                })
+                .withFailureHandler(function(e) {
+                    hideLoading();
+                    showToast('데이터 로드 실패: ' + e.message);
+                })
+                .getStudentList();
+        }
+
+        // 스프레드시트 URL 연동 (설정 모달에서 호출)
+        function setupAndConnect() {
+            const input = document.getElementById('setup-url-input');
+            const url = input.value.trim();
+
+            if (!url) {
+                showToast('스프레드시트 URL을 입력하세요.');
+                return;
+            }
+            if (!url.includes('docs.google.com/spreadsheets')) {
+                showToast('올바른 구글 스프레드시트 URL이 아닙니다.');
+                return;
+            }
+
+            showLoading();
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    hideLoading();
+                    if (result.success) {
+                        // 설정 완료 플래그만 localStorage에 저장 (URL 자체는 저장 안 함)
+                        localStorage.setItem('nsn_setup_done', '1');
+                        document.getElementById('setup-modal').classList.add('hidden');
+                        showToast(result.message);
+                        loadAppData();
+                    } else {
+                        showToast(result.message);
+                    }
+                })
+                .withFailureHandler(function(e) {
+                    hideLoading();
+                    showToast('연동 실패: ' + e.message);
+                })
+                .setupSpreadsheet(url);
+        }
+
+        // 스프레드시트 재설정 (사이드바 버튼에서 호출)
+        function resetSetup() {
+            if (!confirm('스프레드시트 연동을 초기화하시겠습니까?\n다시 URL을 입력해야 합니다.')) return;
+            showLoading();
+            google.script.run
+                .withSuccessHandler(function() {
+                    localStorage.removeItem('nsn_setup_done');
+                    hideLoading();
+                    showToast('초기화되었습니다. 새로고침합니다.');
+                    setTimeout(function() { location.reload(); }, 1500);
+                })
+                .withFailureHandler(function(e) {
+                    hideLoading();
+                    showToast('초기화 실패: ' + e.message);
+                })
+                .resetSetup();
+        }
 
         // --- 3. UI 렌더링 및 기능 ---
         function renderStudents() {
