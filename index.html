@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>나세나반 다이어리</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,481 +13,577 @@
 
     <style>
         :root {
-            --bg-body: #EBEFF2;
-            --bg-sidebar: #7392C1;
-            --accent-color: #7392C1;
-            --text-main: #2C3E50;
-            --text-sidebar: #FFFFFF;
-            --btn-hover: #5A7AA8;
+            --bg-body: #EBEFF2; --bg-sidebar: #7392C1;
+            --accent-color: #7392C1; --text-main: #2C3E50;
+            --text-sidebar: #FFFFFF; --btn-hover: #5A7AA8;
         }
         [data-theme="green"] {
-            --bg-body: #F0FFF0;
-            --bg-sidebar: #81C784;
-            --accent-color: #81C784;
-            --text-main: #1B5E20;
-            --text-sidebar: #FFFFFF;
-            --btn-hover: #66BB6A;
+            --bg-body: #F0FFF0; --bg-sidebar: #81C784;
+            --accent-color: #81C784; --text-main: #1B5E20;
+            --text-sidebar: #FFFFFF; --btn-hover: #66BB6A;
         }
         [data-theme="yellow"] {
-            --bg-body: #FFFDE7;
-            --bg-sidebar: #FFE082;
-            --accent-color: #FFCA28;
-            --text-main: #F57F17;
-            --text-sidebar: #5D4037;
-            --btn-hover: #FFB300;
+            --bg-body: #FFFDE7; --bg-sidebar: #FFE082;
+            --accent-color: #FFCA28; --text-main: #F57F17;
+            --text-sidebar: #5D4037; --btn-hover: #FFB300;
         }
         [data-theme="red"] {
-            --bg-body: #FFF0F5;
-            --bg-sidebar: #F48FB1;
-            --accent-color: #F48FB1;
-            --text-main: #880E4F;
-            --text-sidebar: #FFFFFF;
-            --btn-hover: #F06292;
+            --bg-body: #FFF0F5; --bg-sidebar: #F48FB1;
+            --accent-color: #F48FB1; --text-main: #880E4F;
+            --text-sidebar: #FFFFFF; --btn-hover: #F06292;
         }
 
         body {
             font-family: 'Pretendard GOV', 'Pretendard', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            transition: all 0.5s ease;
+            background-color: var(--bg-body); color: var(--text-main);
+            transition: background-color 0.4s ease, color 0.4s ease;
         }
         .title-font { font-family: 'Grandiflora One', cursive; font-weight: 700; }
-        .sidebar {
+
+        /* ── 사이드바: 모바일=고정 드로어, 데스크톱=정적 ── */
+        #sidebar {
             background-color: var(--bg-sidebar);
             color: var(--text-sidebar);
-            transition: background-color 0.5s ease;
+            transition: background-color 0.4s ease, transform 0.3s ease;
+            display: flex; flex-direction: column;
+            width: 220px; flex-shrink: 0;
+            position: fixed; top: 0; left: 0; bottom: 0;
+            z-index: 40;
+            transform: translateX(-110%);
+            box-shadow: 4px 0 16px rgba(0,0,0,0.15);
         }
-        /* 타이틀: 기본/초록/빨강은 흰색, 노란 테마는 --text-sidebar(갈색) 사용 */
+        #sidebar.open { transform: translateX(0); }
+        @media (min-width: 768px) {
+            #sidebar { position: relative; transform: none !important; box-shadow: none; }
+            #mobile-overlay { display: none !important; }
+            #mobile-menu-btn { display: none !important; }
+        }
         .sidebar-title { color: var(--text-sidebar); }
+        .menu-item { display: flex; align-items: center; padding: 8px 12px; border-radius: 10px;
+            font-size: 0.875rem; transition: background 0.2s; cursor: pointer; }
         .menu-item:hover, .menu-item.active {
-            background-color: rgba(255,255,255,0.25);
-            border-radius: 0.75rem;
-            font-weight: bold;
-        }
+            background-color: rgba(255,255,255,0.25); font-weight: bold; }
+
+        /* ── 메인 레이아웃 ── */
+        body > .app-wrap { display: flex; height: 100vh; overflow: hidden; }
+        .main-area { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .main-scroll { flex: 1; overflow-y: auto; padding: 16px; }
+
+        /* ── 공통 컴포넌트 ── */
         .btn-primary {
-            background-color: var(--accent-color);
-            color: var(--text-sidebar);
-            transition: all 0.3s;
+            background-color: var(--accent-color); color: var(--text-sidebar);
+            transition: filter 0.2s, transform 0.2s;
         }
-        .btn-primary:hover { filter: brightness(0.95); transform: translateY(-1px); }
+        .btn-primary:hover { filter: brightness(0.92); transform: translateY(-1px); }
         .glass-panel {
-            background: rgba(255,255,255,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.5);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            background: rgba(255,255,255,0.82); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 12px rgba(0,0,0,0.06);
         }
         .page-section { display: none; }
         .page-section.active { display: block; }
+
+        /* 토스트 */
         #toast {
-            visibility: hidden; min-width: 250px;
-            background-color: #333; color: #fff;
-            text-align: center; border-radius: 8px; padding: 16px;
-            position: fixed; z-index: 50; left: 50%; bottom: 30px;
+            visibility: hidden; min-width: 240px;
+            background-color: #1e293b; color: #fff;
+            text-align: center; border-radius: 10px; padding: 14px 20px;
+            position: fixed; z-index: 100; left: 50%; bottom: 30px;
             transform: translateX(-50%); opacity: 0;
             transition: opacity 0.3s, bottom 0.3s;
         }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+
+        /* 학생 이름 버튼 */
         .student-name-btn {
-            cursor: pointer; font-weight: bold;
-            color: var(--accent-color);
-            text-decoration: underline;
-            background: none; border: none; padding: 0;
+            cursor: pointer; font-weight: bold; color: var(--accent-color);
+            text-decoration: underline; background: none; border: none; padding: 0;
         }
         .student-name-btn:hover { opacity: 0.75; }
+
+        /* 기록 카드 삭제 버튼 */
+        .del-btn { color: #d1d5db; transition: color 0.2s; background: none; border: none; cursor: pointer; padding: 4px; }
+        .del-btn:hover { color: #ef4444; }
+
+        /* 홈 기능 버튼 */
+        .feature-btn {
+            background: rgba(255,255,255,0.88); border-radius: 1rem; padding: 1.25rem 0.75rem;
+            text-align: center; transition: all 0.2s; cursor: pointer;
+            border: 2px solid transparent; box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+        }
+        .feature-btn:hover {
+            transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            border-color: var(--accent-color);
+        }
+
+        /* 필터 영역 */
+        .filter-bar { background: rgba(255,255,255,0.75); border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #e5e7eb; }
+        .filter-input { padding: 8px 10px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.85rem; width: 100%; }
+        .filter-reset-btn { padding: 8px 14px; border-radius: 8px; background: #f3f4f6; border: 1px solid #d1d5db; font-size: 0.8rem; color: #6b7280; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+        .filter-reset-btn:hover { background: #e5e7eb; }
+
+        /* 기록 카드 */
+        .rec-card { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; border-left: 4px solid var(--accent-color); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .rec-card .meta { font-size: 0.75rem; color: #9ca3af; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
+
+        /* 파일 업로드 영역 */
+        .file-drop-area { border: 2px dashed #d1d5db; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+        .file-drop-area:hover { border-color: var(--accent-color); }
+        .file-drop-area input[type=file] { display: none; }
+
+        /* 일정 카드 */
+        .schedule-card { background: white; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .schedule-date { flex-shrink: 0; text-align: center; background: var(--accent-color); color: var(--text-sidebar); border-radius: 8px; padding: 6px 10px; min-width: 56px; }
+
+        /* 검색 결과 */
+        .search-result-item { background: white; border-radius: 10px; padding: 12px 14px; margin-bottom: 6px; cursor: pointer; transition: box-shadow 0.2s, transform 0.2s; border-left: 4px solid var(--accent-color); }
+        .search-result-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateX(3px); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body>
+<div class="app-wrap">
 
-<!-- ===== SIDEBAR ===== -->
-<aside class="sidebar w-64 h-full flex flex-col shadow-lg relative z-10 hidden md:flex">
-    <!-- 타이틀: 클릭 시 홈(일정)으로 이동 -->
-    <div class="p-6 text-center mt-4 mb-2">
-        <h1 class="title-font text-3xl font-bold mb-2 sidebar-title cursor-pointer hover:opacity-80 transition select-none"
+<!-- 모바일 오버레이 -->
+<div id="mobile-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30" onclick="closeMobileMenu()"></div>
+
+<!-- ═══ 사이드바 ═══ -->
+<aside id="sidebar">
+    <div class="px-4 pt-5 pb-3 text-center">
+        <h1 class="title-font text-2xl font-bold mb-1 sidebar-title cursor-pointer hover:opacity-80 transition select-none leading-snug"
             onclick="goHome()" title="홈으로">
             나세나반<br>다이어리
         </h1>
     </div>
 
-    <nav class="flex-1 px-4 space-y-2 overflow-y-auto">
-        <a id="nav-schedule" href="#" onclick="showPage('page-schedule',this)" class="menu-item active flex items-center p-3 text-lg"><i class="fa-regular fa-calendar w-8"></i> 일정</a>
-        <a href="#" onclick="showPage('page-students',this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-users w-8"></i> 학생정보</a>
-        <a href="#" onclick="showPage('page-attendance',this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-check-to-slot w-8"></i> 출결기록</a>
-        <a href="#" onclick="showPage('page-class',this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-book-open w-8"></i> 수업기록</a>
-        <a href="#" onclick="showPage('page-daily',this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-mug-hot w-8"></i> 일상기록</a>
-        <a href="#" onclick="showPage('page-student-record',this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-user-pen w-8"></i> 학생기록</a>
-        <a href="#" onclick="showPage('page-counsel',this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-comments w-8"></i> 상담기록</a>
-        <a href="#" onclick="showPage('page-tools',this)" class="menu-item flex items-center p-3 text-lg"><i class="fa-solid fa-toolbox w-8"></i> 디지털도구</a>
+    <nav class="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto">
+        <a id="nav-home"     href="#" onclick="showPage('page-home',this)"          class="menu-item active"><i class="fa-solid fa-house w-7 text-center"></i> 홈</a>
+        <a id="nav-schedule" href="#" onclick="showPage('page-schedule',this)"      class="menu-item"><i class="fa-regular fa-calendar w-7 text-center"></i> 일정</a>
+        <a href="#"          onclick="showPage('page-students',this)"               class="menu-item"><i class="fa-solid fa-users w-7 text-center"></i> 학생정보</a>
+        <a href="#"          onclick="showPage('page-attendance',this)"             class="menu-item"><i class="fa-solid fa-check-to-slot w-7 text-center"></i> 출결기록</a>
+        <a href="#"          onclick="showPage('page-class',this)"                  class="menu-item"><i class="fa-solid fa-book-open w-7 text-center"></i> 수업기록</a>
+        <a href="#"          onclick="showPage('page-daily',this)"                  class="menu-item"><i class="fa-solid fa-mug-hot w-7 text-center"></i> 일상기록</a>
+        <a href="#"          onclick="showPage('page-student-record',this)"         class="menu-item"><i class="fa-solid fa-user-pen w-7 text-center"></i> 학생기록</a>
+        <a href="#"          onclick="showPage('page-counsel',this)"                class="menu-item"><i class="fa-solid fa-comments w-7 text-center"></i> 상담기록</a>
+        <a href="#"          onclick="showPage('page-tools',this)"                  class="menu-item"><i class="fa-solid fa-toolbox w-7 text-center"></i> 디지털도구</a>
     </nav>
 
-    <div class="px-4 pb-5 border-t border-white border-opacity-30 pt-3">
-        <button onclick="resetSetup()" class="w-full flex items-center p-3 text-sm rounded-xl opacity-60 hover:opacity-100 hover:bg-white hover:bg-opacity-20 transition">
-            <i class="fa-solid fa-rotate-left w-8"></i> 스프레드시트 재설정
+    <div class="px-3 pb-4 border-t border-white border-opacity-25 pt-3">
+        <button onclick="resetSetup()"
+            class="w-full flex items-center p-2 text-xs rounded-lg opacity-60 hover:opacity-100 hover:bg-white hover:bg-opacity-20 transition">
+            <i class="fa-solid fa-rotate-left w-7 text-center"></i> 스프레드시트 재설정
         </button>
     </div>
 </aside>
 
-<!-- ===== MAIN CONTENT ===== -->
-<main class="flex-1 flex flex-col h-full relative overflow-y-auto">
-
-    <!-- Header -->
-    <header class="p-6 flex justify-between items-center z-10">
-        <div class="md:hidden">
-            <h1 class="title-font text-xl font-bold cursor-pointer" onclick="goHome()">나세나반 다이어리</h1>
-        </div>
-        <div class="hidden md:block text-xl font-bold" id="current-page-title">일정</div>
-
-        <div class="relative">
-            <button onclick="toggleThemeMenu()" class="flex items-center justify-center w-10 h-10 bg-white bg-opacity-50 hover:bg-opacity-80 rounded-full shadow-sm transition">
-                <i class="fa-solid fa-palette text-gray-700"></i>
+<!-- ═══ 메인 영역 ═══ -->
+<div class="main-area">
+    <!-- 헤더 -->
+    <header class="px-4 py-3 flex justify-between items-center z-10 flex-shrink-0" style="background:rgba(255,255,255,0.3);backdrop-filter:blur(6px);">
+        <div class="flex items-center gap-3">
+            <button id="mobile-menu-btn" onclick="openMobileMenu()"
+                class="p-2 rounded-xl bg-white bg-opacity-60 hover:bg-opacity-90 shadow-sm transition">
+                <i class="fa-solid fa-bars text-gray-700 text-lg"></i>
             </button>
-            <div id="theme-menu" class="hidden absolute right-0 mt-2 p-3 bg-white rounded-xl shadow-lg flex-col space-y-3 border z-50">
-                <button onclick="setTheme('blue')" class="w-8 h-8 rounded-full shadow-md transition transform hover:scale-110" style="background-color:#7392C1" title="영감 블루"></button>
-                <button onclick="setTheme('green')" class="w-8 h-8 rounded-full shadow-md transition transform hover:scale-110" style="background-color:#81C784" title="바오밥 그린"></button>
-                <button onclick="setTheme('yellow')" class="w-8 h-8 rounded-full shadow-md transition transform hover:scale-110" style="background-color:#FFE082" title="사막의 여우 옐로우"></button>
-                <button onclick="setTheme('red')" class="w-8 h-8 rounded-full shadow-md transition transform hover:scale-110" style="background-color:#F48FB1" title="장미 레드"></button>
+            <span class="title-font text-lg font-bold cursor-pointer sidebar-title hidden md:block" style="color:var(--text-main)" onclick="goHome()">나세나반 다이어리</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span id="current-page-title" class="font-bold text-sm hidden md:block">홈</span>
+            <div class="relative ml-2">
+                <button onclick="toggleThemeMenu()" class="flex items-center justify-center w-9 h-9 bg-white bg-opacity-60 hover:bg-opacity-90 rounded-full shadow-sm transition">
+                    <i class="fa-solid fa-palette text-gray-600"></i>
+                </button>
+                <div id="theme-menu" class="hidden absolute right-0 mt-2 p-3 bg-white rounded-xl shadow-xl flex-col space-y-2 border z-50">
+                    <button onclick="setTheme('blue')"   class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#7392C1" title="블루"></button>
+                    <button onclick="setTheme('green')"  class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#81C784" title="그린"></button>
+                    <button onclick="setTheme('yellow')" class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#FFE082" title="옐로우"></button>
+                    <button onclick="setTheme('red')"    class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#F48FB1" title="레드"></button>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Pages -->
-    <div class="p-6 flex-1 w-full max-w-5xl mx-auto pb-20">
+    <!-- 페이지 콘텐츠 -->
+    <div class="main-scroll">
+    <div class="max-w-4xl mx-auto pb-16">
 
-        <!-- ① 일정 -->
-        <section id="page-schedule" class="page-section active glass-panel p-8 rounded-2xl min-h-[400px]">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-regular fa-calendar mr-2"></i> 학급 및 학교 일정</h2>
-            <div class="bg-white bg-opacity-60 rounded-xl p-6 text-center text-gray-500 min-h-[300px] flex flex-col justify-center items-center">
-                <i class="fa-solid fa-calendar-days text-5xl mb-4 opacity-50"></i>
-                <p>스프레드시트의 [일정] 시트 데이터가 이곳에 표시됩니다.</p>
-            </div>
-        </section>
-
-        <!-- ② 학생정보 -->
-        <section id="page-students" class="page-section glass-panel p-8 rounded-2xl">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left bg-white bg-opacity-60 rounded-xl overflow-hidden shadow-sm">
-                    <thead class="bg-gray-200 bg-opacity-50">
-                        <tr>
-                            <th class="p-3 font-semibold text-gray-700">번호</th>
-                            <th class="p-3 font-semibold text-gray-700">이름</th>
-                            <th class="p-3 font-semibold text-gray-700">학생 연락처</th>
-                            <th class="p-3 font-semibold text-gray-700">보호자 연락처1</th>
-                            <th class="p-3 font-semibold text-gray-700">보호자 연락처2</th>
-                            <th class="p-3 font-semibold text-gray-700">특이사항</th>
-                        </tr>
-                    </thead>
-                    <tbody id="student-table-body">
-                        <!-- JS 렌더링 -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- ③ 출결기록 -->
-        <section id="page-attendance" class="page-section glass-panel p-8 rounded-2xl">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-check-to-slot mr-2"></i> 오늘의 출결 기록</h2>
-            <form onsubmit="saveAttendance(event)" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block mb-2 font-bold">날짜</label>
-                        <input type="date" id="att-date" class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2" required>
-                    </div>
-                    <div>
-                        <label class="block mb-2 font-bold">대상 학생</label>
-                        <select id="att-student-select" class="student-select w-full p-3 rounded-lg border focus:outline-none focus:ring-2" required>
-                            <option value="">학생을 선택하세요</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block mb-2 font-bold">출결 상태</label>
-                        <select id="att-status" class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2" required>
-                            <option value="질병결석">질병결석</option>
-                            <option value="체험학습">체험학습</option>
-                            <option value="미인정결석">미인정결석</option>
-                            <option value="질병조퇴">질병조퇴</option>
-                            <option value="질병지각">질병지각</option>
-                            <option value="미인정지각">미인정지각</option>
-                            <option value="미인정조퇴">미인정조퇴</option>
-                            <option value="기타결석">기타결석</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block mb-2 font-bold">증빙 자료</label>
-                        <select id="att-proof" class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2" required>
-                            <option value="X">X (미제출)</option>
-                            <option value="O">O (제출 완료)</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block mb-2 font-bold">상세 사유</label>
-                    <input type="text" id="att-reason" placeholder="예: 심한 감기로 인한 병원 진료" class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2">
-                </div>
-                <button type="submit" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md">출결 기록 저장하기</button>
-            </form>
-
-            <!-- 출결 전체 기록 리스트 -->
-            <div class="mt-10">
-                <h3 class="text-xl font-bold mb-4"><i class="fa-solid fa-list-check mr-2 text-gray-500"></i> 출결 기록 전체 보기</h3>
-
-                <!-- 필터 -->
-                <div class="bg-white bg-opacity-70 p-4 rounded-xl mb-4 shadow-sm border border-gray-200">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <input type="date" id="att-filter-start" class="p-2 rounded border text-sm w-full" title="시작일" onchange="filterAttendanceList()">
-                        <input type="date" id="att-filter-end"   class="p-2 rounded border text-sm w-full" title="종료일" onchange="filterAttendanceList()">
-                        <select id="att-filter-status" class="p-2 rounded border text-sm w-full text-gray-700" onchange="filterAttendanceList()">
-                            <option value="">전체 출결 상태</option>
-                            <option value="질병결석">질병결석</option>
-                            <option value="체험학습">체험학습</option>
-                            <option value="미인정결석">미인정결석</option>
-                            <option value="질병조퇴">질병조퇴</option>
-                            <option value="질병지각">질병지각</option>
-                            <option value="미인정지각">미인정지각</option>
-                            <option value="미인정조퇴">미인정조퇴</option>
-                            <option value="기타결석">기타결석</option>
-                        </select>
-                        <div class="flex w-full overflow-hidden rounded border bg-white">
-                            <input type="text" id="att-filter-name" placeholder="학생 이름 검색" class="p-2 flex-1 min-w-0 text-sm outline-none border-none" oninput="filterAttendanceList()">
-                            <span class="bg-gray-100 px-3 flex items-center flex-shrink-0"><i class="fa-solid fa-magnifying-glass text-gray-400 text-sm"></i></span>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="attendance-list">
-                    <p class="text-gray-400 text-sm text-center p-6">페이지를 열면 기록이 표시됩니다.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- ④ 수업기록 -->
-        <section id="page-class" class="page-section glass-panel p-8 rounded-2xl">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-book-open mr-2"></i> 오늘 수업은 어땠나요?</h2>
-
-            <form onsubmit="saveClass(event)" class="space-y-5 bg-white bg-opacity-40 p-5 rounded-xl border border-white">
-                <!-- 날짜 · 교시 · 과목 한 줄 -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block mb-1 font-bold text-sm text-gray-700">날짜</label>
-                        <input type="date" id="class-date" class="w-full p-3 rounded-lg border focus:outline-none" required>
-                    </div>
-                    <div>
-                        <label class="block mb-1 font-bold text-sm text-gray-700">교시 선택</label>
-                        <select id="period-select" class="p-3 rounded-lg border w-full mb-2 cursor-pointer hover:bg-gray-50 transition" onchange="addClassTag('period',this)"></select>
-                        <div id="selected-periods-tags" class="flex flex-wrap gap-2 min-h-[38px] p-2 bg-white rounded-lg border border-gray-300 items-center">
-                            <span class="text-sm text-gray-400">없음</span>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block mb-1 font-bold text-sm text-gray-700">과목 선택</label>
-                        <select id="subject-select" class="p-3 rounded-lg border w-full mb-2 cursor-pointer hover:bg-gray-50 transition" onchange="addClassTag('subject',this)"></select>
-                        <div id="selected-subjects-tags" class="flex flex-wrap gap-2 min-h-[38px] p-2 bg-white rounded-lg border border-gray-300 items-center">
-                            <span class="text-sm text-gray-400">없음</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block mb-1 font-bold text-sm text-gray-700">배움 주제</label>
-                    <input type="text" id="class-topic" placeholder="배움 주제를 입력하세요." class="w-full p-3 rounded-lg border" required>
-                </div>
-                <div>
-                    <label class="block mb-1 font-bold text-sm text-gray-700">수업 성찰</label>
-                    <textarea id="class-reflection" placeholder="수업 성찰" rows="3" class="w-full p-3 rounded-lg border resize-none"></textarea>
-                </div>
-                <div class="bg-white bg-opacity-50 p-4 rounded-xl space-y-3">
-                    <h3 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-link"></i> 자료 첨부</h3>
-                    <input type="url" id="class-link" placeholder="참고 웹사이트 URL 링크" class="w-full p-3 rounded-lg border text-sm">
-                </div>
-                <button type="submit" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md">기록 남기기</button>
-            </form>
-
-            <div class="mt-10">
-                <h3 class="text-xl font-bold mb-4"><i class="fa-solid fa-box-archive mr-2 text-gray-500"></i> 기록 보관함</h3>
-                <div class="bg-white bg-opacity-70 p-4 rounded-xl mb-6 shadow-sm border border-gray-200">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <input type="date" class="p-2 rounded border text-sm w-full" title="시작일">
-                        <input type="date" class="p-2 rounded border text-sm w-full" title="종료일">
-                        <select id="subject-filter" class="p-2 rounded border text-sm w-full text-gray-700"></select>
-                        <div class="flex w-full overflow-hidden rounded border bg-white">
-                            <input type="text" placeholder="검색어 (주제, 성찰 등)" class="p-2 flex-1 min-w-0 text-sm outline-none border-none">
-                            <button class="bg-[var(--accent-color)] text-[var(--text-sidebar)] font-bold px-4 text-sm transition hover:brightness-95 flex-shrink-0"><i class="fa-solid fa-magnifying-glass"></i></button>
-                        </div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <div class="bg-white rounded-xl p-5 shadow-sm border-l-4" style="border-left-color:var(--accent-color)">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <span class="text-sm font-bold text-gray-500">2026. 03. 02.</span>
-                                <span class="ml-2 px-2 py-1 bg-gray-100 rounded text-xs font-bold text-gray-700">1교시, 2교시</span>
-                                <span class="ml-1 px-2 py-1 bg-[var(--accent-color)] bg-opacity-20 rounded text-xs font-bold">국어</span>
-                            </div>
-                            <span class="text-xs text-gray-400">예시 데이터</span>
-                        </div>
-                        <h4 class="font-bold text-lg mb-1">1단원 3차시: 인물의 성격 짐작하기</h4>
-                        <p class="text-sm text-gray-700">아이들이 역할극을 하면서 인물의 마음을 더 잘 이해하는 모습이 보였다.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ⑤ 일상기록 -->
-        <section id="page-daily" class="page-section glass-panel p-8 rounded-2xl">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-mug-hot mr-2"></i> 교실의 소소한 일상</h2>
-            <form onsubmit="saveDaily(event)" class="space-y-5">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="date" id="daily-date" class="p-3 rounded-lg border" required>
-                    <input type="text" id="daily-keyword" placeholder="핵심 키워드 (예: 학부모 총회, 교실 청소)" class="p-3 rounded-lg border" required>
-                </div>
-                <textarea id="daily-content" placeholder="오늘 하루 어떤 일이 있었나요? 자유롭게 남겨주세요." rows="6" class="w-full p-3 rounded-lg border resize-none" required></textarea>
-                <div class="bg-white bg-opacity-50 p-4 rounded-xl space-y-3">
-                    <h3 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-paperclip"></i> 링크 첨부</h3>
-                    <input type="url" id="daily-link" placeholder="관련 URL 링크 (공문 링크 등)" class="w-full p-3 rounded-lg border text-sm">
-                </div>
-                <button type="submit" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md">일기장 덮기 (저장)</button>
-            </form>
-        </section>
-
-        <!-- ⑥ 학생기록 -->
-        <section id="page-student-record" class="page-section glass-panel p-8 rounded-2xl">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-user-pen mr-2"></i> 학생 행동 발달 기록</h2>
-            <div class="grid gap-4">
-                <div>
-                    <label class="block mb-1 font-bold text-sm text-gray-700">대상 학생</label>
-                    <select id="sr-student-select" class="student-select p-3 rounded-lg border w-full md:w-1/2"></select>
-                </div>
-                <div>
-                    <label class="block mb-1 font-bold text-sm text-gray-700">분류</label>
-                    <select id="sr-category" class="p-3 rounded-lg border w-full md:w-1/2 text-gray-700">
-                        <option value="학습 태도">학습 태도</option>
-                        <option value="생활 태도">생활 태도</option>
-                        <option value="교우 관계">교우 관계</option>
-                        <option value="기타">기타</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block mb-1 font-bold text-sm text-gray-700">관찰 내용</label>
-                    <textarea id="sr-content" placeholder="관찰 내용을 입력하세요." class="p-3 rounded-lg border w-full" rows="4"></textarea>
-                </div>
-                <button onclick="saveStudentRec()" class="btn-primary p-3 rounded-lg font-bold">저장하기</button>
-            </div>
-        </section>
-
-        <!-- ⑦ 상담기록 -->
-        <section id="page-counsel" class="page-section glass-panel p-8 rounded-2xl">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-comments mr-2"></i> 상담 일지</h2>
-
-            <div class="bg-white bg-opacity-40 p-5 rounded-xl border border-white">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-                    <div>
-                        <label class="block mb-2 font-bold text-sm text-gray-700">상담 대상 학생</label>
-                        <select class="student-select p-3 rounded-lg border w-full mb-2 cursor-pointer hover:bg-gray-50 transition" onchange="addStudentTag(this)"></select>
-                        <div id="selected-students-tags" class="flex flex-wrap gap-2 min-h-[42px] p-2 bg-white rounded-lg border border-gray-300 items-center">
-                            <span class="text-sm text-gray-400">선택된 학생이 없습니다.</span>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block mb-2 font-bold text-sm text-gray-700">상담 대상자 구분</label>
-                        <select id="counsel-target-type" class="p-3 rounded-lg border w-full text-gray-700">
-                            <option value="학생 본인">학생 본인</option>
-                            <option value="보호자">보호자</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block mb-2 font-bold text-sm text-gray-700">상담 방법</label>
-                        <select id="counsel-method" class="p-3 rounded-lg border w-full text-gray-700">
-                            <option value="대면">대면</option>
-                            <option value="전화">전화</option>
-                            <option value="온라인/메시지">온라인/메시지</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block mb-2 font-bold text-sm text-gray-700">상담 내용</label>
-                    <textarea id="counsel-content" placeholder="상담 내용을 입력하세요." class="p-3 rounded-lg border w-full mb-4" rows="4"></textarea>
-                </div>
-                <button onclick="saveCounsel()" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md">상담 기록 저장하기</button>
-            </div>
-
-            <div class="mt-10">
-                <h3 class="text-xl font-bold mb-4"><i class="fa-solid fa-box-archive mr-2 text-gray-500"></i> 상담 보관함</h3>
-                <div class="bg-white bg-opacity-70 p-4 rounded-xl mb-6 shadow-sm border border-gray-200">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <input type="date" class="p-2 rounded border text-sm w-full" title="시작일">
-                        <input type="date" class="p-2 rounded border text-sm w-full" title="종료일">
-                        <select class="p-2 rounded border text-sm w-full text-gray-700">
-                            <option value="">모든 방법 보기</option>
-                            <option value="대면">대면</option>
-                            <option value="전화">전화</option>
-                            <option value="온라인/메시지">온라인/메시지</option>
-                        </select>
-                        <div class="flex w-full overflow-hidden rounded border bg-white">
-                            <input type="text" placeholder="검색어 (학생명, 내용 등)" class="p-2 flex-1 min-w-0 text-sm outline-none border-none">
-                            <button class="bg-[var(--accent-color)] text-[var(--text-sidebar)] font-bold px-4 text-sm transition hover:brightness-95 flex-shrink-0"><i class="fa-solid fa-magnifying-glass"></i></button>
-                        </div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <div class="bg-white rounded-xl p-5 shadow-sm border-l-4" style="border-left-color:var(--accent-color)">
-                        <div class="flex justify-between items-center mb-3">
-                            <div>
-                                <span class="text-sm font-bold text-gray-500 mr-2">2026. 03. 01.</span>
-                                <span class="px-2 py-1 bg-gray-100 rounded text-xs font-bold text-gray-600">보호자 상담</span>
-                            </div>
-                            <span class="text-xs px-2 py-1 bg-gray-200 rounded text-gray-600">전화</span>
-                        </div>
-                        <div class="flex flex-wrap gap-2 mb-3">
-                            <span class="px-3 py-1 bg-[var(--accent-color)] bg-opacity-30 rounded-full text-xs font-bold">1번 학생1</span>
-                        </div>
-                        <p class="text-sm text-gray-700">예시 상담 기록입니다.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ⑧ 디지털도구 -->
-        <section id="page-tools" class="page-section glass-panel p-8 rounded-2xl">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-toolbox mr-2"></i> 자주 쓰는 디지털 도구</h2>
-            <div id="tools-container" class="space-y-6"></div>
-        </section>
-
+<!-- ① 홈 (첫 페이지) -->
+<section id="page-home" class="page-section active">
+    <div class="glass-panel rounded-2xl p-6 mb-5">
+        <h2 class="text-xl font-bold mb-1">안녕하세요, 선생님!</h2>
+        <p class="text-sm text-gray-500">나세나반 다이어리에 오신 것을 환영합니다.</p>
     </div>
-</main>
 
-<!-- ===== TOAST ===== -->
+    <!-- 검색 -->
+    <div class="glass-panel rounded-2xl p-5 mb-5">
+        <h3 class="font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-magnifying-glass text-gray-400"></i> 전체 기록 검색</h3>
+        <div class="flex gap-2">
+            <input type="text" id="search-input" placeholder="키워드를 입력하세요 (배움주제, 학생 이름, 내용 등)"
+                class="flex-1 p-3 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                style="focus:ring-color:var(--accent-color)"
+                onkeydown="if(event.key==='Enter') doSearch()">
+            <button onclick="doSearch()" class="btn-primary px-5 py-2 rounded-xl font-bold text-sm shadow-sm flex-shrink-0">
+                <i class="fa-solid fa-magnifying-glass mr-1"></i> 검색
+            </button>
+        </div>
+        <div id="search-results" class="mt-4 hidden"></div>
+    </div>
+
+    <!-- 기능 버튼 그리드 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="feature-btn" onclick="showPage('page-schedule', document.getElementById('nav-schedule'))">
+            <i class="fa-regular fa-calendar text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">학급 일정</p>
+        </div>
+        <div class="feature-btn" onclick="showPage('page-students', null)">
+            <i class="fa-solid fa-users text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">학생정보</p>
+        </div>
+        <div class="feature-btn" onclick="showPage('page-attendance', null)">
+            <i class="fa-solid fa-check-to-slot text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">출결기록</p>
+        </div>
+        <div class="feature-btn" onclick="showPage('page-class', null)">
+            <i class="fa-solid fa-book-open text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">수업기록</p>
+        </div>
+        <div class="feature-btn" onclick="showPage('page-daily', null)">
+            <i class="fa-solid fa-mug-hot text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">일상기록</p>
+        </div>
+        <div class="feature-btn" onclick="showPage('page-student-record', null)">
+            <i class="fa-solid fa-user-pen text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">학생기록</p>
+        </div>
+        <div class="feature-btn" onclick="showPage('page-counsel', null)">
+            <i class="fa-solid fa-comments text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">상담기록</p>
+        </div>
+        <div class="feature-btn" onclick="showPage('page-tools', null)">
+            <i class="fa-solid fa-toolbox text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">디지털도구</p>
+        </div>
+    </div>
+</section>
+
+<!-- ② 일정 -->
+<section id="page-schedule" class="page-section glass-panel p-6 rounded-2xl">
+    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-regular fa-calendar mr-2"></i> 학급 및 학교 일정</h2>
+    <p class="text-xs text-gray-400 mb-4">
+        <i class="fa-solid fa-circle-info mr-1"></i>
+        스프레드시트 [일정] 시트 컬럼 구조: A=날짜, B=제목, C=분류(학교일정/학급일정/행사/기타), D=내용
+    </p>
+    <div id="schedule-list">
+        <div class="text-center text-gray-400 py-12">
+            <i class="fa-solid fa-calendar-days text-4xl mb-3 block opacity-40"></i>
+            <p class="text-sm">일정을 불러오는 중입니다...</p>
+        </div>
+    </div>
+</section>
+
+<!-- ③ 학생정보 -->
+<section id="page-students" class="page-section glass-panel p-6 rounded-2xl">
+    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
+    <div class="overflow-x-auto rounded-xl">
+        <table class="w-full text-left bg-white bg-opacity-60 rounded-xl overflow-hidden text-sm">
+            <thead class="bg-gray-100 bg-opacity-80">
+                <tr>
+                    <th class="p-3 font-semibold text-gray-600">번호</th>
+                    <th class="p-3 font-semibold text-gray-600">이름</th>
+                    <th class="p-3 font-semibold text-gray-600 hidden md:table-cell">학생 연락처</th>
+                    <th class="p-3 font-semibold text-gray-600 hidden md:table-cell">보호자1</th>
+                    <th class="p-3 font-semibold text-gray-600 hidden md:table-cell">보호자2</th>
+                    <th class="p-3 font-semibold text-gray-600">특이사항</th>
+                </tr>
+            </thead>
+            <tbody id="student-table-body"></tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ④ 출결기록 -->
+<section id="page-attendance" class="page-section glass-panel p-6 rounded-2xl">
+    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-check-to-slot mr-2"></i> 출결 기록</h2>
+    <form onsubmit="saveAttendance(event)" class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="col-span-2 md:col-span-1">
+                <label class="block mb-1 font-bold text-sm text-gray-700">날짜</label>
+                <input type="date" id="att-date" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" required>
+            </div>
+            <div class="col-span-2 md:col-span-1">
+                <label class="block mb-1 font-bold text-sm text-gray-700">대상 학생</label>
+                <select id="att-student-select" class="student-select w-full p-2.5 rounded-lg border text-sm focus:outline-none" required>
+                    <option value="">학생 선택</option>
+                </select>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">출결 상태</label>
+                <select id="att-status" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" required>
+                    <option>질병결석</option><option>체험학습</option>
+                    <option>미인정결석</option><option>질병조퇴</option>
+                    <option>질병지각</option><option>미인정지각</option>
+                    <option>미인정조퇴</option><option>기타결석</option>
+                </select>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">증빙 자료</label>
+                <select id="att-proof" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
+                    <option value="X">X (미제출)</option>
+                    <option value="O">O (제출 완료)</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block mb-1 font-bold text-sm text-gray-700">상세 사유</label>
+            <input type="text" id="att-reason" placeholder="예: 심한 감기로 인한 병원 진료" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
+        </div>
+        <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">출결 기록 저장하기</button>
+    </form>
+
+    <!-- 출결 보관함 -->
+    <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-list-check mr-2 text-gray-400"></i> 출결 기록 보관함</h3>
+    <div class="filter-bar">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <input type="date" id="att-filter-start" class="filter-input" title="시작일" onchange="filterAttendanceList()">
+            <input type="date" id="att-filter-end"   class="filter-input" title="종료일" onchange="filterAttendanceList()">
+            <select id="att-filter-status" class="filter-input" onchange="filterAttendanceList()">
+                <option value="">전체 상태</option>
+                <option>질병결석</option><option>체험학습</option>
+                <option>미인정결석</option><option>질병조퇴</option>
+                <option>질병지각</option><option>미인정지각</option>
+                <option>미인정조퇴</option><option>기타결석</option>
+            </select>
+            <input type="text" id="att-filter-name" placeholder="학생 이름" class="filter-input" oninput="filterAttendanceList()">
+            <button onclick="resetAttendanceFilter()" class="filter-reset-btn"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
+        </div>
+    </div>
+    <div id="attendance-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
+</section>
+
+<!-- ⑤ 수업기록 -->
+<section id="page-class" class="page-section glass-panel p-6 rounded-2xl">
+    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-book-open mr-2"></i> 수업 기록</h2>
+    <form onsubmit="saveClass(event)" class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
+        <!-- 날짜 · 교시 · 과목 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">날짜</label>
+                <input type="date" id="class-date" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" required>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">교시 선택</label>
+                <select id="period-select" class="p-2.5 rounded-lg border w-full mb-1.5 text-sm" onchange="addClassTag('period',this)"></select>
+                <div id="selected-periods-tags" class="flex flex-wrap gap-1.5 min-h-[34px] p-1.5 bg-white rounded-lg border border-gray-300 items-center">
+                    <span class="text-xs text-gray-400">없음</span>
+                </div>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">과목 선택</label>
+                <select id="subject-select" class="p-2.5 rounded-lg border w-full mb-1.5 text-sm" onchange="addClassTag('subject',this)"></select>
+                <div id="selected-subjects-tags" class="flex flex-wrap gap-1.5 min-h-[34px] p-1.5 bg-white rounded-lg border border-gray-300 items-center">
+                    <span class="text-xs text-gray-400">없음</span>
+                </div>
+            </div>
+        </div>
+        <div>
+            <label class="block mb-1 font-bold text-sm text-gray-700">배움 주제</label>
+            <input type="text" id="class-topic" placeholder="배움 주제를 입력하세요." class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" required>
+        </div>
+        <div>
+            <label class="block mb-1 font-bold text-sm text-gray-700">수업 성찰</label>
+            <textarea id="class-reflection" placeholder="수업 성찰" rows="3" class="w-full p-2.5 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+        </div>
+        <!-- 자료 첨부 -->
+        <div class="bg-white bg-opacity-70 p-3 rounded-xl space-y-2 border border-gray-200">
+            <h4 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-paperclip mr-1"></i> 자료 첨부</h4>
+            <input type="url" id="class-link" placeholder="참고 웹사이트 URL" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
+            <label class="file-drop-area block" onclick="document.getElementById('class-file-input').click()">
+                <input type="file" id="class-file-input" accept="image/*,.pdf,.docx,.hwp,.xlsx,.pptx">
+                <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1 block" style="color:var(--accent-color)"></i>
+                <p class="text-xs text-gray-500">클릭하여 파일 첨부 (이미지·PDF·문서 등, 최대 5MB)</p>
+                <p id="class-file-name" class="text-xs font-bold mt-1" style="color:var(--accent-color)"></p>
+            </label>
+        </div>
+        <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">기록 남기기</button>
+    </form>
+
+    <!-- 수업 보관함 -->
+    <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-box-archive mr-2 text-gray-400"></i> 수업 기록 보관함</h3>
+    <div class="filter-bar">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <input type="date" id="cls-filter-start" class="filter-input" title="시작일" onchange="filterClassList()">
+            <input type="date" id="cls-filter-end"   class="filter-input" title="종료일" onchange="filterClassList()">
+            <select id="cls-filter-subject" class="filter-input" onchange="filterClassList()">
+                <option value="">전체 과목</option>
+            </select>
+            <input type="text" id="cls-filter-text" placeholder="주제·성찰 검색" class="filter-input" oninput="filterClassList()">
+            <button onclick="resetClassFilter()" class="filter-reset-btn"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
+        </div>
+    </div>
+    <div id="class-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
+</section>
+
+<!-- ⑥ 일상기록 -->
+<section id="page-daily" class="page-section glass-panel p-6 rounded-2xl">
+    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-mug-hot mr-2"></i> 교실의 소소한 일상</h2>
+    <form onsubmit="saveDaily(event)" class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input type="date" id="daily-date" class="p-2.5 rounded-lg border text-sm focus:outline-none" required>
+            <input type="text" id="daily-keyword" placeholder="핵심 키워드 (예: 학부모 총회, 교실 청소)" class="p-2.5 rounded-lg border text-sm focus:outline-none" required>
+        </div>
+        <textarea id="daily-content" placeholder="오늘 하루 어떤 일이 있었나요?" rows="5" class="w-full p-2.5 rounded-lg border text-sm resize-none focus:outline-none" required></textarea>
+        <!-- 자료 첨부 -->
+        <div class="bg-white bg-opacity-70 p-3 rounded-xl space-y-2 border border-gray-200">
+            <h4 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-paperclip mr-1"></i> 자료 첨부</h4>
+            <input type="url" id="daily-link" placeholder="관련 URL 링크 (공문 링크 등)" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
+            <label class="file-drop-area block" onclick="document.getElementById('daily-file-input').click()">
+                <input type="file" id="daily-file-input" accept="image/*,.pdf,.docx,.hwp,.xlsx,.pptx">
+                <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1 block" style="color:var(--accent-color)"></i>
+                <p class="text-xs text-gray-500">클릭하여 파일 첨부 (이미지·PDF·문서 등, 최대 5MB)</p>
+                <p id="daily-file-name" class="text-xs font-bold mt-1" style="color:var(--accent-color)"></p>
+            </label>
+        </div>
+        <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">일기장 덮기 (저장)</button>
+    </form>
+
+    <!-- 일상 보관함 -->
+    <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-box-archive mr-2 text-gray-400"></i> 일상 기록 보관함</h3>
+    <div class="filter-bar">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <input type="date" id="dly-filter-start" class="filter-input" title="시작일" onchange="filterDailyList()">
+            <input type="date" id="dly-filter-end"   class="filter-input" title="종료일" onchange="filterDailyList()">
+            <input type="text" id="dly-filter-text"  placeholder="키워드·내용 검색" class="filter-input" oninput="filterDailyList()">
+            <button onclick="resetDailyFilter()" class="filter-reset-btn"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
+        </div>
+    </div>
+    <div id="daily-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
+</section>
+
+<!-- ⑦ 학생기록 -->
+<section id="page-student-record" class="page-section glass-panel p-6 rounded-2xl">
+    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-user-pen mr-2"></i> 학생 행동 발달 기록</h2>
+    <div class="space-y-3 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">대상 학생</label>
+                <select id="sr-student-select" class="student-select p-2.5 rounded-lg border w-full text-sm"></select>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">분류</label>
+                <select id="sr-category" class="p-2.5 rounded-lg border w-full text-sm">
+                    <option>학습 태도</option><option>생활 태도</option>
+                    <option>교우 관계</option><option>기타</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block mb-1 font-bold text-sm text-gray-700">관찰 내용</label>
+            <textarea id="sr-content" placeholder="관찰 내용을 입력하세요." class="p-2.5 rounded-lg border w-full text-sm resize-none" rows="4"></textarea>
+        </div>
+        <button onclick="saveStudentRec()" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">저장하기</button>
+    </div>
+
+    <!-- 학생기록 보관함 -->
+    <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-box-archive mr-2 text-gray-400"></i> 학생 기록 보관함</h3>
+    <div class="filter-bar">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <input type="text" id="sr-filter-name"     placeholder="학생 이름 검색" class="filter-input" oninput="filterStudentRecordList()">
+            <select id="sr-filter-category" class="filter-input" onchange="filterStudentRecordList()">
+                <option value="">전체 분류</option>
+                <option>학습 태도</option><option>생활 태도</option>
+                <option>교우 관계</option><option>기타</option>
+            </select>
+            <div></div>
+            <button onclick="resetStudentRecordFilter()" class="filter-reset-btn"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
+        </div>
+    </div>
+    <div id="student-record-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
+</section>
+
+<!-- ⑧ 상담기록 -->
+<section id="page-counsel" class="page-section glass-panel p-6 rounded-2xl">
+    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-comments mr-2"></i> 상담 일지</h2>
+    <div class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">상담 대상 학생</label>
+                <select class="student-select p-2.5 rounded-lg border w-full mb-1.5 text-sm" onchange="addStudentTag(this)"></select>
+                <div id="selected-students-tags" class="flex flex-wrap gap-1.5 min-h-[38px] p-1.5 bg-white rounded-lg border border-gray-300 items-center">
+                    <span class="text-sm text-gray-400">선택된 학생 없음</span>
+                </div>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">상담 대상자 구분</label>
+                <select id="counsel-target-type" class="p-2.5 rounded-lg border w-full text-sm">
+                    <option>학생 본인</option><option>보호자</option>
+                </select>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">상담 방법</label>
+                <select id="counsel-method" class="p-2.5 rounded-lg border w-full text-sm">
+                    <option>대면</option><option>전화</option><option>온라인/메시지</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block mb-1 font-bold text-sm text-gray-700">상담 내용</label>
+            <textarea id="counsel-content" placeholder="상담 내용을 입력하세요." class="p-2.5 rounded-lg border w-full text-sm resize-none mb-1" rows="4"></textarea>
+        </div>
+        <button onclick="saveCounsel()" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">상담 기록 저장하기</button>
+    </div>
+
+    <!-- 상담 보관함 -->
+    <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-box-archive mr-2 text-gray-400"></i> 상담 기록 보관함</h3>
+    <div class="filter-bar">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <input type="date" id="cns-filter-start" class="filter-input" title="시작일" onchange="filterCounselList()">
+            <input type="date" id="cns-filter-end"   class="filter-input" title="종료일" onchange="filterCounselList()">
+            <select id="cns-filter-method" class="filter-input" onchange="filterCounselList()">
+                <option value="">전체 방법</option>
+                <option>대면</option><option>전화</option><option>온라인/메시지</option>
+            </select>
+            <input type="text" id="cns-filter-name" placeholder="학생 이름" class="filter-input" oninput="filterCounselList()">
+            <button onclick="resetCounselFilter()" class="filter-reset-btn"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
+        </div>
+    </div>
+    <div id="counsel-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
+</section>
+
+<!-- ⑨ 디지털도구 -->
+<section id="page-tools" class="page-section glass-panel p-6 rounded-2xl">
+    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-toolbox mr-2"></i> 자주 쓰는 디지털 도구</h2>
+    <div id="tools-container" class="space-y-5"></div>
+</section>
+
+    </div><!-- max-w -->
+    </div><!-- main-scroll -->
+</div><!-- main-area -->
+</div><!-- app-wrap -->
+
+<!-- ── 토스트 ── -->
 <div id="toast"></div>
 
-<!-- ===== LOADING OVERLAY ===== -->
+<!-- ── 로딩 오버레이 ── -->
 <div id="loading-overlay" class="hidden fixed inset-0 bg-white bg-opacity-70 z-50 flex flex-col justify-center items-center">
-    <i class="fa-solid fa-spinner fa-spin text-5xl text-[var(--accent-color)] mb-4"></i>
-    <p class="font-bold text-gray-700">데이터를 처리 중입니다...</p>
+    <i class="fa-solid fa-spinner fa-spin text-5xl mb-4" style="color:var(--accent-color)"></i>
+    <p class="font-bold text-gray-600">처리 중입니다...</p>
 </div>
 
-<!-- ===== 초기 설정 모달 ===== -->
+<!-- ── 초기 설정 모달 ── -->
 <div id="setup-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-        <div class="text-center mb-6">
-            <i class="fa-brands fa-google-drive text-5xl text-green-500 mb-4 block"></i>
-            <h2 class="text-2xl font-bold mb-2">처음 오셨군요!</h2>
+    <div class="bg-white rounded-2xl p-7 max-w-md w-full shadow-2xl">
+        <div class="text-center mb-5">
+            <i class="fa-brands fa-google-drive text-5xl text-green-500 mb-3 block"></i>
+            <h2 class="text-xl font-bold mb-1">처음 오셨군요!</h2>
             <p class="text-gray-500 text-sm leading-relaxed">
-                나세나반 다이어리를 사용하려면<br>
-                구글 스프레드시트 URL이 필요합니다.<br>
-                <strong class="text-blue-500">한 번만 입력하면 이 기기에서 자동 연결됩니다.</strong>
+                구글 스프레드시트 URL을 한 번만 입력하면<br>
+                <strong class="text-blue-500">이 기기에서 자동 연결됩니다.</strong>
             </p>
         </div>
-        <div class="mb-5">
-            <label class="block mb-2 font-bold text-sm text-gray-700">
-                <i class="fa-solid fa-table-cells-large mr-1 text-green-500"></i> 구글 스프레드시트 URL
-            </label>
-            <input type="url" id="setup-url-input"
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                class="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-sm transition"
-                onkeydown="if(event.key==='Enter') setupAndConnect()">
-            <p class="text-xs text-gray-400 mt-2">
-                <i class="fa-solid fa-circle-info mr-1"></i>스프레드시트 상단 주소창의 URL을 붙여넣기 하세요.
-            </p>
-        </div>
-        <button onclick="setupAndConnect()" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md mb-3">
+        <input type="url" id="setup-url-input"
+            placeholder="https://docs.google.com/spreadsheets/d/..."
+            class="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-sm mb-4"
+            onkeydown="if(event.key==='Enter') setupAndConnect()">
+        <button onclick="setupAndConnect()" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm mb-3">
             <i class="fa-solid fa-plug mr-2"></i> 연동 시작하기
         </button>
         <p class="text-center text-xs text-gray-400">
@@ -497,96 +593,97 @@
     </div>
 </div>
 
-<!-- ===== 학생 대시보드 모달 ===== -->
+<!-- ── 학생 대시보드 모달 ── -->
 <div id="student-dashboard-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[70] flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
-        <!-- 모달 헤더 -->
-        <div class="p-5 flex justify-between items-center rounded-t-2xl flex-shrink-0" style="background-color:var(--bg-sidebar)">
+        <div class="p-5 flex justify-between items-center rounded-t-2xl flex-shrink-0" style="background:var(--bg-sidebar)">
             <div>
-                <p class="text-white text-opacity-80 text-xs mb-0.5">학생 종합 기록 대시보드</p>
-                <h2 class="text-xl font-bold text-white" id="dashboard-title">-</h2>
+                <p class="text-xs mb-0.5 opacity-70" style="color:var(--text-sidebar)">학생 종합 기록 대시보드</p>
+                <h2 class="text-lg font-bold" id="dashboard-title" style="color:var(--text-sidebar)">-</h2>
             </div>
             <button onclick="document.getElementById('student-dashboard-modal').classList.add('hidden')"
-                class="w-9 h-9 rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 flex items-center justify-center text-white transition">
+                class="w-9 h-9 rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 flex items-center justify-center transition"
+                style="color:var(--text-sidebar)">
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
-
-        <!-- 학생 기본 정보 -->
         <div id="dashboard-info" class="p-4 bg-gray-50 border-b flex-shrink-0"></div>
-
-        <!-- 기록 탭 내용 (스크롤) -->
-        <div class="overflow-y-auto flex-1 p-5 space-y-6">
-            <!-- 출결 -->
+        <div class="overflow-y-auto flex-1 p-5 space-y-5">
             <div>
-                <h3 class="font-bold text-base mb-2 flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center"><i class="fa-solid fa-check-to-slot text-blue-500 text-xs"></i></span>
-                    출결 기록
+                <h3 class="font-bold text-sm mb-2 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center"><i class="fa-solid fa-check-to-slot text-blue-500 text-xs"></i></span> 출결 기록
                 </h3>
-                <div id="dashboard-att" class="space-y-2"></div>
+                <div id="dashboard-att" class="space-y-1.5"></div>
             </div>
-            <!-- 학생기록 -->
             <div>
-                <h3 class="font-bold text-base mb-2 flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center"><i class="fa-solid fa-user-pen text-purple-500 text-xs"></i></span>
-                    행동 발달 기록
+                <h3 class="font-bold text-sm mb-2 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center"><i class="fa-solid fa-user-pen text-purple-500 text-xs"></i></span> 행동 발달 기록
                 </h3>
-                <div id="dashboard-record" class="space-y-2"></div>
+                <div id="dashboard-record" class="space-y-1.5"></div>
             </div>
-            <!-- 상담기록 -->
             <div>
-                <h3 class="font-bold text-base mb-2 flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center"><i class="fa-solid fa-comments text-green-500 text-xs"></i></span>
-                    상담 기록
+                <h3 class="font-bold text-sm mb-2 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center"><i class="fa-solid fa-comments text-green-500 text-xs"></i></span> 상담 기록
                 </h3>
-                <div id="dashboard-counsel" class="space-y-2"></div>
+                <div id="dashboard-counsel" class="space-y-1.5"></div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ===== SCRIPT ===== -->
+<!-- ═══ SCRIPT ═══ -->
 <script>
-// ─── 전역 변수 ───────────────────────────────────────────
+// ─── 전역 변수 ────────────────────────────────────────────
 let students = [];
-let selectedCounselStudents  = [];
-let selectedClassPeriods     = [];
-let selectedClassSubjects    = [];
-let allAttendanceRecords     = [];   // 출결 전체 목록 캐시
+let selectedCounselStudents = [], selectedClassPeriods = [], selectedClassSubjects = [];
+let allAttendanceRecords = [], allClassRecords = [], allDailyRecords = [];
+let allStudentRecords = [], allCounselRecords = [];
+const pagesLoaded = {};
 
 const classPeriodsList  = ['1교시','2교시','3교시','4교시','5교시','6교시'];
 const classSubjectsList = ['국어','도덕','사회','수학','과학','실과','체육','음악','미술','영어','창체','융합'];
 
 const digitalToolsData = {
     "학급 운영": [
-        {name:"교실 타이머", icon:"fa-stopwatch", color:"text-blue-500",   url:"#"},
-        {name:"발표자 뽑기", icon:"fa-dice",      color:"text-green-500",  url:"#"},
-        {name:"자리 바꾸기", icon:"fa-chair",     color:"text-orange-500", url:"#"},
-        {name:"소음 측정기", icon:"fa-volume-high",color:"text-red-400",   url:"#"}
+        {name:"교실 타이머", icon:"fa-stopwatch",   color:"text-blue-500",   url:"#"},
+        {name:"발표자 뽑기", icon:"fa-dice",         color:"text-green-500",  url:"#"},
+        {name:"자리 바꾸기", icon:"fa-chair",        color:"text-orange-500", url:"#"},
+        {name:"소음 측정기", icon:"fa-volume-high",  color:"text-red-400",    url:"#"}
     ],
     "수업 보조": [
-        {name:"집중 음악",   icon:"fa-music",       color:"text-yellow-500", url:"#"},
-        {name:"온라인 칠판", icon:"fa-chalkboard",  color:"text-purple-500", url:"#"},
-        {name:"퀴즈앤",      icon:"fa-q",           color:"text-pink-500",   url:"#"},
-        {name:"패들렛",      icon:"fa-pager",       color:"text-teal-500",   url:"#"}
+        {name:"집중 음악",   icon:"fa-music",        color:"text-yellow-500", url:"#"},
+        {name:"온라인 칠판", icon:"fa-chalkboard",   color:"text-purple-500", url:"#"},
+        {name:"퀴즈앤",      icon:"fa-q",            color:"text-pink-500",   url:"#"},
+        {name:"패들렛",      icon:"fa-pager",        color:"text-teal-500",   url:"#"}
     ],
     "유틸리티": [
-        {name:"맞춤법 검사기", icon:"fa-spell-check", color:"text-red-500",    url:"#"},
-        {name:"QR 생성기",    icon:"fa-qrcode",      color:"text-gray-700",   url:"#"},
-        {name:"미리캔버스",   icon:"fa-pen-nib",     color:"text-indigo-500", url:"#"}
+        {name:"맞춤법 검사기",icon:"fa-spell-check", color:"text-red-500",    url:"#"},
+        {name:"QR 생성기",   icon:"fa-qrcode",       color:"text-gray-700",   url:"#"},
+        {name:"미리캔버스",  icon:"fa-pen-nib",      color:"text-indigo-500", url:"#"}
     ]
 };
 
-// ─── 초기화 ─────────────────────────────────────────────
+// ─── 모바일 메뉴 ─────────────────────────────────────────
+function openMobileMenu() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('mobile-overlay').classList.remove('hidden');
+}
+function closeMobileMenu() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('mobile-overlay').classList.add('hidden');
+}
+
+// ─── 초기화 ──────────────────────────────────────────────
 window.onload = function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('att-date').value   = today;
     document.getElementById('class-date').value = today;
     document.getElementById('daily-date').value = today;
 
-    setTheme(localStorage.getItem('diaryTheme') || 'blue');
+    setTheme(localStorage.getItem('diaryTheme') || 'blue', true);
     populateClassSelects();
     renderTools();
+    setupFileInputs();
     showLoading();
 
     if (typeof google !== 'undefined' && google.script) {
@@ -594,43 +691,29 @@ window.onload = function() {
             loadAppData();
         } else {
             google.script.run
-                .withSuccessHandler(function(isComplete) {
-                    if (isComplete) {
-                        localStorage.setItem('nsn_setup_done', '1');
-                        loadAppData();
-                    } else {
-                        hideLoading();
-                        document.getElementById('setup-modal').classList.remove('hidden');
-                    }
+                .withSuccessHandler(function(ok) {
+                    if (ok) { localStorage.setItem('nsn_setup_done','1'); loadAppData(); }
+                    else    { hideLoading(); document.getElementById('setup-modal').classList.remove('hidden'); }
                 })
-                .withFailureHandler(function(e) {
-                    hideLoading();
-                    showToast('설정 확인 중 오류: ' + e.message);
-                })
+                .withFailureHandler(function(e) { hideLoading(); showToast('설정 확인 오류: ' + e.message); })
                 .isSetupComplete();
         }
     } else {
         // 로컬 테스트 모드
-        students = Array.from({length: 21}, (_, i) => ({
+        students = Array.from({length:21}, function(_,i) { return {
             num: i+1, name: '학생'+(i+1), phone: '010-0000-0000',
             parentPhone1: '010-1111-0000',
             parentPhone2: i % 4 === 0 ? '010-2222-0000' : '',
             note: i === 2 ? '땅콩 알레르기' : ''
-        }));
-        renderStudents();
-        populateStudentSelects();
-        hideLoading();
+        }; });
+        renderStudents(); populateStudentSelects(); hideLoading();
     }
 };
 
-// ─── GAS 데이터 로드 ─────────────────────────────────────
 function loadAppData() {
     google.script.run
         .withSuccessHandler(function(data) {
-            students = data;
-            renderStudents();
-            populateStudentSelects();
-            hideLoading();
+            students = data; renderStudents(); populateStudentSelects(); hideLoading();
         })
         .withFailureHandler(function(e) {
             hideLoading();
@@ -644,23 +727,20 @@ function loadAppData() {
         .getStudentList();
 }
 
-// ─── 초기 설정 연동 ──────────────────────────────────────
+// ─── 초기 설정 ───────────────────────────────────────────
 function setupAndConnect() {
     const url = document.getElementById('setup-url-input').value.trim();
     if (!url) { showToast('스프레드시트 URL을 입력하세요.'); return; }
     if (!url.includes('docs.google.com/spreadsheets')) { showToast('올바른 구글 스프레드시트 URL이 아닙니다.'); return; }
     showLoading();
     google.script.run
-        .withSuccessHandler(function(result) {
+        .withSuccessHandler(function(r) {
             hideLoading();
-            if (result.success) {
-                localStorage.setItem('nsn_setup_done', '1');
+            if (r.success) {
+                localStorage.setItem('nsn_setup_done','1');
                 document.getElementById('setup-modal').classList.add('hidden');
-                showToast(result.message);
-                loadAppData();
-            } else {
-                showToast(result.message);
-            }
+                showToast(r.message); loadAppData();
+            } else { showToast(r.message); }
         })
         .withFailureHandler(function(e) { hideLoading(); showToast('연동 실패: ' + e.message); })
         .setupSpreadsheet(url);
@@ -672,177 +752,171 @@ function resetSetup() {
     if (typeof google !== 'undefined' && google.script) {
         showLoading();
         google.script.run
-            .withSuccessHandler(function() { hideLoading(); showToast('초기화되었습니다.'); setTimeout(function(){ location.reload(); }, 1500); })
-            .withFailureHandler(function(e) { hideLoading(); showToast('초기화 실패: ' + e.message); setTimeout(function(){ location.reload(); }, 1500); })
+            .withSuccessHandler(function() { hideLoading(); showToast('초기화 완료'); setTimeout(function(){ location.reload(); }, 1200); })
+            .withFailureHandler(function() { hideLoading(); setTimeout(function(){ location.reload(); }, 1200); })
             .resetSetup();
-    } else {
-        location.reload();
-    }
+    } else { location.reload(); }
 }
 
-// ─── 홈으로 이동 ─────────────────────────────────────────
+// ─── 홈 / 내비게이션 ─────────────────────────────────────
 function goHome() {
-    showPage('page-schedule', document.getElementById('nav-schedule'));
+    showPage('page-home', document.getElementById('nav-home'));
 }
 
-// ─── 페이지 전환 ─────────────────────────────────────────
 function showPage(pageId, element) {
-    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(function(el) { el.classList.remove('active'); });
     if (element) element.classList.add('active');
-    document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
-    const target = document.getElementById(pageId);
+    document.querySelectorAll('.page-section').forEach(function(el) { el.classList.remove('active'); });
+    var target = document.getElementById(pageId);
     if (target) target.classList.add('active');
-    if (element) document.getElementById('current-page-title').innerText = element.innerText.trim();
-    // 출결 페이지 진입 시 목록 자동 로드
+    var titles = {
+        'page-home':'홈','page-schedule':'일정','page-students':'학생정보',
+        'page-attendance':'출결기록','page-class':'수업기록','page-daily':'일상기록',
+        'page-student-record':'학생기록','page-counsel':'상담기록','page-tools':'디지털도구'
+    };
+    document.getElementById('current-page-title').innerText = titles[pageId] || '';
+    closeMobileMenu();
+
+    // 페이지별 데이터 로드
+    if (pageId === 'page-schedule' && !pagesLoaded.schedule) { loadScheduleList(); pagesLoaded.schedule = true; }
     if (pageId === 'page-attendance') loadAttendanceList();
+    if (pageId === 'page-class'    && !pagesLoaded.cls)   { loadClassList();         pagesLoaded.cls = true; }
+    if (pageId === 'page-daily'    && !pagesLoaded.daily) { loadDailyList();         pagesLoaded.daily = true; }
+    if (pageId === 'page-student-record' && !pagesLoaded.sr) { loadStudentRecordList(); pagesLoaded.sr = true; }
+    if (pageId === 'page-counsel'  && !pagesLoaded.cns)  { loadCounselList();       pagesLoaded.cns = true; }
 }
 
 // ─── 테마 ────────────────────────────────────────────────
 function toggleThemeMenu() {
-    const menu = document.getElementById('theme-menu');
-    menu.classList.toggle('hidden');
-    menu.classList.toggle('flex');
+    var menu = document.getElementById('theme-menu');
+    menu.classList.toggle('hidden'); menu.classList.toggle('flex');
 }
 document.addEventListener('click', function(e) {
-    const menu = document.getElementById('theme-menu');
-    const btn  = menu.previousElementSibling;
+    var menu = document.getElementById('theme-menu');
+    var btn  = menu.previousElementSibling;
     if (!menu.contains(e.target) && !btn.contains(e.target)) {
-        menu.classList.add('hidden');
-        menu.classList.remove('flex');
+        menu.classList.add('hidden'); menu.classList.remove('flex');
     }
 });
-function setTheme(name) {
-    document.documentElement.setAttribute('data-theme', name);
-    localStorage.setItem('diaryTheme', name);
+function setTheme(name, silent) {
+    document.documentElement.setAttribute('data-theme', name || 'blue');
+    localStorage.setItem('diaryTheme', name || 'blue');
+    if (!silent) showToast('테마가 변경되었습니다.');
+    // 태그 재렌더 (색상 반영)
     if (selectedCounselStudents.length > 0) renderStudentTags();
-    if (selectedClassPeriods.length > 0) renderClassTags('period');
-    if (selectedClassSubjects.length > 0) renderClassTags('subject');
-    showToast('테마가 변경되었습니다.');
+    if (selectedClassPeriods.length   > 0) renderClassTags('period');
+    if (selectedClassSubjects.length  > 0) renderClassTags('subject');
+}
+
+// ─── 홈 검색 ─────────────────────────────────────────────
+function doSearch() {
+    var keyword = document.getElementById('search-input').value.trim();
+    if (!keyword) { showToast('검색어를 입력하세요.'); return; }
+    var resArea = document.getElementById('search-results');
+    resArea.classList.remove('hidden');
+    resArea.innerHTML = '<p class="text-sm text-gray-400 text-center py-3"><i class="fa-solid fa-spinner fa-spin mr-1"></i> 검색 중...</p>';
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(renderSearchResults)
+            .withFailureHandler(function(e) { resArea.innerHTML = '<p class="text-red-400 text-sm p-3">검색 실패: ' + e.message + '</p>'; })
+            .globalSearch(keyword);
+    } else {
+        setTimeout(function() {
+            renderSearchResults([
+                {type:'수업기록', pageId:'page-class', date:'2026-03-01', label:'분수의 나눗셈 (테스트)', content:'아이들이 활발히 참여했다.'},
+                {type:'일상기록', pageId:'page-daily', date:'2026-03-02', label:keyword + ' 관련 일상 (테스트)', content:''}
+            ]);
+        }, 600);
+    }
+}
+
+function renderSearchResults(results) {
+    var resArea = document.getElementById('search-results');
+    var badgeColors = {
+        '일정':'bg-blue-100 text-blue-700','수업기록':'bg-purple-100 text-purple-700',
+        '일상기록':'bg-yellow-100 text-yellow-700','학생기록':'bg-green-100 text-green-700',
+        '상담기록':'bg-red-100 text-red-700'
+    };
+    if (!results || results.length === 0) {
+        resArea.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">검색 결과가 없습니다.</p>';
+        return;
+    }
+    resArea.innerHTML = '<p class="text-xs text-gray-400 mb-2 font-bold">' + results.length + '건의 결과</p>' +
+        results.map(function(r) {
+            var bc = badgeColors[r.type] || 'bg-gray-100 text-gray-700';
+            return '<div class="search-result-item" onclick="showPage(\'' + r.pageId + '\', null)">' +
+                '<div class="flex items-center gap-2 mb-1">' +
+                '<span class="badge ' + bc + '">' + r.type + '</span>' +
+                '<span class="text-xs text-gray-400">' + r.date + '</span></div>' +
+                '<p class="font-bold text-sm text-gray-800">' + escHtml(r.label) + '</p>' +
+                (r.content ? '<p class="text-xs text-gray-500 mt-0.5">' + escHtml(r.content) + '</p>' : '') +
+                '</div>';
+        }).join('');
+}
+
+// ─── 일정 ────────────────────────────────────────────────
+function loadScheduleList() {
+    var el = document.getElementById('schedule-list');
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(renderScheduleList)
+            .withFailureHandler(function(e) { el.innerHTML = '<p class="text-red-400 text-sm p-3">일정 로드 실패: ' + e.message + '</p>'; })
+            .getScheduleList();
+    } else {
+        renderScheduleList([
+            {date:'2026-03-05', title:'학부모 총회', category:'학교일정', content:'오후 7시, 강당'},
+            {date:'2026-03-10', title:'1학기 학급임원 선출', category:'학급일정', content:''},
+            {date:'2026-03-20', title:'봄 소풍', category:'행사', content:'○○공원'}
+        ]);
+    }
+}
+
+function renderScheduleList(records) {
+    var el = document.getElementById('schedule-list');
+    if (!records || records.length === 0) {
+        el.innerHTML = '<div class="text-center text-gray-400 py-12">' +
+            '<i class="fa-solid fa-calendar-xmark text-4xl mb-3 block opacity-40"></i>' +
+            '<p class="text-sm">등록된 일정이 없습니다.<br>스프레드시트 [일정] 시트에 추가해주세요.</p></div>';
+        return;
+    }
+    var today = new Date().toISOString().split('T')[0];
+    var catColors = {'학교일정':'bg-blue-100 text-blue-700','학급일정':'bg-green-100 text-green-700','행사':'bg-orange-100 text-orange-700','기타':'bg-gray-100 text-gray-600'};
+    el.innerHTML = records.map(function(r) {
+        var isPast = r.date < today;
+        var parts  = r.date.split('-');
+        var dc     = catColors[r.category] || catColors['기타'];
+        return '<div class="schedule-card' + (isPast ? ' opacity-50' : '') + '">' +
+            '<div class="schedule-date"><div class="text-xs font-bold opacity-80">' + parts[1] + '월</div>' +
+            '<div class="text-xl font-bold leading-tight">' + parseInt(parts[2]) + '</div></div>' +
+            '<div class="flex-1 min-w-0">' +
+            '<div class="flex items-center gap-2 mb-0.5">' +
+            '<span class="badge ' + dc + '">' + escHtml(r.category) + '</span>' +
+            (isPast ? '<span class="text-xs text-gray-400">지난 일정</span>' : '') + '</div>' +
+            '<p class="font-bold text-gray-800 text-sm">' + escHtml(r.title) + '</p>' +
+            (r.content ? '<p class="text-xs text-gray-500 mt-0.5">' + escHtml(r.content) + '</p>' : '') +
+            '</div></div>';
+    }).join('');
 }
 
 // ─── 학생 렌더링 ─────────────────────────────────────────
 function renderStudents() {
-    document.getElementById('student-table-body').innerHTML = students.map(s => `
-        <tr class="border-b hover:bg-white transition text-gray-800">
-            <td class="p-3">${s.num}</td>
-            <td class="p-3">
-                <button class="student-name-btn" onclick="openStudentDashboard(${s.num})">${s.name}</button>
-            </td>
-            <td class="p-3 text-sm">${s.phone || '-'}</td>
-            <td class="p-3 text-sm">${s.parentPhone1 || '-'}</td>
-            <td class="p-3 text-sm">${s.parentPhone2 || '-'}</td>
-            <td class="p-3 text-sm text-red-500">${s.note || ''}</td>
-        </tr>
-    `).join('');
-}
-
-function populateStudentSelects() {
-    document.querySelectorAll('.student-select').forEach(sel => {
-        sel.innerHTML = '<option value="">선택 (클릭하세요)</option>' +
-            students.map(s => `<option value="${s.num}">${s.num}번 ${s.name}</option>`).join('');
-    });
-}
-
-// ─── 상담 학생 태그 ──────────────────────────────────────
-function addStudentTag(select) {
-    const id = select.value;
-    if (!id || selectedCounselStudents.includes(id)) { select.value = ''; return; }
-    selectedCounselStudents.push(id);
-    renderStudentTags();
-    select.value = '';
-}
-window.removeStudentTag = function(id) {
-    selectedCounselStudents = selectedCounselStudents.filter(x => x !== String(id));
-    renderStudentTags();
-};
-function renderStudentTags() {
-    const container = document.getElementById('selected-students-tags');
-    if (selectedCounselStudents.length === 0) {
-        container.innerHTML = '<span class="text-sm text-gray-400">선택된 학생이 없습니다.</span>';
-        return;
-    }
-    container.innerHTML = selectedCounselStudents.map(id => {
-        const s = students.find(x => x.num == id);
-        return `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold shadow-sm" style="background-color:var(--accent-color);color:var(--text-sidebar)">
-            ${id}번 ${s ? s.name : '?'}
-            <button type="button" class="ml-2 w-5 h-5 flex items-center justify-center rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 transition" onclick="removeStudentTag(${id})">
-                <i class="fa-solid fa-times text-xs"></i>
-            </button>
-        </span>`;
+    document.getElementById('student-table-body').innerHTML = students.map(function(s) {
+        return '<tr class="border-b hover:bg-white transition text-sm text-gray-800">' +
+            '<td class="p-3">' + s.num + '</td>' +
+            '<td class="p-3"><button class="student-name-btn" onclick="openStudentDashboard(' + s.num + ')">' + escHtml(s.name) + '</button></td>' +
+            '<td class="p-3 hidden md:table-cell">' + (s.phone || '-') + '</td>' +
+            '<td class="p-3 hidden md:table-cell">' + (s.parentPhone1 || '-') + '</td>' +
+            '<td class="p-3 hidden md:table-cell">' + (s.parentPhone2 || '-') + '</td>' +
+            '<td class="p-3 text-red-500">' + escHtml(s.note || '') + '</td>' +
+            '</tr>';
     }).join('');
 }
 
-// ─── 수업 태그 ───────────────────────────────────────────
-function populateClassSelects() {
-    document.getElementById('period-select').innerHTML =
-        '<option value="">교시 선택 (클릭하여 추가)</option>' +
-        classPeriodsList.map(p => `<option value="${p}">${p}</option>`).join('');
-    document.getElementById('subject-select').innerHTML =
-        '<option value="">과목 선택 (클릭하여 추가)</option>' +
-        classSubjectsList.map(s => `<option value="${s}">${s}</option>`).join('');
-    document.getElementById('subject-filter').innerHTML =
-        '<option value="">모든 과목 보기</option>' +
-        classSubjectsList.map(s => `<option value="${s}">${s}</option>`).join('');
-}
-function addClassTag(type, select) {
-    const val = select.value;
-    if (!val) return;
-    const arr = type === 'period' ? selectedClassPeriods : selectedClassSubjects;
-    if (arr.includes(val)) { select.value = ''; return; }
-    arr.push(val);
-    if (type === 'period') arr.sort();
-    renderClassTags(type);
-    select.value = '';
-}
-window.removeClassTag = function(type, val) {
-    if (type === 'period') selectedClassPeriods = selectedClassPeriods.filter(x => x !== val);
-    else selectedClassSubjects = selectedClassSubjects.filter(x => x !== val);
-    renderClassTags(type);
-};
-function renderClassTags(type) {
-    const isPeriod  = type === 'period';
-    const arr       = isPeriod ? selectedClassPeriods : selectedClassSubjects;
-    const id        = isPeriod ? 'selected-periods-tags' : 'selected-subjects-tags';
-    const emptyMsg  = isPeriod ? '선택된 교시가 없습니다.' : '선택된 과목이 없습니다.';
-    const container = document.getElementById(id);
-    if (arr.length === 0) { container.innerHTML = `<span class="text-sm text-gray-400">${emptyMsg}</span>`; return; }
-    container.innerHTML = arr.map(val => `
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold shadow-sm" style="background-color:var(--accent-color);color:var(--text-sidebar)">
-            ${val}
-            <button type="button" class="ml-2 w-5 h-5 flex items-center justify-center rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 transition" onclick="removeClassTag('${type}','${val}')">
-                <i class="fa-solid fa-times text-xs"></i>
-            </button>
-        </span>`).join('');
-}
-
-// ─── 디지털 도구 렌더링 ──────────────────────────────────
-function renderTools() {
-    let html = '';
-    for (const [cat, tools] of Object.entries(digitalToolsData)) {
-        html += `<div>
-            <h3 class="text-lg font-bold mb-3 border-l-4 border-[var(--accent-color)] pl-3 text-gray-800">${cat}</h3>
-            <div class="grid grid-cols-3 md:grid-cols-5 gap-3">
-                ${tools.map(t => `
-                    <a href="${t.url}" target="_blank" class="bg-white p-3 rounded-xl shadow hover:shadow-md transition text-center block border border-transparent hover:border-[var(--accent-color)] flex flex-col items-center justify-center min-h-[90px]">
-                        <i class="fa-solid ${t.icon} text-2xl ${t.color} mb-2"></i>
-                        <h4 class="font-bold text-[12px] leading-tight text-gray-700">${t.name}</h4>
-                    </a>`).join('')}
-            </div>
-        </div>`;
-    }
-    document.getElementById('tools-container').innerHTML = html;
-}
-
-// ─── 로딩 ────────────────────────────────────────────────
-function showLoading() { document.getElementById('loading-overlay').classList.remove('hidden'); }
-function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
-
-// ─── 토스트 ──────────────────────────────────────────────
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerText = msg;
-    t.className = 'show';
-    setTimeout(() => { t.className = t.className.replace('show',''); }, 3000);
+function populateStudentSelects() {
+    document.querySelectorAll('.student-select').forEach(function(sel) {
+        sel.innerHTML = '<option value="">선택 (클릭하세요)</option>' +
+            students.map(function(s) { return '<option value="' + s.num + '">' + s.num + '번 ' + escHtml(s.name) + '</option>'; }).join('');
+    });
 }
 
 // ─── GAS 호출 헬퍼 ───────────────────────────────────────
@@ -858,244 +932,588 @@ function gasCall(fnName, payload, successMsg, onSuccess) {
             .withFailureHandler(function(e) { hideLoading(); showToast('저장 실패: ' + e.message); })
             [fnName](payload);
     } else {
-        setTimeout(function() { hideLoading(); showToast(successMsg + ' (테스트 모드)'); if(onSuccess) onSuccess(); }, 800);
+        setTimeout(function() { hideLoading(); showToast(successMsg + ' (테스트 모드)'); if (onSuccess) onSuccess(); }, 700);
     }
 }
 
-// ─── ③ 출결기록 저장 ─────────────────────────────────────
+// ─── 파일 업로드 ─────────────────────────────────────────
+function setupFileInputs() {
+    var inputs = [
+        {inputId:'class-file-input', nameId:'class-file-name'},
+        {inputId:'daily-file-input', nameId:'daily-file-name'}
+    ];
+    inputs.forEach(function(cfg) {
+        var inp = document.getElementById(cfg.inputId);
+        if (!inp) return;
+        inp.addEventListener('change', function() {
+            var nm = document.getElementById(cfg.nameId);
+            nm.textContent = inp.files.length > 0 ? inp.files[0].name : '';
+        });
+    });
+}
+
+function uploadFile(file, callback) {
+    if (file.size > 5 * 1024 * 1024) { showToast('파일 크기는 5MB 이하여야 합니다.'); callback('', ''); return; }
+    if (typeof google === 'undefined' || !google.script) {
+        showToast('파일 업로드는 GAS 웹앱에서만 지원됩니다. (테스트 모드)');
+        callback('', ''); return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var base64 = e.target.result.split(',')[1];
+        showLoading();
+        google.script.run
+            .withSuccessHandler(function(res) { hideLoading(); showToast('파일 업로드 완료: ' + res.name); callback(res.url, res.name); })
+            .withFailureHandler(function(err) { hideLoading(); showToast('파일 업로드 실패: ' + err.message); callback('', ''); })
+            .uploadFileToDrive(base64, file.name, file.type || 'application/octet-stream');
+    };
+    reader.readAsDataURL(file);
+}
+
+function withOptionalUpload(fileInputId, callback) {
+    var inp = document.getElementById(fileInputId);
+    if (inp && inp.files && inp.files.length > 0) {
+        uploadFile(inp.files[0], callback);
+    } else {
+        callback('', '');
+    }
+}
+
+// ─── 삭제 헬퍼 ───────────────────────────────────────────
+function deleteRec(sheetName, id, reloadFn) {
+    if (!confirm('이 기록을 삭제하시겠습니까?\n한번 삭제하면 복구할 수 없습니다.')) return;
+    if (typeof google !== 'undefined' && google.script) {
+        showLoading();
+        google.script.run
+            .withSuccessHandler(function() { hideLoading(); showToast('삭제되었습니다.'); if (reloadFn) reloadFn(); })
+            .withFailureHandler(function(e) { hideLoading(); showToast('삭제 실패: ' + e.message); })
+            .deleteRecord(sheetName, id);
+    } else {
+        showToast('삭제되었습니다. (테스트 모드)');
+        if (reloadFn) reloadFn();
+    }
+}
+
+// ─── 출결기록 ────────────────────────────────────────────
 function saveAttendance(event) {
     event.preventDefault();
-    const sel = document.getElementById('att-student-select');
-    const num = sel.value;
+    var sel = document.getElementById('att-student-select');
+    var num = sel.value;
     if (!num) { showToast('학생을 선택하세요.'); return; }
-    const s = students.find(x => x.num == num);
+    var s = students.find(function(x) { return x.num == num; });
     gasCall('saveAttendanceRecord', {
-        date:        document.getElementById('att-date').value,
-        studentNum:  num,
+        date: document.getElementById('att-date').value, studentNum: num,
         studentName: s ? s.name : '',
-        status:      document.getElementById('att-status').value,
-        reason:      document.getElementById('att-reason').value,
-        proof:       document.getElementById('att-proof').value
+        status: document.getElementById('att-status').value,
+        reason: document.getElementById('att-reason').value,
+        proof:  document.getElementById('att-proof').value
     }, '출결 기록이 저장되었습니다.', function() {
-        document.getElementById('att-reason').value = '';
-        sel.value = '';
-        loadAttendanceList();   // 저장 후 목록 즉시 갱신
+        document.getElementById('att-reason').value = ''; sel.value = '';
+        loadAttendanceList();
     });
 }
 
-// ─── ④ 수업기록 저장 ─────────────────────────────────────
-function saveClass(event) {
-    event.preventDefault();
-    gasCall('saveClassRecord', {
-        date:       document.getElementById('class-date').value,
-        unit:       '',
-        periods:    selectedClassPeriods.slice(),
-        subjects:   selectedClassSubjects.slice(),
-        topic:      document.getElementById('class-topic').value,
-        reflection: document.getElementById('class-reflection').value,
-        link:       document.getElementById('class-link').value,
-        files:      ''
-    }, '수업 기록이 저장되었습니다.', function() {
-        document.getElementById('class-topic').value = '';
-        document.getElementById('class-reflection').value = '';
-        document.getElementById('class-link').value = '';
-        selectedClassPeriods = []; selectedClassSubjects = [];
-        renderClassTags('period'); renderClassTags('subject');
-    });
-}
-
-// ─── ⑤ 일상기록 저장 ─────────────────────────────────────
-function saveDaily(event) {
-    event.preventDefault();
-    gasCall('saveDailyRecord', {
-        date:    document.getElementById('daily-date').value,
-        keyword: document.getElementById('daily-keyword').value,
-        content: document.getElementById('daily-content').value,
-        link:    document.getElementById('daily-link').value,
-        files:   ''
-    }, '일상 기록이 저장되었습니다.', function() {
-        document.getElementById('daily-keyword').value = '';
-        document.getElementById('daily-content').value = '';
-        document.getElementById('daily-link').value = '';
-    });
-}
-
-// ─── ⑥ 학생기록 저장 ─────────────────────────────────────
-function saveStudentRec() {
-    const sel = document.getElementById('sr-student-select');
-    const num = sel.value;
-    if (!num) { showToast('학생을 선택하세요.'); return; }
-    const content = document.getElementById('sr-content').value.trim();
-    if (!content) { showToast('관찰 내용을 입력하세요.'); return; }
-    const s = students.find(x => x.num == num);
-    gasCall('saveStudentRecord', {
-        studentNum:  num,
-        studentName: s ? s.name : '',
-        category:    document.getElementById('sr-category').value,
-        content:     content
-    }, '학생 기록이 저장되었습니다.', function() {
-        document.getElementById('sr-content').value = '';
-        sel.value = '';
-    });
-}
-
-// ─── ⑦ 상담기록 저장 ─────────────────────────────────────
-function saveCounsel() {
-    if (selectedCounselStudents.length === 0) { showToast('학생을 선택하세요.'); return; }
-    const content = document.getElementById('counsel-content').value.trim();
-    if (!content) { showToast('상담 내용을 입력하세요.'); return; }
-    const studentTags = selectedCounselStudents.map(id => {
-        const s = students.find(x => x.num == id);
-        return id + '번 ' + (s ? s.name : '?');
-    });
-    gasCall('saveCounselRecord', {
-        studentTags: studentTags,
-        targetType:  document.getElementById('counsel-target-type').value,
-        method:      document.getElementById('counsel-method').value,
-        content:     content
-    }, '상담 기록이 저장되었습니다.', function() {
-        document.getElementById('counsel-content').value = '';
-        selectedCounselStudents = [];
-        renderStudentTags();
-    });
-}
-
-// ─── 출결 목록 로드 / 렌더 / 필터 ───────────────────────
 function loadAttendanceList() {
     if (typeof google !== 'undefined' && google.script) {
         google.script.run
-            .withSuccessHandler(function(data) {
-                allAttendanceRecords = data;
-                renderAttendanceList(data);
-            })
-            .withFailureHandler(function(e) {
-                const el = document.getElementById('attendance-list');
-                if (el) el.innerHTML = '<p class="text-red-400 text-sm p-3">목록 로드 실패: ' + e.message + '</p>';
-            })
+            .withSuccessHandler(function(data) { allAttendanceRecords = data; renderAttendanceList(data); })
+            .withFailureHandler(function(e) { showErrInList('attendance-list', e.message); })
             .getAttendanceList();
     } else {
         allAttendanceRecords = [
-            {date:'2026-03-01', studentNum:1, studentName:'학생1', status:'질병결석', reason:'감기', proof:'O'},
-            {date:'2026-03-02', studentNum:3, studentName:'학생3', status:'질병조퇴', reason:'두통', proof:'X'}
+            {id:'ATT-1',date:'2026-03-01',studentNum:1,studentName:'학생1',status:'질병결석',reason:'감기',proof:'O'},
+            {id:'ATT-2',date:'2026-03-02',studentNum:3,studentName:'학생3',status:'질병조퇴',reason:'두통',proof:'X'}
         ];
         renderAttendanceList(allAttendanceRecords);
     }
 }
 
 function renderAttendanceList(records) {
-    const container = document.getElementById('attendance-list');
-    if (!container) return;
-    if (!records || records.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-sm text-center p-6">출결 기록이 없습니다.</p>';
-        return;
-    }
-    const sorted = records.slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
-    container.innerHTML = sorted.map(function(r) {
-        return '<div class="bg-white rounded-xl p-4 shadow-sm border-l-4 flex justify-between items-center gap-2 mb-2" style="border-left-color:var(--accent-color)">' +
-            '<div>' +
-            '<span class="text-sm font-bold text-gray-500 mr-2">' + r.date + '</span>' +
-            '<span class="font-bold text-gray-800 mr-2">' + r.studentNum + '번 ' + r.studentName + '</span>' +
-            '<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold">' + r.status + '</span>' +
-            (r.reason ? '<span class="ml-1 text-sm text-gray-500">' + r.reason + '</span>' : '') +
-            '</div>' +
-            '<span class="text-xs text-gray-400 flex-shrink-0">증빙: ' + (r.proof || '-') + '</span>' +
+    var el = document.getElementById('attendance-list');
+    if (!records || records.length === 0) { el.innerHTML = emptyMsg('출결 기록이 없습니다.'); return; }
+    var sorted = records.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    el.innerHTML = sorted.map(function(r) {
+        return '<div class="rec-card flex justify-between items-start gap-2">' +
+            '<div><span class="meta mr-2">' + r.date + '</span>' +
+            '<span class="font-bold text-gray-800 text-sm mr-2">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
+            '<span class="badge bg-red-100 text-red-700 mr-1">' + escHtml(r.status) + '</span>' +
+            (r.reason ? '<span class="text-xs text-gray-500">' + escHtml(r.reason) + '</span>' : '') +
+            '<span class="text-xs text-gray-400 ml-2">증빙: ' + (r.proof||'-') + '</span></div>' +
+            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'출결기록\',\'' + escAttr(r.id) + '\',loadAttendanceList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
             '</div>';
     }).join('');
 }
 
 function filterAttendanceList() {
-    const start  = document.getElementById('att-filter-start').value;
-    const end    = document.getElementById('att-filter-end').value;
-    const status = document.getElementById('att-filter-status').value;
-    const name   = document.getElementById('att-filter-name').value.trim();
-    const filtered = allAttendanceRecords.filter(function(r) {
+    var start  = document.getElementById('att-filter-start').value;
+    var end    = document.getElementById('att-filter-end').value;
+    var status = document.getElementById('att-filter-status').value;
+    var name   = document.getElementById('att-filter-name').value.trim();
+    renderAttendanceList(allAttendanceRecords.filter(function(r) {
         if (start && r.date < start) return false;
         if (end   && r.date > end)   return false;
         if (status && r.status !== status) return false;
         if (name && String(r.studentName).indexOf(name) === -1) return false;
         return true;
+    }));
+}
+function resetAttendanceFilter() {
+    ['att-filter-start','att-filter-end','att-filter-name'].forEach(function(id){ document.getElementById(id).value=''; });
+    document.getElementById('att-filter-status').value = '';
+    renderAttendanceList(allAttendanceRecords);
+}
+
+// ─── 수업기록 ────────────────────────────────────────────
+function saveClass(event) {
+    event.preventDefault();
+    withOptionalUpload('class-file-input', function(fileUrl, fileName) {
+        gasCall('saveClassRecord', {
+            date: document.getElementById('class-date').value, unit: '',
+            periods: selectedClassPeriods.slice(), subjects: selectedClassSubjects.slice(),
+            topic:      document.getElementById('class-topic').value,
+            reflection: document.getElementById('class-reflection').value,
+            link:       document.getElementById('class-link').value,
+            files:      fileUrl
+        }, '수업 기록이 저장되었습니다.', function() {
+            document.getElementById('class-topic').value = '';
+            document.getElementById('class-reflection').value = '';
+            document.getElementById('class-link').value = '';
+            document.getElementById('class-file-name').textContent = '';
+            selectedClassPeriods = []; selectedClassSubjects = [];
+            renderClassTags('period'); renderClassTags('subject');
+            pagesLoaded.cls = false; loadClassList(); pagesLoaded.cls = true;
+        });
     });
-    renderAttendanceList(filtered);
+}
+
+function loadClassList() {
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(function(data) { allClassRecords = data; renderClassList(data); })
+            .withFailureHandler(function(e) { showErrInList('class-list', e.message); })
+            .getClassList();
+    } else {
+        allClassRecords = [
+            {id:'CLS-1',date:'2026-03-01',periods:'1교시,2교시',subjects:'국어',topic:'인물의 성격 짐작하기',reflection:'역할극이 효과적이었다.',link:'',files:''}
+        ];
+        renderClassList(allClassRecords);
+    }
+}
+
+function renderClassList(records) {
+    var el = document.getElementById('class-list');
+    if (!records || records.length === 0) { el.innerHTML = emptyMsg('수업 기록이 없습니다.'); return; }
+    var sorted = records.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    el.innerHTML = sorted.map(function(r) {
+        return '<div class="rec-card">' +
+            '<div class="flex justify-between items-start gap-2">' +
+            '<div class="flex flex-wrap items-center gap-1.5 mb-1.5">' +
+            '<span class="meta">' + r.date + '</span>' +
+            (r.periods  ? '<span class="badge bg-gray-100 text-gray-700">'  + escHtml(r.periods)  + '</span>' : '') +
+            (r.subjects ? '<span class="badge bg-blue-100 text-blue-700">'  + escHtml(r.subjects) + '</span>' : '') +
+            '</div>' +
+            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'수업기록\',\'' + escAttr(r.id) + '\',reloadClassList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '</div>' +
+            '<p class="font-bold text-gray-800 text-sm mb-1">' + escHtml(r.topic) + '</p>' +
+            (r.reflection ? '<p class="text-xs text-gray-600 mb-1">' + escHtml(r.reflection) + '</p>' : '') +
+            '<div class="flex gap-3 mt-1">' +
+            (r.link  ? '<a href="' + escAttr(r.link)  + '" target="_blank" class="text-xs text-blue-500 hover:underline"><i class="fa-solid fa-link mr-0.5"></i>링크</a>' : '') +
+            (r.files ? '<a href="' + escAttr(r.files) + '" target="_blank" class="text-xs text-indigo-500 hover:underline"><i class="fa-solid fa-file mr-0.5"></i>첨부파일</a>' : '') +
+            '</div></div>';
+    }).join('');
+}
+function reloadClassList() { pagesLoaded.cls=false; loadClassList(); pagesLoaded.cls=true; }
+
+function filterClassList() {
+    var start   = document.getElementById('cls-filter-start').value;
+    var end     = document.getElementById('cls-filter-end').value;
+    var subject = document.getElementById('cls-filter-subject').value;
+    var text    = document.getElementById('cls-filter-text').value.trim().toLowerCase();
+    renderClassList(allClassRecords.filter(function(r) {
+        if (start && r.date < start) return false;
+        if (end   && r.date > end)   return false;
+        if (subject && r.subjects.indexOf(subject) === -1) return false;
+        if (text && r.topic.toLowerCase().indexOf(text) === -1 && r.reflection.toLowerCase().indexOf(text) === -1) return false;
+        return true;
+    }));
+}
+function resetClassFilter() {
+    ['cls-filter-start','cls-filter-end','cls-filter-text'].forEach(function(id){ document.getElementById(id).value=''; });
+    document.getElementById('cls-filter-subject').value = '';
+    renderClassList(allClassRecords);
+}
+
+// ─── 일상기록 ────────────────────────────────────────────
+function saveDaily(event) {
+    event.preventDefault();
+    withOptionalUpload('daily-file-input', function(fileUrl) {
+        gasCall('saveDailyRecord', {
+            date:    document.getElementById('daily-date').value,
+            keyword: document.getElementById('daily-keyword').value,
+            content: document.getElementById('daily-content').value,
+            link:    document.getElementById('daily-link').value,
+            files:   fileUrl
+        }, '일상 기록이 저장되었습니다.', function() {
+            document.getElementById('daily-keyword').value = '';
+            document.getElementById('daily-content').value = '';
+            document.getElementById('daily-link').value = '';
+            document.getElementById('daily-file-name').textContent = '';
+            pagesLoaded.daily = false; loadDailyList(); pagesLoaded.daily = true;
+        });
+    });
+}
+
+function loadDailyList() {
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(function(data) { allDailyRecords = data; renderDailyList(data); })
+            .withFailureHandler(function(e) { showErrInList('daily-list', e.message); })
+            .getDailyList();
+    } else {
+        allDailyRecords = [
+            {id:'DLY-1',date:'2026-03-01',keyword:'학부모 총회',content:'학부모님들과 학급 운영 방향 공유.',link:'',files:''}
+        ];
+        renderDailyList(allDailyRecords);
+    }
+}
+
+function renderDailyList(records) {
+    var el = document.getElementById('daily-list');
+    if (!records || records.length === 0) { el.innerHTML = emptyMsg('일상 기록이 없습니다.'); return; }
+    var sorted = records.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    el.innerHTML = sorted.map(function(r) {
+        return '<div class="rec-card">' +
+            '<div class="flex justify-between items-start gap-2">' +
+            '<div><span class="meta mr-2">' + r.date + '</span>' +
+            '<span class="badge bg-yellow-100 text-yellow-700">' + escHtml(r.keyword) + '</span></div>' +
+            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'일상기록\',\'' + escAttr(r.id) + '\',reloadDailyList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '</div>' +
+            '<p class="text-sm text-gray-700 mt-1 mb-1">' + escHtml(r.content) + '</p>' +
+            '<div class="flex gap-3">' +
+            (r.link  ? '<a href="' + escAttr(r.link)  + '" target="_blank" class="text-xs text-blue-500 hover:underline"><i class="fa-solid fa-link mr-0.5"></i>링크</a>' : '') +
+            (r.files ? '<a href="' + escAttr(r.files) + '" target="_blank" class="text-xs text-indigo-500 hover:underline"><i class="fa-solid fa-file mr-0.5"></i>첨부파일</a>' : '') +
+            '</div></div>';
+    }).join('');
+}
+function reloadDailyList() { pagesLoaded.daily=false; loadDailyList(); pagesLoaded.daily=true; }
+
+function filterDailyList() {
+    var start = document.getElementById('dly-filter-start').value;
+    var end   = document.getElementById('dly-filter-end').value;
+    var text  = document.getElementById('dly-filter-text').value.trim().toLowerCase();
+    renderDailyList(allDailyRecords.filter(function(r) {
+        if (start && r.date < start) return false;
+        if (end   && r.date > end)   return false;
+        if (text && r.keyword.toLowerCase().indexOf(text)===-1 && r.content.toLowerCase().indexOf(text)===-1) return false;
+        return true;
+    }));
+}
+function resetDailyFilter() {
+    ['dly-filter-start','dly-filter-end','dly-filter-text'].forEach(function(id){ document.getElementById(id).value=''; });
+    renderDailyList(allDailyRecords);
+}
+
+// ─── 학생기록 ────────────────────────────────────────────
+function saveStudentRec() {
+    var sel = document.getElementById('sr-student-select');
+    var num = sel.value;
+    if (!num) { showToast('학생을 선택하세요.'); return; }
+    var content = document.getElementById('sr-content').value.trim();
+    if (!content) { showToast('관찰 내용을 입력하세요.'); return; }
+    var s = students.find(function(x){ return x.num == num; });
+    gasCall('saveStudentRecord', {
+        studentNum: num, studentName: s ? s.name : '',
+        category: document.getElementById('sr-category').value, content: content
+    }, '학생 기록이 저장되었습니다.', function() {
+        document.getElementById('sr-content').value = ''; sel.value = '';
+        pagesLoaded.sr = false; loadStudentRecordList(); pagesLoaded.sr = true;
+    });
+}
+
+function loadStudentRecordList() {
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(function(data) { allStudentRecords = data; renderStudentRecordList(data); })
+            .withFailureHandler(function(e) { showErrInList('student-record-list', e.message); })
+            .getStudentRecordList();
+    } else {
+        allStudentRecords = [
+            {id:'STU-1',timestamp:'2026-03-01 09:00',studentNum:2,studentName:'학생2',category:'학습 태도',content:'수업 참여도 높음'}
+        ];
+        renderStudentRecordList(allStudentRecords);
+    }
+}
+
+function renderStudentRecordList(records) {
+    var el = document.getElementById('student-record-list');
+    if (!records || records.length === 0) { el.innerHTML = emptyMsg('학생 기록이 없습니다.'); return; }
+    var sorted = records.slice().sort(function(a,b){ return b.timestamp.localeCompare(a.timestamp); });
+    el.innerHTML = sorted.map(function(r) {
+        return '<div class="rec-card">' +
+            '<div class="flex justify-between items-start gap-2">' +
+            '<div class="flex flex-wrap items-center gap-1.5">' +
+            '<span class="meta">' + r.timestamp + '</span>' +
+            '<span class="font-bold text-gray-800 text-sm">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
+            '<span class="badge bg-purple-100 text-purple-700">' + escHtml(r.category) + '</span>' +
+            '</div>' +
+            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'학생기록\',\'' + escAttr(r.id) + '\',reloadStudentRecordList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '</div>' +
+            '<p class="text-sm text-gray-700 mt-1.5">' + escHtml(r.content) + '</p>' +
+            '</div>';
+    }).join('');
+}
+function reloadStudentRecordList() { pagesLoaded.sr=false; loadStudentRecordList(); pagesLoaded.sr=true; }
+
+function filterStudentRecordList() {
+    var name = document.getElementById('sr-filter-name').value.trim();
+    var cat  = document.getElementById('sr-filter-category').value;
+    renderStudentRecordList(allStudentRecords.filter(function(r) {
+        if (name && String(r.studentName).indexOf(name) === -1) return false;
+        if (cat  && r.category !== cat) return false;
+        return true;
+    }));
+}
+function resetStudentRecordFilter() {
+    document.getElementById('sr-filter-name').value = '';
+    document.getElementById('sr-filter-category').value = '';
+    renderStudentRecordList(allStudentRecords);
+}
+
+// ─── 상담기록 ────────────────────────────────────────────
+function saveCounsel() {
+    if (selectedCounselStudents.length === 0) { showToast('학생을 선택하세요.'); return; }
+    var content = document.getElementById('counsel-content').value.trim();
+    if (!content) { showToast('상담 내용을 입력하세요.'); return; }
+    var studentTags = selectedCounselStudents.map(function(id) {
+        var s = students.find(function(x){ return x.num == id; });
+        return id + '번 ' + (s ? s.name : '?');
+    });
+    gasCall('saveCounselRecord', {
+        studentTags: studentTags,
+        targetType: document.getElementById('counsel-target-type').value,
+        method:     document.getElementById('counsel-method').value,
+        content:    content
+    }, '상담 기록이 저장되었습니다.', function() {
+        document.getElementById('counsel-content').value = '';
+        selectedCounselStudents = []; renderStudentTags();
+        pagesLoaded.cns = false; loadCounselList(); pagesLoaded.cns = true;
+    });
+}
+
+function loadCounselList() {
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(function(data) { allCounselRecords = data; renderCounselList(data); })
+            .withFailureHandler(function(e) { showErrInList('counsel-list', e.message); })
+            .getCounselList();
+    } else {
+        allCounselRecords = [
+            {id:'CNS-1',timestamp:'2026-03-01 14:00',studentNum:1,studentName:'학생1',targetType:'학생 본인',method:'대면',content:'진로 상담 진행'}
+        ];
+        renderCounselList(allCounselRecords);
+    }
+}
+
+function renderCounselList(records) {
+    var el = document.getElementById('counsel-list');
+    if (!records || records.length === 0) { el.innerHTML = emptyMsg('상담 기록이 없습니다.'); return; }
+    var sorted = records.slice().sort(function(a,b){ return b.timestamp.localeCompare(a.timestamp); });
+    el.innerHTML = sorted.map(function(r) {
+        return '<div class="rec-card">' +
+            '<div class="flex justify-between items-start gap-2">' +
+            '<div class="flex flex-wrap items-center gap-1.5 mb-1">' +
+            '<span class="meta">' + r.timestamp + '</span>' +
+            '<span class="font-bold text-gray-800 text-sm">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
+            '<span class="badge bg-green-100 text-green-700">' + escHtml(r.targetType) + '</span>' +
+            '<span class="badge bg-blue-100 text-blue-700">'  + escHtml(r.method)     + '</span>' +
+            '</div>' +
+            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'상담기록\',\'' + escAttr(r.id) + '\',reloadCounselList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '</div>' +
+            '<p class="text-sm text-gray-700">' + escHtml(r.content) + '</p>' +
+            '</div>';
+    }).join('');
+}
+function reloadCounselList() { pagesLoaded.cns=false; loadCounselList(); pagesLoaded.cns=true; }
+
+function filterCounselList() {
+    var start  = document.getElementById('cns-filter-start').value;
+    var end    = document.getElementById('cns-filter-end').value;
+    var method = document.getElementById('cns-filter-method').value;
+    var name   = document.getElementById('cns-filter-name').value.trim();
+    renderCounselList(allCounselRecords.filter(function(r) {
+        if (start && r.timestamp.substring(0,10) < start) return false;
+        if (end   && r.timestamp.substring(0,10) > end)   return false;
+        if (method && r.method !== method) return false;
+        if (name && String(r.studentName).indexOf(name) === -1) return false;
+        return true;
+    }));
+}
+function resetCounselFilter() {
+    ['cns-filter-start','cns-filter-end','cns-filter-name'].forEach(function(id){ document.getElementById(id).value=''; });
+    document.getElementById('cns-filter-method').value = '';
+    renderCounselList(allCounselRecords);
+}
+
+// ─── 상담 학생 태그 ──────────────────────────────────────
+function addStudentTag(select) {
+    var id = select.value;
+    if (!id || selectedCounselStudents.includes(id)) { select.value=''; return; }
+    selectedCounselStudents.push(id); renderStudentTags(); select.value='';
+}
+window.removeStudentTag = function(id) {
+    selectedCounselStudents = selectedCounselStudents.filter(function(x){ return x !== String(id); });
+    renderStudentTags();
+};
+function renderStudentTags() {
+    var c = document.getElementById('selected-students-tags');
+    if (selectedCounselStudents.length === 0) { c.innerHTML='<span class="text-sm text-gray-400">선택된 학생 없음</span>'; return; }
+    c.innerHTML = selectedCounselStudents.map(function(id) {
+        var s = students.find(function(x){ return x.num == id; });
+        return '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-sm" style="background:var(--accent-color);color:var(--text-sidebar)">' +
+            id + '번 ' + escHtml(s ? s.name : '?') +
+            '<button type="button" class="ml-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 transition" onclick="removeStudentTag(' + id + ')">' +
+            '<i class="fa-solid fa-times text-xs"></i></button></span>';
+    }).join('');
+}
+
+// ─── 수업 태그 ───────────────────────────────────────────
+function populateClassSelects() {
+    document.getElementById('period-select').innerHTML =
+        '<option value="">교시 선택</option>' +
+        classPeriodsList.map(function(p){ return '<option value="' + p + '">' + p + '</option>'; }).join('');
+    document.getElementById('subject-select').innerHTML =
+        '<option value="">과목 선택</option>' +
+        classSubjectsList.map(function(s){ return '<option value="' + s + '">' + s + '</option>'; }).join('');
+    // 수업기록 필터 과목 셀렉트
+    var sf = document.getElementById('cls-filter-subject');
+    if (sf) sf.innerHTML = '<option value="">전체 과목</option>' +
+        classSubjectsList.map(function(s){ return '<option value="' + s + '">' + s + '</option>'; }).join('');
+}
+function addClassTag(type, select) {
+    var val = select.value; if (!val) return;
+    var arr = type === 'period' ? selectedClassPeriods : selectedClassSubjects;
+    if (arr.includes(val)) { select.value=''; return; }
+    arr.push(val); if (type==='period') arr.sort();
+    renderClassTags(type); select.value='';
+}
+window.removeClassTag = function(type, val) {
+    if (type==='period') selectedClassPeriods  = selectedClassPeriods.filter(function(x){ return x!==val; });
+    else                 selectedClassSubjects = selectedClassSubjects.filter(function(x){ return x!==val; });
+    renderClassTags(type);
+};
+function renderClassTags(type) {
+    var isPeriod = type === 'period';
+    var arr = isPeriod ? selectedClassPeriods : selectedClassSubjects;
+    var id  = isPeriod ? 'selected-periods-tags' : 'selected-subjects-tags';
+    var msg = isPeriod ? '없음' : '없음';
+    var c   = document.getElementById(id);
+    if (arr.length === 0) { c.innerHTML='<span class="text-xs text-gray-400">'+msg+'</span>'; return; }
+    c.innerHTML = arr.map(function(val) {
+        return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold shadow-sm" style="background:var(--accent-color);color:var(--text-sidebar)">' +
+            val + '<button type="button" class="ml-1 w-4 h-4 flex items-center justify-center rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 transition" onclick="removeClassTag(\'' + type + '\',\'' + val + '\')">' +
+            '<i class="fa-solid fa-times text-xs"></i></button></span>';
+    }).join('');
 }
 
 // ─── 학생 대시보드 ───────────────────────────────────────
 function openStudentDashboard(studentNum) {
-    const s = students.find(x => x.num == studentNum);
+    var s = students.find(function(x){ return x.num == studentNum; });
     if (!s) return;
-
     document.getElementById('dashboard-title').textContent = s.num + '번 ' + s.name;
-    document.getElementById('dashboard-info').innerHTML = `
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            <div><p class="text-gray-400 text-xs mb-0.5">학생 연락처</p><strong>${s.phone || '-'}</strong></div>
-            <div><p class="text-gray-400 text-xs mb-0.5">보호자 연락처1</p><strong>${s.parentPhone1 || '-'}</strong></div>
-            <div><p class="text-gray-400 text-xs mb-0.5">보호자 연락처2</p><strong>${s.parentPhone2 || '-'}</strong></div>
-            <div><p class="text-gray-400 text-xs mb-0.5">특이사항</p><strong class="text-red-500">${s.note || '없음'}</strong></div>
-        </div>`;
-
+    document.getElementById('dashboard-info').innerHTML =
+        '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">' +
+        '<div><p class="text-gray-400 text-xs mb-0.5">학생 연락처</p><strong>' + (s.phone||'-') + '</strong></div>' +
+        '<div><p class="text-gray-400 text-xs mb-0.5">보호자1</p><strong>' + (s.parentPhone1||'-') + '</strong></div>' +
+        '<div><p class="text-gray-400 text-xs mb-0.5">보호자2</p><strong>' + (s.parentPhone2||'-') + '</strong></div>' +
+        '<div><p class="text-gray-400 text-xs mb-0.5">특이사항</p><strong class="text-red-500">' + escHtml(s.note||'없음') + '</strong></div></div>';
     ['dashboard-att','dashboard-record','dashboard-counsel'].forEach(function(id) {
         document.getElementById(id).innerHTML = '<p class="text-gray-400 text-sm p-2">불러오는 중...</p>';
     });
-
     document.getElementById('student-dashboard-modal').classList.remove('hidden');
-
     if (typeof google !== 'undefined' && google.script) {
         google.script.run
-            .withSuccessHandler(function(data) { renderStudentDashboard(data); })
-            .withFailureHandler(function(e) { showToast('대시보드 로드 실패: ' + e.message); })
+            .withSuccessHandler(renderStudentDashboard)
+            .withFailureHandler(function(e){ showToast('대시보드 로드 실패: ' + e.message); })
             .getStudentAllRecords(studentNum);
     } else {
-        // 로컬 테스트 목업
         renderStudentDashboard({
-            attendance: [{date:'2026-03-01', status:'질병결석', reason:'감기', proof:'O'}],
-            records:    [{timestamp:'2026-03-01 09:00', category:'학습 태도', content:'수업 참여도 높음'}],
-            counsel:    [{timestamp:'2026-03-01 14:00', targetType:'학생 본인', method:'대면', content:'진로 상담 진행'}]
+            attendance:[{date:'2026-03-01',status:'질병결석',reason:'감기',proof:'O'}],
+            records:   [{timestamp:'2026-03-01 09:00',category:'학습 태도',content:'수업 참여 우수'}],
+            counsel:   [{timestamp:'2026-03-01 14:00',targetType:'학생 본인',method:'대면',content:'진로 상담'}]
         });
     }
 }
 
 function renderStudentDashboard(data) {
-    // 출결기록
-    const attEl = document.getElementById('dashboard-att');
-    attEl.innerHTML = data.attendance.length === 0
-        ? '<p class="text-gray-400 text-sm p-2">출결 기록이 없습니다.</p>'
-        : data.attendance.map(a => `
-            <div class="bg-gray-50 rounded-lg p-3 text-sm flex justify-between items-center">
-                <div>
-                    <span class="font-bold text-gray-700 mr-2">${a.date}</span>
-                    <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold">${a.status}</span>
-                    ${a.reason ? `<span class="ml-1 text-gray-500">${a.reason}</span>` : ''}
-                </div>
-                <span class="text-xs text-gray-400 ml-2 flex-shrink-0">증빙: ${a.proof || '-'}</span>
-            </div>`).join('');
+    var attEl  = document.getElementById('dashboard-att');
+    var recEl  = document.getElementById('dashboard-record');
+    var cnsEl  = document.getElementById('dashboard-counsel');
 
-    // 학생기록
-    const recEl = document.getElementById('dashboard-record');
-    recEl.innerHTML = data.records.length === 0
-        ? '<p class="text-gray-400 text-sm p-2">학생 기록이 없습니다.</p>'
-        : data.records.map(r => `
-            <div class="bg-gray-50 rounded-lg p-3 text-sm">
-                <div class="flex justify-between mb-1">
-                    <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">${r.category}</span>
-                    <span class="text-xs text-gray-400">${r.timestamp}</span>
-                </div>
-                <p class="text-gray-700">${r.content}</p>
-            </div>`).join('');
+    attEl.innerHTML = data.attendance.length === 0 ? '<p class="text-gray-400 text-sm p-2">출결 기록 없음</p>' :
+        data.attendance.map(function(a) {
+            return '<div class="bg-gray-50 rounded-lg p-2.5 text-sm flex justify-between">' +
+                '<div><span class="font-bold text-gray-700 mr-2">' + a.date + '</span>' +
+                '<span class="badge bg-red-100 text-red-700">' + escHtml(a.status) + '</span>' +
+                (a.reason ? '<span class="ml-1 text-gray-500">' + escHtml(a.reason) + '</span>' : '') + '</div>' +
+                '<span class="text-xs text-gray-400">증빙: ' + (a.proof||'-') + '</span></div>';
+        }).join('');
 
-    // 상담기록
-    const cnslEl = document.getElementById('dashboard-counsel');
-    cnslEl.innerHTML = data.counsel.length === 0
-        ? '<p class="text-gray-400 text-sm p-2">상담 기록이 없습니다.</p>'
-        : data.counsel.map(c => `
-            <div class="bg-gray-50 rounded-lg p-3 text-sm">
-                <div class="flex justify-between mb-1">
-                    <div>
-                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold mr-1">${c.targetType}</span>
-                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">${c.method}</span>
-                    </div>
-                    <span class="text-xs text-gray-400">${c.timestamp}</span>
-                </div>
-                <p class="text-gray-700">${c.content}</p>
-            </div>`).join('');
+    recEl.innerHTML = data.records.length === 0 ? '<p class="text-gray-400 text-sm p-2">학생 기록 없음</p>' :
+        data.records.map(function(r) {
+            return '<div class="bg-gray-50 rounded-lg p-2.5 text-sm">' +
+                '<div class="flex justify-between mb-1">' +
+                '<span class="badge bg-purple-100 text-purple-700">' + escHtml(r.category) + '</span>' +
+                '<span class="text-xs text-gray-400">' + r.timestamp + '</span></div>' +
+                '<p class="text-gray-700">' + escHtml(r.content) + '</p></div>';
+        }).join('');
+
+    cnsEl.innerHTML = data.counsel.length === 0 ? '<p class="text-gray-400 text-sm p-2">상담 기록 없음</p>' :
+        data.counsel.map(function(c) {
+            return '<div class="bg-gray-50 rounded-lg p-2.5 text-sm">' +
+                '<div class="flex justify-between mb-1"><div>' +
+                '<span class="badge bg-green-100 text-green-700 mr-1">' + escHtml(c.targetType) + '</span>' +
+                '<span class="badge bg-blue-100 text-blue-700">'        + escHtml(c.method)     + '</span></div>' +
+                '<span class="text-xs text-gray-400">' + c.timestamp + '</span></div>' +
+                '<p class="text-gray-700">' + escHtml(c.content) + '</p></div>';
+        }).join('');
+}
+
+// ─── 디지털 도구 ─────────────────────────────────────────
+function renderTools() {
+    var html = '';
+    for (var cat in digitalToolsData) {
+        var tools = digitalToolsData[cat];
+        html += '<div><h3 class="text-base font-bold mb-3 border-l-4 pl-3 text-gray-800" style="border-color:var(--accent-color)">' + cat + '</h3>' +
+            '<div class="grid grid-cols-3 md:grid-cols-5 gap-3">' +
+            tools.map(function(t) {
+                return '<a href="' + t.url + '" target="_blank" class="bg-white p-3 rounded-xl shadow-sm hover:shadow transition text-center flex flex-col items-center justify-center min-h-[80px] border border-transparent hover:border-[var(--accent-color)]">' +
+                    '<i class="fa-solid ' + t.icon + ' text-2xl ' + t.color + ' mb-1.5"></i>' +
+                    '<span class="font-bold text-xs leading-tight text-gray-700">' + t.name + '</span></a>';
+            }).join('') + '</div></div>';
+    }
+    document.getElementById('tools-container').innerHTML = html;
+}
+
+// ─── 헬퍼 ────────────────────────────────────────────────
+function showLoading()  { document.getElementById('loading-overlay').classList.remove('hidden'); }
+function hideLoading()  { document.getElementById('loading-overlay').classList.add('hidden'); }
+function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'show';
+    setTimeout(function(){ t.className = t.className.replace('show',''); }, 3000);
+}
+function emptyMsg(txt) {
+    return '<p class="text-gray-400 text-sm text-center py-6">' + txt + '</p>';
+}
+function showErrInList(id, msg) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = '<p class="text-red-400 text-sm p-3">로드 실패: ' + msg + '</p>';
+}
+function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str) {
+    return String(str||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
 }
 </script>
 </body>

@@ -9,30 +9,14 @@ function doGet(e) {
 
 // ==========================================
 // 2. 보안 설정 관련 함수
-//    스프레드시트 URL은 Script Properties(서버)에만 저장됨
-//    → HTML 소스코드에 절대 노출되지 않음
 // ==========================================
-
-/**
- * 스프레드시트가 이미 설정되어 있는지 확인
- * (HTML 로딩 시 최초 1회 호출)
- * @returns {boolean}
- */
 function isSetupComplete() {
   const url = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_URL');
   return !!url;
 }
 
-/**
- * 스프레드시트 URL을 Script Properties에 저장
- * URL은 서버(GAS)에만 보관 → 소스코드/localStorage에 URL 자체는 저장하지 않음
- * localStorage에는 "설정 완료 여부 플래그"만 저장됨
- * @param {string} spreadsheetUrl
- * @returns {{success: boolean, message: string}}
- */
 function setupSpreadsheet(spreadsheetUrl) {
   try {
-    // 실제로 열 수 있는지 검증 (권한 없거나 잘못된 URL이면 여기서 에러)
     SpreadsheetApp.openByUrl(spreadsheetUrl);
     PropertiesService.getScriptProperties().setProperty('SPREADSHEET_URL', spreadsheetUrl);
     return { success: true, message: '스프레드시트 연동이 완료되었습니다.' };
@@ -41,18 +25,14 @@ function setupSpreadsheet(spreadsheetUrl) {
   }
 }
 
-/**
- * 설정 초기화 (스프레드시트 변경 시 사용)
- */
 function resetSetup() {
   PropertiesService.getScriptProperties().deleteProperty('SPREADSHEET_URL');
   return '설정이 초기화되었습니다.';
 }
 
 // ==========================================
-// 3. 스프레드시트 공통 헬퍼 함수
+// 3. 스프레드시트 공통 헬퍼
 // ==========================================
-
 function getSpreadsheet() {
   const url = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_URL');
   if (!url) throw new Error('스프레드시트가 설정되지 않았습니다. 초기 설정을 진행해주세요.');
@@ -65,58 +45,78 @@ function getSheet(sheetName) {
   return sheet;
 }
 
-// ==========================================
-// 4. 학생 정보 불러오기
-// ==========================================
+// 공통 날짜 포맷
+function _fmt(v, tz) {
+  return v instanceof Date ? Utilities.formatDate(v, tz || Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(v || '');
+}
+function _fmtDt(v, tz) {
+  return v instanceof Date ? Utilities.formatDate(v, tz || Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : String(v || '');
+}
 
+// ==========================================
+// 4. 학생 정보
+// ==========================================
+// 학생정보 시트: A=번호, B=이름, C=(비움), D=학생연락처, E=보호자1, F=보호자2, G=특이사항
 function getStudentList() {
   const sheet = getSheet('학생정보');
   const data = sheet.getDataRange().getValues();
   const students = [];
-
   for (let i = 1; i < data.length; i++) {
     if (!data[i][0]) continue;
     students.push({
-      num:          data[i][0],
-      name:         data[i][1],
-      phone:        data[i][3] || '',
-      parentPhone1: data[i][4] || '',
-      parentPhone2: data[i][5] || '',
-      note:         data[i][6] || ''
+      num: data[i][0], name: data[i][1],
+      phone: data[i][3] || '', parentPhone1: data[i][4] || '',
+      parentPhone2: data[i][5] || '', note: data[i][6] || ''
     });
   }
   return students;
 }
 
 // ==========================================
-// 5. 각 메뉴별 데이터 저장 함수 (Create)
+// 5. 일정 조회
 // ==========================================
+// 일정 시트 컬럼: A=날짜, B=제목, C=분류(학교일정/학급일정/행사/기타), D=내용
+function getScheduleList() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('일정');
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  var data = sheet.getDataRange().getValues();
+  var tz = Session.getScriptTimeZone();
+  var result = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0] && !data[i][1]) continue;
+    result.push({
+      date:     _fmt(data[i][0], tz),
+      title:    String(data[i][1] || ''),
+      category: String(data[i][2] || '기타'),
+      content:  String(data[i][3] || '')
+    });
+  }
+  result.sort(function(a, b) { return a.date.localeCompare(b.date); });
+  return result;
+}
 
-// [출결기록] 저장
+// ==========================================
+// 6. 각 기록 저장 (Create)
+// ==========================================
+// 출결기록: A=ID, B=날짜, C=번호, D=이름, E=출결상태, F=사유, G=증빙자료
 function saveAttendanceRecord(data) {
   const sheet = getSheet('출결기록');
   const id = 'ATT-' + new Date().getTime();
-  sheet.appendRow([
-    id, data.date, data.studentNum, data.studentName,
-    data.status, data.reason, data.proof
-  ]);
+  sheet.appendRow([id, data.date, data.studentNum, data.studentName, data.status, data.reason, data.proof]);
   return '출결 기록이 저장되었습니다.';
 }
 
-// [수업기록] 저장
+// 수업기록: A=ID, B=날짜, C=교시, D=과목, E=단원/차시, F=배움주제, G=성찰, H=링크, I=파일URL
 function saveClassRecord(data) {
   const sheet = getSheet('수업기록');
   const id = 'CLS-' + new Date().getTime();
-  sheet.appendRow([
-    id, data.date,
-    data.periods.join(', '),
-    data.subjects.join(', '),
-    data.unit, data.topic, data.reflection, data.link, data.files
-  ]);
+  sheet.appendRow([id, data.date, data.periods.join(', '), data.subjects.join(', '),
+    data.unit, data.topic, data.reflection, data.link, data.files]);
   return '수업 기록이 저장되었습니다.';
 }
 
-// [일상기록] 저장
+// 일상기록: A=ID, B=날짜, C=키워드, D=내용, E=링크, F=파일URL
 function saveDailyRecord(data) {
   const sheet = getSheet('일상기록');
   const id = 'DLY-' + new Date().getTime();
@@ -124,134 +124,236 @@ function saveDailyRecord(data) {
   return '일상 기록이 저장되었습니다.';
 }
 
-// [학생기록] 저장
+// 학생기록: A=ID, B=기록일시, C=번호, D=이름, E=분류, F=내용, G=지도내용
 function saveStudentRecord(data) {
   const sheet = getSheet('학생기록');
   const id = 'STU-' + new Date().getTime();
-  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
-  sheet.appendRow([id, timestamp, data.studentNum, data.studentName, data.category, data.content, '']);
+  const ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  sheet.appendRow([id, ts, data.studentNum, data.studentName, data.category, data.content, '']);
   return '학생 기록이 저장되었습니다.';
 }
 
-// [상담기록] 저장 (다중 학생 → 각각 행으로 저장)
+// 상담기록: A=ID, B=상담일시, C=번호, D=이름, E=상담대상, F=방법, G=내용, H=추후계획
 function saveCounselRecord(data) {
   const sheet = getSheet('상담기록');
-  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
-
+  const ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
   data.studentTags.forEach(function(studentStr) {
     const numMatch = studentStr.match(/^(\d+)번/);
     const studentNum  = numMatch ? numMatch[1] : '';
     const studentName = studentStr.replace(/^\d+번\s*/, '');
     const id = 'CNS-' + new Date().getTime() + '-' + studentNum;
-    sheet.appendRow([
-      id, timestamp, studentNum, studentName,
-      data.targetType, data.method, data.content, ''
-    ]);
+    sheet.appendRow([id, ts, studentNum, studentName, data.targetType, data.method, data.content, '']);
   });
-
   return data.studentTags.length + '건의 상담 기록이 저장되었습니다.';
 }
 
 // ==========================================
-// 6. 학생 대시보드: 특정 학생의 전체 기록 조회
+// 7. 기록 삭제 (ID로 행 삭제)
 // ==========================================
-
-/**
- * 학생 번호로 출결기록, 학생기록, 상담기록을 한 번에 조회
- *   출결기록:  A=ID, B=날짜, C=번호, D=이름, E=출결상태, F=사유, G=증빙자료
- *   학생기록:  A=ID, B=기록일시, C=번호, D=이름, E=분류, F=내용, G=지도내용
- *   상담기록:  A=ID, B=상담일시, C=번호, D=이름, E=상담대상, F=방법, G=내용, H=추후계획
- */
-function getStudentAllRecords(studentNum) {
-  var ss     = getSpreadsheet();
-  var numInt = parseInt(String(studentNum), 10);  // 숫자/문자열 모두 처리
-  var result = { attendance: [], records: [], counsel: [] };
-
-  function fmtDate(v) {
-    return v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(v);
-  }
-  function fmtDatetime(v) {
-    return v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : String(v);
-  }
-  function matchNum(cellVal) {
-    return parseInt(String(cellVal), 10) === numInt;
-  }
-
-  // 출결기록 (C열 = 번호 = index 2)
-  var attSheet = ss.getSheetByName('출결기록');
-  if (attSheet && attSheet.getLastRow() > 1) {
-    var attData = attSheet.getDataRange().getValues();
-    for (var i = 1; i < attData.length; i++) {
-      if (!attData[i][0]) continue;
-      if (matchNum(attData[i][2])) {
-        result.attendance.push({
-          date:   fmtDate(attData[i][1]),
-          status: attData[i][4],
-          reason: attData[i][5] || '',
-          proof:  attData[i][6] || ''
-        });
-      }
+function deleteRecord(sheetName, rowId) {
+  var sheet = getSheet(sheetName);
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(rowId)) {
+      sheet.deleteRow(i + 1);
+      return '삭제되었습니다.';
     }
   }
-
-  // 학생기록 (C열 = 번호 = index 2)
-  var recSheet = ss.getSheetByName('학생기록');
-  if (recSheet && recSheet.getLastRow() > 1) {
-    var recData = recSheet.getDataRange().getValues();
-    for (var j = 1; j < recData.length; j++) {
-      if (!recData[j][0]) continue;
-      if (matchNum(recData[j][2])) {
-        result.records.push({
-          timestamp: fmtDatetime(recData[j][1]),
-          category:  recData[j][4],
-          content:   recData[j][5] || ''
-        });
-      }
-    }
-  }
-
-  // 상담기록 (C열 = 번호 = index 2)
-  var cnslSheet = ss.getSheetByName('상담기록');
-  if (cnslSheet && cnslSheet.getLastRow() > 1) {
-    var cnslData = cnslSheet.getDataRange().getValues();
-    for (var k = 1; k < cnslData.length; k++) {
-      if (!cnslData[k][0]) continue;
-      if (matchNum(cnslData[k][2])) {
-        result.counsel.push({
-          timestamp:  fmtDatetime(cnslData[k][1]),
-          targetType: cnslData[k][4],
-          method:     cnslData[k][5],
-          content:    cnslData[k][6] || ''
-        });
-      }
-    }
-  }
-
-  return result;
+  throw new Error('해당 기록을 찾을 수 없습니다. (ID: ' + rowId + ')');
 }
 
 // ==========================================
-// 7. 출결기록 전체 목록 조회 (리스트 화면용)
+// 8. 기록 목록 조회
 // ==========================================
-
 function getAttendanceList() {
-  var attSheet = getSpreadsheet().getSheetByName('출결기록');
-  if (!attSheet || attSheet.getLastRow() <= 1) return [];
-  var data = attSheet.getDataRange().getValues();
+  var sheet = getSpreadsheet().getSheetByName('출결기록');
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  var data = sheet.getDataRange().getValues();
+  var tz = Session.getScriptTimeZone();
   var result = [];
   for (var i = 1; i < data.length; i++) {
     if (!data[i][0]) continue;
     result.push({
-      id:          data[i][0],
-      date:        data[i][1] instanceof Date
-                     ? Utilities.formatDate(data[i][1], Session.getScriptTimeZone(), 'yyyy-MM-dd')
-                     : String(data[i][1]),
-      studentNum:  data[i][2],
-      studentName: data[i][3],
-      status:      data[i][4],
-      reason:      data[i][5] || '',
-      proof:       data[i][6] || ''
+      id: String(data[i][0]), date: _fmt(data[i][1], tz),
+      studentNum: data[i][2], studentName: String(data[i][3] || ''),
+      status: String(data[i][4] || ''), reason: String(data[i][5] || ''),
+      proof: String(data[i][6] || '')
     });
   }
   return result;
+}
+
+function getClassList() {
+  var sheet = getSpreadsheet().getSheetByName('수업기록');
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  var data = sheet.getDataRange().getValues();
+  var tz = Session.getScriptTimeZone();
+  var result = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    result.push({
+      id: String(data[i][0]), date: _fmt(data[i][1], tz),
+      periods: String(data[i][2] || ''), subjects: String(data[i][3] || ''),
+      topic: String(data[i][5] || ''), reflection: String(data[i][6] || ''),
+      link: String(data[i][7] || ''), files: String(data[i][8] || '')
+    });
+  }
+  return result;
+}
+
+function getDailyList() {
+  var sheet = getSpreadsheet().getSheetByName('일상기록');
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  var data = sheet.getDataRange().getValues();
+  var tz = Session.getScriptTimeZone();
+  var result = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    result.push({
+      id: String(data[i][0]), date: _fmt(data[i][1], tz),
+      keyword: String(data[i][2] || ''), content: String(data[i][3] || ''),
+      link: String(data[i][4] || ''), files: String(data[i][5] || '')
+    });
+  }
+  return result;
+}
+
+function getStudentRecordList() {
+  var sheet = getSpreadsheet().getSheetByName('학생기록');
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  var data = sheet.getDataRange().getValues();
+  var tz = Session.getScriptTimeZone();
+  var result = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    result.push({
+      id: String(data[i][0]), timestamp: _fmtDt(data[i][1], tz),
+      studentNum: data[i][2], studentName: String(data[i][3] || ''),
+      category: String(data[i][4] || ''), content: String(data[i][5] || '')
+    });
+  }
+  return result;
+}
+
+function getCounselList() {
+  var sheet = getSpreadsheet().getSheetByName('상담기록');
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  var data = sheet.getDataRange().getValues();
+  var tz = Session.getScriptTimeZone();
+  var result = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    result.push({
+      id: String(data[i][0]), timestamp: _fmtDt(data[i][1], tz),
+      studentNum: data[i][2], studentName: String(data[i][3] || ''),
+      targetType: String(data[i][4] || ''), method: String(data[i][5] || ''),
+      content: String(data[i][6] || '')
+    });
+  }
+  return result;
+}
+
+// ==========================================
+// 9. 학생 대시보드: 특정 학생 전체 기록
+// ==========================================
+function getStudentAllRecords(studentNum) {
+  var ss     = getSpreadsheet();
+  var numInt = parseInt(String(studentNum), 10);
+  var tz     = Session.getScriptTimeZone();
+  var result = { attendance: [], records: [], counsel: [] };
+  function matchNum(v) { return parseInt(String(v), 10) === numInt; }
+
+  var attSheet = ss.getSheetByName('출결기록');
+  if (attSheet && attSheet.getLastRow() > 1) {
+    var d = attSheet.getDataRange().getValues();
+    for (var i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      if (matchNum(d[i][2])) {
+        result.attendance.push({ date: _fmt(d[i][1], tz), status: d[i][4], reason: d[i][5]||'', proof: d[i][6]||'' });
+      }
+    }
+  }
+  var recSheet = ss.getSheetByName('학생기록');
+  if (recSheet && recSheet.getLastRow() > 1) {
+    var d2 = recSheet.getDataRange().getValues();
+    for (var j = 1; j < d2.length; j++) {
+      if (!d2[j][0]) continue;
+      if (matchNum(d2[j][2])) {
+        result.records.push({ timestamp: _fmtDt(d2[j][1], tz), category: d2[j][4], content: d2[j][5]||'' });
+      }
+    }
+  }
+  var cnslSheet = ss.getSheetByName('상담기록');
+  if (cnslSheet && cnslSheet.getLastRow() > 1) {
+    var d3 = cnslSheet.getDataRange().getValues();
+    for (var k = 1; k < d3.length; k++) {
+      if (!d3[k][0]) continue;
+      if (matchNum(d3[k][2])) {
+        result.counsel.push({ timestamp: _fmtDt(d3[k][1], tz), targetType: d3[k][4], method: d3[k][5], content: d3[k][6]||'' });
+      }
+    }
+  }
+  return result;
+}
+
+// ==========================================
+// 10. 파일 업로드 (Google Drive)
+// ==========================================
+function uploadFileToDrive(base64Data, fileName, mimeType) {
+  var decoded = Utilities.base64Decode(base64Data);
+  var blob = Utilities.newBlob(decoded, mimeType || 'application/octet-stream', fileName);
+  var folderId = PropertiesService.getScriptProperties().getProperty('DRIVE_FOLDER_ID');
+  var folder = null;
+  if (folderId) {
+    try { folder = DriveApp.getFolderById(folderId); } catch(e) { folder = null; }
+  }
+  if (!folder) {
+    folder = DriveApp.createFolder('나세나반 다이어리 첨부파일');
+    PropertiesService.getScriptProperties().setProperty('DRIVE_FOLDER_ID', folder.getId());
+  }
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { url: file.getUrl(), name: fileName };
+}
+
+// ==========================================
+// 11. 전체 검색
+// ==========================================
+function globalSearch(keyword) {
+  if (!keyword || keyword.trim() === '') return [];
+  var kw = keyword.toLowerCase().trim();
+  var ss = getSpreadsheet();
+  var tz = Session.getScriptTimeZone();
+  var results = [];
+
+  function search(sheetName, pageId, typeName, titleCol, contentCol, dateCol) {
+    try {
+      var s = ss.getSheetByName(sheetName);
+      if (!s || s.getLastRow() <= 1) return;
+      var d = s.getDataRange().getValues();
+      for (var i = 1; i < d.length; i++) {
+        if (!d[i][0]) continue;
+        var t = String(d[i][titleCol] || '');
+        var c = String(d[i][contentCol] || '');
+        if (t.toLowerCase().indexOf(kw) >= 0 || c.toLowerCase().indexOf(kw) >= 0) {
+          results.push({ type: typeName, pageId: pageId,
+            date: _fmt(d[i][dateCol], tz), label: t || '(제목없음)',
+            content: c.length > 80 ? c.substring(0,80) + '…' : c });
+        }
+      }
+    } catch(e) {}
+  }
+
+  // 일정: A=날짜(0), B=제목(1), D=내용(3)
+  search('일정',    'page-schedule',       '일정',   1, 3, 0);
+  // 수업기록: B=날짜(1), F=배움주제(5), G=성찰(6)
+  search('수업기록', 'page-class',         '수업기록', 5, 6, 1);
+  // 일상기록: B=날짜(1), C=키워드(2), D=내용(3)
+  search('일상기록', 'page-daily',         '일상기록', 2, 3, 1);
+  // 학생기록: B=기록일시(1), D=이름(3), F=내용(5)
+  search('학생기록', 'page-student-record','학생기록', 3, 5, 1);
+  // 상담기록: B=상담일시(1), D=이름(3), G=내용(6)
+  search('상담기록', 'page-counsel',       '상담기록', 3, 6, 1);
+
+  return results;
 }
