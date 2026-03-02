@@ -151,3 +151,71 @@ function saveCounselRecord(data) {
 
   return data.studentTags.length + '건의 상담 기록이 저장되었습니다.';
 }
+
+// ==========================================
+// 6. 학생 대시보드: 특정 학생의 전체 기록 조회
+// ==========================================
+
+/**
+ * 학생 번호로 출결기록, 학생기록, 상담기록을 한 번에 조회
+ * 스프레드시트 열 구조:
+ *   출결기록:  A=ID, B=날짜, C=번호, D=이름, E=출결상태, F=사유,    G=증빙자료
+ *   학생기록:  A=ID, B=기록일시, C=번호, D=이름, E=분류,   F=내용,   G=지도내용
+ *   상담기록:  A=ID, B=상담일시, C=번호, D=이름, E=상담대상, F=방법, G=내용, H=추후계획
+ * @param {number|string} studentNum
+ * @returns {{attendance: Array, records: Array, counsel: Array}}
+ */
+function getStudentAllRecords(studentNum) {
+  const ss     = getSpreadsheet();
+  const numStr = String(studentNum);
+  const result = { attendance: [], records: [], counsel: [] };
+
+  // 출결기록 (C열 = 번호)
+  var attSheet = ss.getSheetByName('출결기록');
+  if (attSheet && attSheet.getLastRow() > 1) {
+    var attData = attSheet.getDataRange().getValues();
+    for (var i = 1; i < attData.length; i++) {
+      if (String(attData[i][2]) === numStr) {
+        result.attendance.push({
+          date:   attData[i][1],
+          status: attData[i][4],
+          reason: attData[i][5] || '',
+          proof:  attData[i][6] || ''
+        });
+      }
+    }
+  }
+
+  // 학생기록 (C열 = 번호)
+  var recSheet = ss.getSheetByName('학생기록');
+  if (recSheet && recSheet.getLastRow() > 1) {
+    var recData = recSheet.getDataRange().getValues();
+    for (var j = 1; j < recData.length; j++) {
+      if (String(recData[j][2]) === numStr) {
+        result.records.push({
+          timestamp: recData[j][1],
+          category:  recData[j][4],
+          content:   recData[j][5] || ''
+        });
+      }
+    }
+  }
+
+  // 상담기록 (C열 = 번호)
+  var cnslSheet = ss.getSheetByName('상담기록');
+  if (cnslSheet && cnslSheet.getLastRow() > 1) {
+    var cnslData = cnslSheet.getDataRange().getValues();
+    for (var k = 1; k < cnslData.length; k++) {
+      if (String(cnslData[k][2]) === numStr) {
+        result.counsel.push({
+          timestamp:  cnslData[k][1],
+          targetType: cnslData[k][4],
+          method:     cnslData[k][5],
+          content:    cnslData[k][6] || ''
+        });
+      }
+    }
+  }
+
+  return result;
+}
