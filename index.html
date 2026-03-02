@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>나세나반 다이어리</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23EBEFF2'/%3E%3Crect x='14' y='7' width='40' height='50' rx='5' fill='%237392C1'/%3E%3Crect x='14' y='7' width='9' height='50' rx='4' fill='%235A7AA8'/%3E%3Ccircle cx='18.5' cy='18' r='4' fill='%23EBEFF2'/%3E%3Ccircle cx='18.5' cy='18' r='2' fill='%235A7AA8'/%3E%3Ccircle cx='18.5' cy='32' r='4' fill='%23EBEFF2'/%3E%3Ccircle cx='18.5' cy='32' r='2' fill='%235A7AA8'/%3E%3Ccircle cx='18.5' cy='46' r='4' fill='%23EBEFF2'/%3E%3Ccircle cx='18.5' cy='46' r='2' fill='%235A7AA8'/%3E%3Crect x='27' y='20' width='20' height='2.5' rx='1.2' fill='white' opacity='.75'/%3E%3Crect x='27' y='28' width='20' height='2.5' rx='1.2' fill='white' opacity='.75'/%3E%3Crect x='27' y='36' width='14' height='2.5' rx='1.2' fill='white' opacity='.75'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,19 +19,19 @@
             --text-sidebar: #FFFFFF; --btn-hover: #5A7AA8;
         }
         [data-theme="green"] {
-            --bg-body: #F0FFF0; --bg-sidebar: #81C784;
-            --accent-color: #81C784; --text-main: #1B5E20;
-            --text-sidebar: #FFFFFF; --btn-hover: #66BB6A;
+            --bg-body: #EAF0EC; --bg-sidebar: #7AA891;
+            --accent-color: #7AA891; --text-main: #223D30;
+            --text-sidebar: #FFFFFF; --btn-hover: #5E9278;
         }
         [data-theme="yellow"] {
-            --bg-body: #FFFDE7; --bg-sidebar: #FFE082;
-            --accent-color: #FFCA28; --text-main: #F57F17;
-            --text-sidebar: #5D4037; --btn-hover: #FFB300;
+            --bg-body: #EEEBe2; --bg-sidebar: #B8A878;
+            --accent-color: #B8A878; --text-main: #3E3218;
+            --text-sidebar: #FFFFFF; --btn-hover: #9E9060;
         }
         [data-theme="red"] {
-            --bg-body: #FFF0F5; --bg-sidebar: #F48FB1;
-            --accent-color: #F48FB1; --text-main: #880E4F;
-            --text-sidebar: #FFFFFF; --btn-hover: #F06292;
+            --bg-body: #F0EAED; --bg-sidebar: #C07890;
+            --accent-color: #C07890; --text-main: #3E2835;
+            --text-sidebar: #FFFFFF; --btn-hover: #A65E78;
         }
 
         body {
@@ -139,6 +140,11 @@
         .search-result-item { background: white; border-radius: 10px; padding: 12px 14px; margin-bottom: 6px; cursor: pointer; transition: box-shadow 0.2s, transform 0.2s; border-left: 4px solid var(--accent-color); }
         .search-result-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateX(3px); }
 
+        /* ── 일정 월별 빠른이동 ── */
+        .month-nav-btn { background: rgba(255,255,255,0.7); border-color: #e5e7eb; color: #6b7280; }
+        .month-nav-btn:hover { background: white; color: var(--accent-color); border-color: var(--accent-color); }
+        .month-nav-btn.active { background: var(--accent-color); color: var(--text-sidebar); border-color: var(--accent-color); }
+
         /* ── 일정 뷰 토글 ── */
         .sch-view-btn { color: #6b7280; padding: 6px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; transition: all 0.2s; border: none; cursor: pointer; background: transparent; }
         .sch-view-btn.active { background: white; color: var(--accent-color); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
@@ -203,7 +209,7 @@
 <aside id="sidebar">
     <div class="px-4 pt-5 pb-3 text-center">
         <h1 class="title-font text-2xl font-bold mb-1 sidebar-title cursor-pointer hover:opacity-80 transition select-none leading-snug"
-            onclick="goHome()" title="홈으로">
+            onclick="location.reload()" title="홈으로 (새로고침)">
             나세나반<br>다이어리
         </h1>
     </div>
@@ -235,7 +241,6 @@
                 class="p-2 rounded-xl bg-white bg-opacity-60 hover:bg-opacity-90 shadow-sm transition">
                 <i class="fa-solid fa-bars text-gray-700 text-lg"></i>
             </button>
-            <span class="title-font text-lg font-bold cursor-pointer sidebar-title hidden md:block" style="color:var(--text-main)" onclick="goHome()">나세나반 다이어리</span>
         </div>
         <div class="flex items-center gap-2">
             <span id="current-page-title" class="font-bold text-sm hidden md:block">홈</span>
@@ -245,9 +250,9 @@
                 </button>
                 <div id="theme-menu" class="hidden absolute right-0 mt-2 p-3 bg-white rounded-xl shadow-xl flex-col space-y-2 border z-50">
                     <button onclick="setTheme('blue')"   class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#7392C1" title="블루"></button>
-                    <button onclick="setTheme('green')"  class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#81C784" title="그린"></button>
-                    <button onclick="setTheme('yellow')" class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#FFE082" title="옐로우"></button>
-                    <button onclick="setTheme('red')"    class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#F48FB1" title="레드"></button>
+                    <button onclick="setTheme('green')"  class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#7AA891" title="그린"></button>
+                    <button onclick="setTheme('yellow')" class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#B8A878" title="옐로우"></button>
+                    <button onclick="setTheme('red')"    class="w-8 h-8 rounded-full shadow transition hover:scale-110" style="background:#C07890" title="핑크"></button>
                 </div>
             </div>
         </div>
@@ -315,9 +320,14 @@
 <section id="page-schedule" class="page-section glass-panel p-6 rounded-2xl">
     <div class="flex items-center justify-between mb-4 border-b pb-3 flex-wrap gap-2">
         <h2 class="text-xl font-bold"><i class="fa-regular fa-calendar mr-2"></i> 학급 및 학교 일정</h2>
+        <div class="flex items-center gap-2">
+        <button onclick="openScheduleAdd()" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
+            <i class="fa-solid fa-plus"></i> 일정 추가
+        </button>
         <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
             <button id="btn-list-view" onclick="setScheduleView('list')" class="sch-view-btn active"><i class="fa-solid fa-list mr-1"></i>목록</button>
             <button id="btn-cal-view"  onclick="setScheduleView('cal')"  class="sch-view-btn"><i class="fa-regular fa-calendar mr-1"></i>달력</button>
+        </div>
         </div>
     </div>
 
@@ -325,6 +335,11 @@
     <div id="schedule-clock">
         <div id="clock-date"></div>
         <div id="clock-time">--:--</div>
+    </div>
+
+    <!-- 월별 빠른이동 (목록 뷰) -->
+    <div id="schedule-month-nav" class="flex flex-wrap gap-1.5 mb-4 justify-center">
+        <!-- JS로 렌더링 -->
     </div>
 
     <!-- 목록 뷰 -->
@@ -364,6 +379,7 @@
                     <th class="p-3 font-semibold text-gray-600 hidden md:table-cell">보호자1</th>
                     <th class="p-3 font-semibold text-gray-600 hidden md:table-cell">보호자2</th>
                     <th class="p-3 font-semibold text-gray-600">특이사항</th>
+                    <th class="p-3 w-8"></th>
                 </tr>
             </thead>
             <tbody id="student-table-body"></tbody>
@@ -679,6 +695,88 @@
     </div>
 </div>
 
+<!-- 일정 추가/수정 모달 -->
+<div id="schedule-edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[70] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+        <div class="p-5 flex justify-between items-center rounded-t-2xl flex-shrink-0" style="background:var(--bg-sidebar)">
+            <h2 class="text-base font-bold" id="schedule-edit-title" style="color:var(--text-sidebar)">일정 추가</h2>
+            <button onclick="document.getElementById('schedule-edit-modal').classList.add('hidden')"
+                class="w-9 h-9 rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 flex items-center justify-center transition"
+                style="color:var(--text-sidebar)"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <div class="p-5 space-y-3">
+            <input type="hidden" id="schedule-edit-row">
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">날짜</label>
+                <input type="date" id="schedule-edit-date" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" required>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">제목</label>
+                <input type="text" id="schedule-edit-text" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" placeholder="일정 제목" required>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">분류</label>
+                <select id="schedule-edit-category" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
+                    <option>학교일정</option><option>학급일정</option><option>행사</option><option>기타</option>
+                </select>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">내용 (선택)</label>
+                <textarea id="schedule-edit-content" rows="3" class="w-full p-2.5 rounded-lg border text-sm resize-none focus:outline-none" placeholder="장소, 시간 등 상세 내용"></textarea>
+            </div>
+            <div class="flex gap-2 pt-1">
+                <button onclick="saveScheduleEdit()" class="btn-primary flex-1 p-3 rounded-xl font-bold text-sm shadow-sm">저장하기</button>
+                <button onclick="document.getElementById('schedule-edit-modal').classList.add('hidden')" class="flex-1 p-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition">취소</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 학생정보 수정 모달 -->
+<div id="student-edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[70] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+        <div class="p-5 flex justify-between items-center rounded-t-2xl" style="background:var(--bg-sidebar)">
+            <h2 class="text-base font-bold" id="student-edit-title" style="color:var(--text-sidebar)">학생 정보 수정</h2>
+            <button onclick="document.getElementById('student-edit-modal').classList.add('hidden')"
+                class="w-9 h-9 rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 flex items-center justify-center transition"
+                style="color:var(--text-sidebar)"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <div class="p-5 space-y-3">
+            <input type="hidden" id="student-edit-num">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block mb-1 font-bold text-sm text-gray-700">번호</label>
+                    <input type="number" id="student-edit-numval" class="w-full p-2.5 rounded-lg border text-sm bg-gray-50" readonly>
+                </div>
+                <div>
+                    <label class="block mb-1 font-bold text-sm text-gray-700">이름</label>
+                    <input type="text" id="student-edit-name" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" required>
+                </div>
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">학생 연락처</label>
+                <input type="text" id="student-edit-phone" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" placeholder="010-0000-0000">
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">보호자1 연락처</label>
+                <input type="text" id="student-edit-p1" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" placeholder="010-0000-0000">
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">보호자2 연락처</label>
+                <input type="text" id="student-edit-p2" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" placeholder="010-0000-0000">
+            </div>
+            <div>
+                <label class="block mb-1 font-bold text-sm text-gray-700">특이사항</label>
+                <input type="text" id="student-edit-note" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" placeholder="알레르기, 건강 등">
+            </div>
+            <div class="flex gap-2 pt-1">
+                <button onclick="saveStudentEdit()" class="btn-primary flex-1 p-3 rounded-xl font-bold text-sm shadow-sm">저장하기</button>
+                <button onclick="document.getElementById('student-edit-modal').classList.add('hidden')" class="flex-1 p-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition">취소</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // ─── 전역 변수 ────────────────────────────────────────────
 let students = [];
@@ -939,8 +1037,43 @@ function startScheduleClock() {
     clockTimer = setInterval(tick, 1000);
 }
 
+function renderMonthNav(records) {
+    var nav = document.getElementById('schedule-month-nav');
+    if (!nav) return;
+    if (!records || records.length === 0) { nav.innerHTML = ''; return; }
+    var monthSet = {};
+    records.forEach(function(r) {
+        var m = r.date && r.date.length >= 7 ? r.date.substring(0,7) : null;
+        if (m) monthSet[m] = true;
+    });
+    var months = Object.keys(monthSet).sort();
+    var today = new Date().toISOString().split('T')[0];
+    var currentMonth = today.substring(0,7);
+    nav.innerHTML = months.map(function(m) {
+        var parts = m.split('-');
+        var label = parseInt(parts[1],10) + '월';
+        var isNow = m === currentMonth;
+        return '<button onclick="jumpToMonth(\'' + m + '\')" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+            (isNow ? ' active' : '') + '" data-month="' + m + '">' + label + '</button>';
+    }).join('');
+}
+
+function jumpToMonth(ym) {
+    var cards = document.querySelectorAll('#schedule-list .schedule-card[data-month]');
+    for (var i = 0; i < cards.length; i++) {
+        if (cards[i].getAttribute('data-month') === ym) {
+            cards[i].scrollIntoView({behavior:'smooth', block:'start'});
+            break;
+        }
+    }
+    document.querySelectorAll('.month-nav-btn').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-month') === ym);
+    });
+}
+
 function renderScheduleList(records) {
     var el = document.getElementById('schedule-list');
+    renderMonthNav(records);
     if (!records || records.length === 0) {
         el.innerHTML = '<div class="text-center text-gray-400 py-12">' +
             '<i class="fa-solid fa-calendar-xmark text-4xl mb-3 block opacity-40"></i>' +
@@ -955,7 +1088,12 @@ function renderScheduleList(records) {
         var dc     = catColors[r.category] || catColors['기타'];
         var mon    = parts[1] ? parseInt(parts[1],10) + '월' : '?';
         var day    = parts[2] ? parseInt(parts[2],10) + '' : '?';
-        return '<div class="schedule-card' + (isPast ? ' opacity-50' : '') + '">' +
+        var ym     = parts[0] && parts[1] ? parts[0] + '-' + parts[1] : '';
+        var ri     = r.rowIndex || '';
+        var editBtn = ri ? '<button class="flex-shrink-0 ml-2 text-gray-400 hover:text-blue-500 transition" ' +
+            'onclick="openScheduleEdit(' + ri + ',\'' + escAttr(r.date) + '\',\'' + escAttr(r.title) + '\',\'' + escAttr(r.category) + '\',\'' + escAttr(r.content) + '\')" title="수정">' +
+            '<i class="fa-solid fa-pen text-xs"></i></button>' : '';
+        return '<div class="schedule-card' + (isPast ? ' opacity-60' : '') + '" data-month="' + ym + '">' +
             '<div class="schedule-date"><div class="text-xs font-bold opacity-80">' + mon + '</div>' +
             '<div class="text-xl font-bold leading-tight">' + day + '</div></div>' +
             '<div class="flex-1 min-w-0">' +
@@ -964,7 +1102,7 @@ function renderScheduleList(records) {
             (isPast ? '<span class="text-xs text-gray-400">지난 일정</span>' : '') + '</div>' +
             '<p class="font-bold text-gray-800 text-sm">' + escHtml(r.title) + '</p>' +
             (r.content ? '<p class="text-xs text-gray-500 mt-0.5">' + escHtml(r.content) + '</p>' : '') +
-            '</div></div>';
+            '</div>' + editBtn + '</div>';
     }
     var upcoming = records.filter(function(r){ return r.date >= today; }).sort(function(a,b){ return a.date.localeCompare(b.date); });
     var past     = records.filter(function(r){ return r.date < today; }).sort(function(a,b){ return b.date.localeCompare(a.date); });
@@ -1042,6 +1180,7 @@ function renderStudents() {
             '<td class="p-3 hidden md:table-cell">' + (s.parentPhone1 || '-') + '</td>' +
             '<td class="p-3 hidden md:table-cell">' + (s.parentPhone2 || '-') + '</td>' +
             '<td class="p-3 text-red-500">' + escHtml(s.note || '') + '</td>' +
+            '<td class="p-3"><button class="text-gray-400 hover:text-blue-500 transition" onclick="openStudentEdit(' + s.num + ')" title="수정"><i class="fa-solid fa-pen text-xs"></i></button></td>' +
             '</tr>';
     }).join('');
 }
@@ -1051,6 +1190,99 @@ function populateStudentSelects() {
         sel.innerHTML = '<option value="">선택 (클릭하세요)</option>' +
             students.map(function(s) { return '<option value="' + s.num + '">' + s.num + '번 ' + escHtml(s.name) + '</option>'; }).join('');
     });
+}
+
+// ─── 일정 추가/수정 ──────────────────────────────────────
+function openScheduleAdd() {
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('schedule-edit-title').textContent = '일정 추가';
+    document.getElementById('schedule-edit-row').value = '';
+    document.getElementById('schedule-edit-date').value = today;
+    document.getElementById('schedule-edit-text').value = '';
+    document.getElementById('schedule-edit-category').value = '학급일정';
+    document.getElementById('schedule-edit-content').value = '';
+    document.getElementById('schedule-edit-modal').classList.remove('hidden');
+}
+
+function openScheduleEdit(rowIndex, date, title, category, content) {
+    document.getElementById('schedule-edit-title').textContent = '일정 수정';
+    document.getElementById('schedule-edit-row').value = rowIndex;
+    document.getElementById('schedule-edit-date').value = date;
+    document.getElementById('schedule-edit-text').value = title;
+    document.getElementById('schedule-edit-category').value = category;
+    document.getElementById('schedule-edit-content').value = content;
+    document.getElementById('schedule-edit-modal').classList.remove('hidden');
+}
+
+function saveScheduleEdit() {
+    var rowIndex = document.getElementById('schedule-edit-row').value;
+    var date     = document.getElementById('schedule-edit-date').value;
+    var title    = document.getElementById('schedule-edit-text').value.trim();
+    var category = document.getElementById('schedule-edit-category').value;
+    var content  = document.getElementById('schedule-edit-content').value.trim();
+    if (!date || !title) { showToast('날짜와 제목을 입력하세요.'); return; }
+    document.getElementById('schedule-edit-modal').classList.add('hidden');
+    var fnName = rowIndex ? 'updateScheduleItem' : 'addScheduleItem';
+    var payload = rowIndex ? {rowIndex: parseInt(rowIndex,10), date:date, title:title, category:category, content:content}
+                           : {date:date, title:title, category:category, content:content};
+    if (typeof google !== 'undefined' && google.script) {
+        showLoading();
+        google.script.run
+            .withSuccessHandler(function(msg) {
+                hideLoading(); showToast(msg);
+                pagesLoaded.schedule = false; loadScheduleList(); pagesLoaded.schedule = true;
+            })
+            .withFailureHandler(function(e) { hideLoading(); showToast('저장 실패: ' + e.message); })
+            [fnName](payload);
+    } else {
+        showToast((rowIndex ? '수정' : '추가') + '되었습니다. (테스트 모드)');
+    }
+}
+
+// ─── 학생정보 수정 ───────────────────────────────────────
+function openStudentEdit(num) {
+    var s = students.find(function(x){ return x.num == num; });
+    if (!s) { showToast('학생 정보를 찾을 수 없습니다.'); return; }
+    document.getElementById('student-edit-title').textContent = s.num + '번 ' + s.name + ' 정보 수정';
+    document.getElementById('student-edit-num').value   = s.num;
+    document.getElementById('student-edit-numval').value = s.num;
+    document.getElementById('student-edit-name').value  = s.name;
+    document.getElementById('student-edit-phone').value = s.phone || '';
+    document.getElementById('student-edit-p1').value    = s.parentPhone1 || '';
+    document.getElementById('student-edit-p2').value    = s.parentPhone2 || '';
+    document.getElementById('student-edit-note').value  = s.note || '';
+    document.getElementById('student-edit-modal').classList.remove('hidden');
+}
+
+function saveStudentEdit() {
+    var num  = document.getElementById('student-edit-num').value;
+    var name = document.getElementById('student-edit-name').value.trim();
+    if (!name) { showToast('이름을 입력하세요.'); return; }
+    var data = {
+        studentNum: parseInt(num,10), name: name,
+        phone:        document.getElementById('student-edit-phone').value.trim(),
+        parentPhone1: document.getElementById('student-edit-p1').value.trim(),
+        parentPhone2: document.getElementById('student-edit-p2').value.trim(),
+        note:         document.getElementById('student-edit-note').value.trim()
+    };
+    document.getElementById('student-edit-modal').classList.add('hidden');
+    if (typeof google !== 'undefined' && google.script) {
+        showLoading();
+        google.script.run
+            .withSuccessHandler(function(msg) {
+                hideLoading(); showToast(msg);
+                google.script.run
+                    .withSuccessHandler(function(d){ students=d; renderStudents(); populateStudentSelects(); })
+                    .getStudentList();
+            })
+            .withFailureHandler(function(e) { hideLoading(); showToast('저장 실패: ' + e.message); })
+            .updateStudent(data);
+    } else {
+        var s = students.find(function(x){ return x.num == num; });
+        if (s) { s.name=data.name; s.phone=data.phone; s.parentPhone1=data.parentPhone1; s.parentPhone2=data.parentPhone2; s.note=data.note; }
+        renderStudents(); populateStudentSelects();
+        showToast('수정되었습니다. (테스트 모드)');
+    }
 }
 
 // ─── GAS 호출 헬퍼 ───────────────────────────────────────
