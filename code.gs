@@ -158,26 +158,34 @@ function saveCounselRecord(data) {
 
 /**
  * 학생 번호로 출결기록, 학생기록, 상담기록을 한 번에 조회
- * 스프레드시트 열 구조:
- *   출결기록:  A=ID, B=날짜, C=번호, D=이름, E=출결상태, F=사유,    G=증빙자료
- *   학생기록:  A=ID, B=기록일시, C=번호, D=이름, E=분류,   F=내용,   G=지도내용
+ *   출결기록:  A=ID, B=날짜, C=번호, D=이름, E=출결상태, F=사유, G=증빙자료
+ *   학생기록:  A=ID, B=기록일시, C=번호, D=이름, E=분류, F=내용, G=지도내용
  *   상담기록:  A=ID, B=상담일시, C=번호, D=이름, E=상담대상, F=방법, G=내용, H=추후계획
- * @param {number|string} studentNum
- * @returns {{attendance: Array, records: Array, counsel: Array}}
  */
 function getStudentAllRecords(studentNum) {
-  const ss     = getSpreadsheet();
-  const numStr = String(studentNum);
-  const result = { attendance: [], records: [], counsel: [] };
+  var ss     = getSpreadsheet();
+  var numInt = parseInt(String(studentNum), 10);  // 숫자/문자열 모두 처리
+  var result = { attendance: [], records: [], counsel: [] };
 
-  // 출결기록 (C열 = 번호)
+  function fmtDate(v) {
+    return v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(v);
+  }
+  function fmtDatetime(v) {
+    return v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : String(v);
+  }
+  function matchNum(cellVal) {
+    return parseInt(String(cellVal), 10) === numInt;
+  }
+
+  // 출결기록 (C열 = 번호 = index 2)
   var attSheet = ss.getSheetByName('출결기록');
   if (attSheet && attSheet.getLastRow() > 1) {
     var attData = attSheet.getDataRange().getValues();
     for (var i = 1; i < attData.length; i++) {
-      if (String(attData[i][2]) === numStr) {
+      if (!attData[i][0]) continue;
+      if (matchNum(attData[i][2])) {
         result.attendance.push({
-          date:   attData[i][1],
+          date:   fmtDate(attData[i][1]),
           status: attData[i][4],
           reason: attData[i][5] || '',
           proof:  attData[i][6] || ''
@@ -186,14 +194,15 @@ function getStudentAllRecords(studentNum) {
     }
   }
 
-  // 학생기록 (C열 = 번호)
+  // 학생기록 (C열 = 번호 = index 2)
   var recSheet = ss.getSheetByName('학생기록');
   if (recSheet && recSheet.getLastRow() > 1) {
     var recData = recSheet.getDataRange().getValues();
     for (var j = 1; j < recData.length; j++) {
-      if (String(recData[j][2]) === numStr) {
+      if (!recData[j][0]) continue;
+      if (matchNum(recData[j][2])) {
         result.records.push({
-          timestamp: recData[j][1],
+          timestamp: fmtDatetime(recData[j][1]),
           category:  recData[j][4],
           content:   recData[j][5] || ''
         });
@@ -201,14 +210,15 @@ function getStudentAllRecords(studentNum) {
     }
   }
 
-  // 상담기록 (C열 = 번호)
+  // 상담기록 (C열 = 번호 = index 2)
   var cnslSheet = ss.getSheetByName('상담기록');
   if (cnslSheet && cnslSheet.getLastRow() > 1) {
     var cnslData = cnslSheet.getDataRange().getValues();
     for (var k = 1; k < cnslData.length; k++) {
-      if (String(cnslData[k][2]) === numStr) {
+      if (!cnslData[k][0]) continue;
+      if (matchNum(cnslData[k][2])) {
         result.counsel.push({
-          timestamp:  cnslData[k][1],
+          timestamp:  fmtDatetime(cnslData[k][1]),
           targetType: cnslData[k][4],
           method:     cnslData[k][5],
           content:    cnslData[k][6] || ''
@@ -217,5 +227,31 @@ function getStudentAllRecords(studentNum) {
     }
   }
 
+  return result;
+}
+
+// ==========================================
+// 7. 출결기록 전체 목록 조회 (리스트 화면용)
+// ==========================================
+
+function getAttendanceList() {
+  var attSheet = getSpreadsheet().getSheetByName('출결기록');
+  if (!attSheet || attSheet.getLastRow() <= 1) return [];
+  var data = attSheet.getDataRange().getValues();
+  var result = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    result.push({
+      id:          data[i][0],
+      date:        data[i][1] instanceof Date
+                     ? Utilities.formatDate(data[i][1], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+                     : String(data[i][1]),
+      studentNum:  data[i][2],
+      studentName: data[i][3],
+      status:      data[i][4],
+      reason:      data[i][5] || '',
+      proof:       data[i][6] || ''
+    });
+  }
   return result;
 }

@@ -57,8 +57,8 @@
             color: var(--text-sidebar);
             transition: background-color 0.5s ease;
         }
-        /* 모든 테마에서 타이틀 항상 흰색 */
-        .sidebar-title { color: #ffffff !important; }
+        /* 타이틀: 기본/초록/빨강은 흰색, 노란 테마는 --text-sidebar(갈색) 사용 */
+        .sidebar-title { color: var(--text-sidebar); }
         .menu-item:hover, .menu-item.active {
             background-color: rgba(255,255,255,0.25);
             border-radius: 0.75rem;
@@ -225,6 +225,38 @@
                 </div>
                 <button type="submit" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-md">출결 기록 저장하기</button>
             </form>
+
+            <!-- 출결 전체 기록 리스트 -->
+            <div class="mt-10">
+                <h3 class="text-xl font-bold mb-4"><i class="fa-solid fa-list-check mr-2 text-gray-500"></i> 출결 기록 전체 보기</h3>
+
+                <!-- 필터 -->
+                <div class="bg-white bg-opacity-70 p-4 rounded-xl mb-4 shadow-sm border border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <input type="date" id="att-filter-start" class="p-2 rounded border text-sm w-full" title="시작일" onchange="filterAttendanceList()">
+                        <input type="date" id="att-filter-end"   class="p-2 rounded border text-sm w-full" title="종료일" onchange="filterAttendanceList()">
+                        <select id="att-filter-status" class="p-2 rounded border text-sm w-full text-gray-700" onchange="filterAttendanceList()">
+                            <option value="">전체 출결 상태</option>
+                            <option value="질병결석">질병결석</option>
+                            <option value="체험학습">체험학습</option>
+                            <option value="미인정결석">미인정결석</option>
+                            <option value="질병조퇴">질병조퇴</option>
+                            <option value="질병지각">질병지각</option>
+                            <option value="미인정지각">미인정지각</option>
+                            <option value="미인정조퇴">미인정조퇴</option>
+                            <option value="기타결석">기타결석</option>
+                        </select>
+                        <div class="flex w-full overflow-hidden rounded border bg-white">
+                            <input type="text" id="att-filter-name" placeholder="학생 이름 검색" class="p-2 flex-1 min-w-0 text-sm outline-none border-none" oninput="filterAttendanceList()">
+                            <span class="bg-gray-100 px-3 flex items-center flex-shrink-0"><i class="fa-solid fa-magnifying-glass text-gray-400 text-sm"></i></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="attendance-list">
+                    <p class="text-gray-400 text-sm text-center p-6">페이지를 열면 기록이 표시됩니다.</p>
+                </div>
+            </div>
         </section>
 
         <!-- ④ 수업기록 -->
@@ -232,37 +264,31 @@
             <h2 class="text-2xl font-bold mb-6 border-b pb-2"><i class="fa-solid fa-book-open mr-2"></i> 오늘 수업은 어땠나요?</h2>
 
             <form onsubmit="saveClass(event)" class="space-y-5 bg-white bg-opacity-40 p-5 rounded-xl border border-white">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- 날짜 · 교시 · 과목 한 줄 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block mb-1 font-bold text-sm text-gray-700">날짜</label>
                         <input type="date" id="class-date" class="w-full p-3 rounded-lg border focus:outline-none" required>
                     </div>
                     <div>
-                        <label class="block mb-1 font-bold text-sm text-gray-700">단원/차시</label>
-                        <input type="text" id="class-unit" placeholder="예: 1단원 3차시" class="w-full p-3 rounded-lg border focus:outline-none" required>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block mb-2 font-bold text-sm text-gray-700">교시 선택</label>
+                        <label class="block mb-1 font-bold text-sm text-gray-700">교시 선택</label>
                         <select id="period-select" class="p-3 rounded-lg border w-full mb-2 cursor-pointer hover:bg-gray-50 transition" onchange="addClassTag('period',this)"></select>
-                        <div id="selected-periods-tags" class="flex flex-wrap gap-2 min-h-[42px] p-2 bg-white rounded-lg border border-gray-300 items-center">
-                            <span class="text-sm text-gray-400">선택된 교시가 없습니다.</span>
+                        <div id="selected-periods-tags" class="flex flex-wrap gap-2 min-h-[38px] p-2 bg-white rounded-lg border border-gray-300 items-center">
+                            <span class="text-sm text-gray-400">없음</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block mb-2 font-bold text-sm text-gray-700">과목 선택</label>
+                        <label class="block mb-1 font-bold text-sm text-gray-700">과목 선택</label>
                         <select id="subject-select" class="p-3 rounded-lg border w-full mb-2 cursor-pointer hover:bg-gray-50 transition" onchange="addClassTag('subject',this)"></select>
-                        <div id="selected-subjects-tags" class="flex flex-wrap gap-2 min-h-[42px] p-2 bg-white rounded-lg border border-gray-300 items-center">
-                            <span class="text-sm text-gray-400">선택된 과목이 없습니다.</span>
+                        <div id="selected-subjects-tags" class="flex flex-wrap gap-2 min-h-[38px] p-2 bg-white rounded-lg border border-gray-300 items-center">
+                            <span class="text-sm text-gray-400">없음</span>
                         </div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block mb-1 font-bold text-sm text-gray-700">학습 주제</label>
-                    <input type="text" id="class-topic" placeholder="학습 주제를 입력하세요." class="w-full p-3 rounded-lg border" required>
+                    <label class="block mb-1 font-bold text-sm text-gray-700">배움 주제</label>
+                    <input type="text" id="class-topic" placeholder="배움 주제를 입력하세요." class="w-full p-3 rounded-lg border" required>
                 </div>
                 <div>
                     <label class="block mb-1 font-bold text-sm text-gray-700">수업 성찰</label>
@@ -523,9 +549,10 @@
 <script>
 // ─── 전역 변수 ───────────────────────────────────────────
 let students = [];
-let selectedCounselStudents = [];
-let selectedClassPeriods   = [];
-let selectedClassSubjects  = [];
+let selectedCounselStudents  = [];
+let selectedClassPeriods     = [];
+let selectedClassSubjects    = [];
+let allAttendanceRecords     = [];   // 출결 전체 목록 캐시
 
 const classPeriodsList  = ['1교시','2교시','3교시','4교시','5교시','6교시'];
 const classSubjectsList = ['국어','도덕','사회','수학','과학','실과','체육','음악','미술','영어','창체','융합'];
@@ -666,6 +693,8 @@ function showPage(pageId, element) {
     const target = document.getElementById(pageId);
     if (target) target.classList.add('active');
     if (element) document.getElementById('current-page-title').innerText = element.innerText.trim();
+    // 출결 페이지 진입 시 목록 자동 로드
+    if (pageId === 'page-attendance') loadAttendanceList();
 }
 
 // ─── 테마 ────────────────────────────────────────────────
@@ -849,6 +878,8 @@ function saveAttendance(event) {
         proof:       document.getElementById('att-proof').value
     }, '출결 기록이 저장되었습니다.', function() {
         document.getElementById('att-reason').value = '';
+        sel.value = '';
+        loadAttendanceList();   // 저장 후 목록 즉시 갱신
     });
 }
 
@@ -857,7 +888,7 @@ function saveClass(event) {
     event.preventDefault();
     gasCall('saveClassRecord', {
         date:       document.getElementById('class-date').value,
-        unit:       document.getElementById('class-unit').value,
+        unit:       '',
         periods:    selectedClassPeriods.slice(),
         subjects:   selectedClassSubjects.slice(),
         topic:      document.getElementById('class-topic').value,
@@ -865,7 +896,6 @@ function saveClass(event) {
         link:       document.getElementById('class-link').value,
         files:      ''
     }, '수업 기록이 저장되었습니다.', function() {
-        document.getElementById('class-unit').value = '';
         document.getElementById('class-topic').value = '';
         document.getElementById('class-reflection').value = '';
         document.getElementById('class-link').value = '';
@@ -928,6 +958,64 @@ function saveCounsel() {
         selectedCounselStudents = [];
         renderStudentTags();
     });
+}
+
+// ─── 출결 목록 로드 / 렌더 / 필터 ───────────────────────
+function loadAttendanceList() {
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(function(data) {
+                allAttendanceRecords = data;
+                renderAttendanceList(data);
+            })
+            .withFailureHandler(function(e) {
+                const el = document.getElementById('attendance-list');
+                if (el) el.innerHTML = '<p class="text-red-400 text-sm p-3">목록 로드 실패: ' + e.message + '</p>';
+            })
+            .getAttendanceList();
+    } else {
+        allAttendanceRecords = [
+            {date:'2026-03-01', studentNum:1, studentName:'학생1', status:'질병결석', reason:'감기', proof:'O'},
+            {date:'2026-03-02', studentNum:3, studentName:'학생3', status:'질병조퇴', reason:'두통', proof:'X'}
+        ];
+        renderAttendanceList(allAttendanceRecords);
+    }
+}
+
+function renderAttendanceList(records) {
+    const container = document.getElementById('attendance-list');
+    if (!container) return;
+    if (!records || records.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center p-6">출결 기록이 없습니다.</p>';
+        return;
+    }
+    const sorted = records.slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
+    container.innerHTML = sorted.map(function(r) {
+        return '<div class="bg-white rounded-xl p-4 shadow-sm border-l-4 flex justify-between items-center gap-2 mb-2" style="border-left-color:var(--accent-color)">' +
+            '<div>' +
+            '<span class="text-sm font-bold text-gray-500 mr-2">' + r.date + '</span>' +
+            '<span class="font-bold text-gray-800 mr-2">' + r.studentNum + '번 ' + r.studentName + '</span>' +
+            '<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold">' + r.status + '</span>' +
+            (r.reason ? '<span class="ml-1 text-sm text-gray-500">' + r.reason + '</span>' : '') +
+            '</div>' +
+            '<span class="text-xs text-gray-400 flex-shrink-0">증빙: ' + (r.proof || '-') + '</span>' +
+            '</div>';
+    }).join('');
+}
+
+function filterAttendanceList() {
+    const start  = document.getElementById('att-filter-start').value;
+    const end    = document.getElementById('att-filter-end').value;
+    const status = document.getElementById('att-filter-status').value;
+    const name   = document.getElementById('att-filter-name').value.trim();
+    const filtered = allAttendanceRecords.filter(function(r) {
+        if (start && r.date < start) return false;
+        if (end   && r.date > end)   return false;
+        if (status && r.status !== status) return false;
+        if (name && String(r.studentName).indexOf(name) === -1) return false;
+        return true;
+    });
+    renderAttendanceList(filtered);
 }
 
 // ─── 학생 대시보드 ───────────────────────────────────────
