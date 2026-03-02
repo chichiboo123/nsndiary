@@ -649,7 +649,13 @@ button:hover{ filter:brightness(.95) }</style></head>
                 })
                 .withFailureHandler(function(e) {
                     hideLoading();
-                    showToast('데이터 로드 실패: ' + e.message);
+                    // 스프레드시트 설정이 안 된 경우 → 플래그 초기화 후 설정 모달 표시
+                    if (e.message && e.message.includes('설정되지 않았습니다')) {
+                        localStorage.removeItem('nsn_setup_done');
+                        document.getElementById('setup-modal').classList.remove('hidden');
+                    } else {
+                        showToast('데이터 로드 실패: ' + e.message);
+                    }
                 })
                 .getStudentList();
         }
@@ -692,19 +698,27 @@ button:hover{ filter:brightness(.95) }</style></head>
         // 스프레드시트 재설정 (사이드바 버튼에서 호출)
         function resetSetup() {
             if (!confirm('스프레드시트 연동을 초기화하시겠습니까?\n다시 URL을 입력해야 합니다.')) return;
-            showLoading();
-            google.script.run
-                .withSuccessHandler(function() {
-                    localStorage.removeItem('nsn_setup_done');
-                    hideLoading();
-                    showToast('초기화되었습니다. 새로고침합니다.');
-                    setTimeout(function() { location.reload(); }, 1500);
-                })
-                .withFailureHandler(function(e) {
-                    hideLoading();
-                    showToast('초기화 실패: ' + e.message);
-                })
-                .resetSetup();
+            // localStorage 플래그는 GAS 환경 여부와 무관하게 항상 삭제
+            localStorage.removeItem('nsn_setup_done');
+            if (typeof google !== 'undefined' && google.script) {
+                // GAS 환경: 서버의 Script Properties도 함께 삭제
+                showLoading();
+                google.script.run
+                    .withSuccessHandler(function() {
+                        hideLoading();
+                        showToast('초기화되었습니다. 새로고침합니다.');
+                        setTimeout(function() { location.reload(); }, 1500);
+                    })
+                    .withFailureHandler(function(e) {
+                        hideLoading();
+                        showToast('초기화 실패: ' + e.message);
+                        setTimeout(function() { location.reload(); }, 1500);
+                    })
+                    .resetSetup();
+            } else {
+                // 로컬 환경: localStorage만 삭제 후 새로고침
+                location.reload();
+            }
         }
 
         // --- 3. UI 렌더링 및 기능 ---
