@@ -143,10 +143,8 @@
 <body>
 <div class="app-wrap">
 
-<!-- 모바일 오버레이 -->
 <div id="mobile-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30" onclick="closeMobileMenu()"></div>
 
-<!-- ═══ 사이드바 ═══ -->
 <aside id="sidebar">
     <div class="px-4 pt-5 pb-3 text-center">
         <h1 class="title-font text-2xl font-bold mb-1 sidebar-title cursor-pointer hover:opacity-80 transition select-none leading-snug"
@@ -175,9 +173,7 @@
     </div>
 </aside>
 
-<!-- ═══ 메인 영역 ═══ -->
 <div class="main-area">
-    <!-- 헤더 -->
     <header class="px-4 py-3 flex justify-between items-center z-10 flex-shrink-0" style="background:rgba(255,255,255,0.3);backdrop-filter:blur(6px);">
         <div class="flex items-center gap-3">
             <button id="mobile-menu-btn" onclick="openMobileMenu()"
@@ -202,18 +198,15 @@
         </div>
     </header>
 
-    <!-- 페이지 콘텐츠 -->
     <div class="main-scroll">
     <div class="max-w-4xl mx-auto pb-16">
 
-<!-- ① 홈 (첫 페이지) -->
 <section id="page-home" class="page-section active">
     <div class="glass-panel rounded-2xl p-6 mb-5">
         <h2 class="text-xl font-bold mb-1">안녕하세요, 선생님!</h2>
         <p class="text-sm text-gray-500">나세나반 다이어리에 오신 것을 환영합니다.</p>
     </div>
 
-    <!-- 검색 -->
     <div class="glass-panel rounded-2xl p-5 mb-5">
         <h3 class="font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-magnifying-glass text-gray-400"></i> 전체 기록 검색</h3>
         <div class="flex gap-2">
@@ -228,7 +221,6 @@
         <div id="search-results" class="mt-4 hidden"></div>
     </div>
 
-    <!-- 기능 버튼 그리드 -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="feature-btn" onclick="showPage('page-schedule', document.getElementById('nav-schedule'))">
             <i class="fa-regular fa-calendar text-3xl mb-2" style="color:var(--accent-color)"></i>
@@ -265,7 +257,6 @@
     </div>
 </section>
 
-<!-- ② 일정 -->
 <section id="page-schedule" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-regular fa-calendar mr-2"></i> 학급 및 학교 일정</h2>
     <p class="text-xs text-gray-400 mb-4">
@@ -280,7 +271,6 @@
     </div>
 </section>
 
-<!-- ③ 학생정보 -->
 <section id="page-students" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
     <div class="overflow-x-auto rounded-xl">
@@ -300,7 +290,6 @@
     </div>
 </section>
 
-<!-- ④ 출결기록 -->
 <section id="page-attendance" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-check-to-slot mr-2"></i> 출결 기록</h2>
     <form onsubmit="saveAttendance(event)" class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
@@ -339,7 +328,6 @@
         <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">출결 기록 저장하기</button>
     </form>
 
-    <!-- 출결 보관함 -->
     <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-list-check mr-2 text-gray-400"></i> 출결 기록 보관함</h3>
     <div class="filter-bar">
         <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -359,11 +347,9 @@
     <div id="attendance-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
 </section>
 
-<!-- ⑤ 수업기록 -->
 <section id="page-class" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-book-open mr-2"></i> 수업 기록</h2>
     <form onsubmit="saveClass(event)" class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
-        <!-- 날짜 · 교시 · 과목 -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
                 <label class="block mb-1 font-bold text-sm text-gray-700">날짜</label>
@@ -392,7 +378,6 @@
             <label class="block mb-1 font-bold text-sm text-gray-700">수업 성찰</label>
             <textarea id="class-reflection" placeholder="수업 성찰" rows="3" class="w-full p-2.5 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
         </div>
-        <!-- 자료 첨부 -->
         <div class="bg-white bg-opacity-70 p-3 rounded-xl space-y-2 border border-gray-200">
             <h4 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-paperclip mr-1"></i> 자료 첨부</h4>
             <input type="url" id="class-link" placeholder="참고 웹사이트 URL" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
@@ -406,7 +391,6 @@
         <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">기록 남기기</button>
     </form>
 
-    <!-- 수업 보관함 -->
     <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-box-archive mr-2 text-gray-400"></i> 수업 기록 보관함</h3>
     <div class="filter-bar">
         <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -422,7 +406,6 @@
     <div id="class-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
 </section>
 
-<!-- ⑥ 일상기록 -->
 <section id="page-daily" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-mug-hot mr-2"></i> 교실의 소소한 일상</h2>
     <form onsubmit="saveDaily(event)" class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
@@ -431,7 +414,6 @@
             <input type="text" id="daily-keyword" placeholder="핵심 키워드 (예: 학부모 총회, 교실 청소)" class="p-2.5 rounded-lg border text-sm focus:outline-none" required>
         </div>
         <textarea id="daily-content" placeholder="오늘 하루 어떤 일이 있었나요?" rows="5" class="w-full p-2.5 rounded-lg border text-sm resize-none focus:outline-none" required></textarea>
-        <!-- 자료 첨부 -->
         <div class="bg-white bg-opacity-70 p-3 rounded-xl space-y-2 border border-gray-200">
             <h4 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-paperclip mr-1"></i> 자료 첨부</h4>
             <input type="url" id="daily-link" placeholder="관련 URL 링크 (공문 링크 등)" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
@@ -445,7 +427,6 @@
         <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">일기장 덮기 (저장)</button>
     </form>
 
-    <!-- 일상 보관함 -->
     <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-box-archive mr-2 text-gray-400"></i> 일상 기록 보관함</h3>
     <div class="filter-bar">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -458,7 +439,6 @@
     <div id="daily-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
 </section>
 
-<!-- ⑦ 학생기록 -->
 <section id="page-student-record" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-user-pen mr-2"></i> 학생 행동 발달 기록</h2>
     <div class="space-y-3 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
@@ -482,7 +462,6 @@
         <button onclick="saveStudentRec()" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">저장하기</button>
     </div>
 
-    <!-- 학생기록 보관함 -->
     <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-box-archive mr-2 text-gray-400"></i> 학생 기록 보관함</h3>
     <div class="filter-bar">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -499,7 +478,6 @@
     <div id="student-record-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
 </section>
 
-<!-- ⑧ 상담기록 -->
 <section id="page-counsel" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-comments mr-2"></i> 상담 일지</h2>
     <div class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
@@ -531,7 +509,6 @@
         <button onclick="saveCounsel()" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">상담 기록 저장하기</button>
     </div>
 
-    <!-- 상담 보관함 -->
     <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-box-archive mr-2 text-gray-400"></i> 상담 기록 보관함</h3>
     <div class="filter-bar">
         <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -548,27 +525,18 @@
     <div id="counsel-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
 </section>
 
-<!-- ⑨ 디지털도구 -->
 <section id="page-tools" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-toolbox mr-2"></i> 자주 쓰는 디지털 도구</h2>
     <div id="tools-container" class="space-y-5"></div>
 </section>
 
-    </div><!-- max-w -->
-    </div><!-- main-scroll -->
-</div><!-- main-area -->
-</div><!-- app-wrap -->
+    </div></div></div></div><div id="toast"></div>
 
-<!-- ── 토스트 ── -->
-<div id="toast"></div>
-
-<!-- ── 로딩 오버레이 ── -->
 <div id="loading-overlay" class="hidden fixed inset-0 bg-white bg-opacity-70 z-50 flex flex-col justify-center items-center">
     <i class="fa-solid fa-spinner fa-spin text-5xl mb-4" style="color:var(--accent-color)"></i>
     <p class="font-bold text-gray-600">처리 중입니다...</p>
 </div>
 
-<!-- ── 초기 설정 모달 ── -->
 <div id="setup-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-7 max-w-md w-full shadow-2xl">
         <div class="text-center mb-5">
@@ -593,7 +561,6 @@
     </div>
 </div>
 
-<!-- ── 학생 대시보드 모달 ── -->
 <div id="student-dashboard-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[70] flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
         <div class="p-5 flex justify-between items-center rounded-t-2xl flex-shrink-0" style="background:var(--bg-sidebar)">
@@ -631,7 +598,6 @@
     </div>
 </div>
 
-<!-- ═══ SCRIPT ═══ -->
 <script>
 // ─── 전역 변수 ────────────────────────────────────────────
 let students = [];
@@ -642,26 +608,6 @@ const pagesLoaded = {};
 
 const classPeriodsList  = ['1교시','2교시','3교시','4교시','5교시','6교시'];
 const classSubjectsList = ['국어','도덕','사회','수학','과학','실과','체육','음악','미술','영어','창체','융합'];
-
-const digitalToolsData = {
-    "학급 운영": [
-        {name:"교실 타이머", icon:"fa-stopwatch",   color:"text-blue-500",   url:"#"},
-        {name:"발표자 뽑기", icon:"fa-dice",         color:"text-green-500",  url:"#"},
-        {name:"자리 바꾸기", icon:"fa-chair",        color:"text-orange-500", url:"#"},
-        {name:"소음 측정기", icon:"fa-volume-high",  color:"text-red-400",    url:"#"}
-    ],
-    "수업 보조": [
-        {name:"집중 음악",   icon:"fa-music",        color:"text-yellow-500", url:"#"},
-        {name:"온라인 칠판", icon:"fa-chalkboard",   color:"text-purple-500", url:"#"},
-        {name:"퀴즈앤",      icon:"fa-q",            color:"text-pink-500",   url:"#"},
-        {name:"패들렛",      icon:"fa-pager",        color:"text-teal-500",   url:"#"}
-    ],
-    "유틸리티": [
-        {name:"맞춤법 검사기",icon:"fa-spell-check", color:"text-red-500",    url:"#"},
-        {name:"QR 생성기",   icon:"fa-qrcode",       color:"text-gray-700",   url:"#"},
-        {name:"미리캔버스",  icon:"fa-pen-nib",      color:"text-indigo-500", url:"#"}
-    ]
-};
 
 // ─── 모바일 메뉴 ─────────────────────────────────────────
 function openMobileMenu() {
@@ -682,7 +628,6 @@ window.onload = function() {
 
     setTheme(localStorage.getItem('diaryTheme') || 'blue', true);
     populateClassSelects();
-    renderTools();
     setupFileInputs();
     showLoading();
 
@@ -784,6 +729,7 @@ function showPage(pageId, element) {
     if (pageId === 'page-daily'    && !pagesLoaded.daily) { loadDailyList();         pagesLoaded.daily = true; }
     if (pageId === 'page-student-record' && !pagesLoaded.sr) { loadStudentRecordList(); pagesLoaded.sr = true; }
     if (pageId === 'page-counsel'  && !pagesLoaded.cns)  { loadCounselList();       pagesLoaded.cns = true; }
+    if (pageId === 'page-tools'    && !pagesLoaded.tools) { loadToolList();          pagesLoaded.tools = true; }
 }
 
 // ─── 테마 ────────────────────────────────────────────────
@@ -1479,19 +1425,64 @@ function renderStudentDashboard(data) {
 }
 
 // ─── 디지털 도구 ─────────────────────────────────────────
-function renderTools() {
-    var html = '';
-    for (var cat in digitalToolsData) {
-        var tools = digitalToolsData[cat];
-        html += '<div><h3 class="text-base font-bold mb-3 border-l-4 pl-3 text-gray-800" style="border-color:var(--accent-color)">' + cat + '</h3>' +
-            '<div class="grid grid-cols-3 md:grid-cols-5 gap-3">' +
-            tools.map(function(t) {
-                return '<a href="' + t.url + '" target="_blank" class="bg-white p-3 rounded-xl shadow-sm hover:shadow transition text-center flex flex-col items-center justify-center min-h-[80px] border border-transparent hover:border-[var(--accent-color)]">' +
-                    '<i class="fa-solid ' + t.icon + ' text-2xl ' + t.color + ' mb-1.5"></i>' +
-                    '<span class="font-bold text-xs leading-tight text-gray-700">' + t.name + '</span></a>';
-            }).join('') + '</div></div>';
+function loadToolList() {
+    var container = document.getElementById('tools-container');
+    container.innerHTML = '<p class="text-sm text-gray-400 text-center py-12"><i class="fa-solid fa-spinner fa-spin mr-1"></i> 도구 목록을 불러오는 중...</p>';
+
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(renderToolList)
+            .withFailureHandler(function(e) { showErrInList('tools-container', e.message); })
+            .getToolList();
+    } else {
+        // 로컬 테스트용 가짜 데이터
+        renderToolList([
+            {category: '수업자료', name: '인디스쿨', url: 'https://indischool.com', description: ''},
+            {category: '수업자료', name: '티셀파', url: 'https://tsherpa.co.kr', description: '사회'}
+        ]);
     }
-    document.getElementById('tools-container').innerHTML = html;
+}
+
+function renderToolList(tools) {
+    var container = document.getElementById('tools-container');
+    if (!tools || tools.length === 0) { 
+        container.innerHTML = emptyMsg('스프레드시트에 등록된 디지털 도구가 없습니다.'); 
+        return; 
+    }
+
+    // 1. 가져온 데이터를 '분류'별로 묶기
+    var groupedTools = {};
+    tools.forEach(function(tool) {
+        if (!groupedTools[tool.category]) groupedTools[tool.category] = [];
+        groupedTools[tool.category].push(tool);
+    });
+
+    // 2. 묶은 데이터를 바탕으로 화면 만들기
+    var html = '';
+    var catIndex = 0; // 💡 카테고리별 색상 구분을 위한 변수
+
+    for (var cat in groupedTools) {
+        var hueShift = catIndex * 60; // 💡 60도씩 색상 회전
+
+        html += '<div class="mb-6"><h3 class="text-base font-bold mb-3 border-l-4 pl-3 text-gray-800" style="border-color:var(--accent-color)">' + escHtml(cat) + '</h3>' +
+                '<div class="grid grid-cols-2 md:grid-cols-4 gap-3">';
+        
+        groupedTools[cat].forEach(function(t) {
+            html += '<a href="' + escAttr(t.url) + '" target="_blank" ' +
+                    'class="relative overflow-hidden bg-white p-4 rounded-xl shadow-sm hover:-translate-y-1 transition-all duration-200 flex flex-col justify-center items-center min-h-[80px] border border-gray-100 hover:shadow-md group">' +
+                    '<div class="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity" ' +
+                    'style="background-color: var(--accent-color); filter: hue-rotate(' + hueShift + 'deg);"></div>' +
+                    '<div class="relative z-10 flex flex-col items-center">' +
+                    '<span class="font-bold text-sm text-gray-800 mb-1 group-hover:text-black transition-colors">' + escHtml(t.name) + '</span>' +
+                    (t.description ? '<span class="text-xs text-gray-500 font-medium">' + escHtml(t.description) + '</span>' : '') +
+                    '</div>' +
+                    '</a>';
+        });
+        html += '</div></div>';
+        
+        catIndex++;
+    }
+    container.innerHTML = html;
 }
 
 // ─── 헬퍼 ────────────────────────────────────────────────

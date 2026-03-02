@@ -357,3 +357,28 @@ function globalSearch(keyword) {
 
   return results;
 }
+// ==========================================
+// 12. 디지털 도구 조회
+// ==========================================
+// 디지털 도구 시트 컬럼: A=분류, B=도구명, C=URL, D=설명
+function getToolList() {
+  var ss = getSpreadsheet();
+  // 주의: 스프레드시트의 시트 이름이 정확히 '디지털 도구'여야 합니다. 띄어쓰기 확인!
+  var sheet = ss.getSheetByName('디지털 도구'); 
+  
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  
+  var data = sheet.getDataRange().getValues();
+  var result = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][1]) continue; // 도구명이 비어있으면 건너뜀
+    result.push({
+      category: String(data[i][0] || '기타'),
+      name: String(data[i][1] || ''),
+      url: String(data[i][2] || '#'),
+      description: String(data[i][3] || '')
+    });
+  }
+  return result;
+}
