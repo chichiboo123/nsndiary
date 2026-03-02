@@ -19,10 +19,21 @@ function setupSpreadsheet(spreadsheetUrl) {
   try {
     SpreadsheetApp.openByUrl(spreadsheetUrl);
     PropertiesService.getScriptProperties().setProperty('SPREADSHEET_URL', spreadsheetUrl);
-    return { success: true, message: '스프레드시트 연동이 완료되었습니다.' };
+    var m = spreadsheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    var ssId = m ? m[1] : '';
+    return { success: true, message: '스프레드시트 연동이 완료되었습니다.', spreadsheetId: ssId };
   } catch (e) {
-    return { success: false, message: '스프레드시트를 열 수 없습니다. URL과 공유 권한을 확인해주세요. (' + e.message + ')' };
+    return { success: false, message: '스프레드시트를 열 수 없습니다. URL과 공유 권한을 확인해주세요. (' + e.message + ')', spreadsheetId: '' };
   }
+}
+
+function verifyAccess(spreadsheetId) {
+  if (!spreadsheetId) return false;
+  var storedUrl = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_URL');
+  if (!storedUrl) return false;
+  var m = storedUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  var storedId = m ? m[1] : null;
+  return storedId === String(spreadsheetId);
 }
 
 function resetSetup() {
@@ -85,8 +96,26 @@ function getScheduleList() {
   var result = [];
   for (var i = 1; i < data.length; i++) {
     if (!data[i][0] && !data[i][1]) continue;
+    var dateCell = data[i][0];
+    var dateStr = '';
+    if (dateCell instanceof Date) {
+      dateStr = Utilities.formatDate(dateCell, tz, 'yyyy-MM-dd');
+    } else {
+      var text = String(dateCell || '').trim();
+      var m1 = text.match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+      if (m1) {
+        dateStr = m1[1] + '-' + ('0'+m1[2]).slice(-2) + '-' + ('0'+m1[3]).slice(-2);
+      } else {
+        var m2 = text.match(/^(\d{1,2})[.\-\/](\d{1,2})/);
+        if (m2) {
+          dateStr = new Date().getFullYear() + '-' + ('0'+m2[1]).slice(-2) + '-' + ('0'+m2[2]).slice(-2);
+        } else {
+          dateStr = text;
+        }
+      }
+    }
     result.push({
-      date:     _fmt(data[i][0], tz),
+      date:     dateStr,
       title:    String(data[i][1] || ''),
       category: String(data[i][2] || '기타'),
       content:  String(data[i][3] || '')
