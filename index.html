@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>나세나반 다이어리</title>
-    <link rel="icon" type="image/png" href="https://i.ibb.co/Mx6q1zTb/free-icon-diary-8723552.png">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📔</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -194,10 +194,19 @@
         }
         @media (max-width: 360px) {
             .glass-panel { padding: 0.75rem !important; }
-            .feature-btn { padding: 0.75rem 0.25rem; }
-            .feature-btn i { font-size: 1.3rem !important; }
+            .feature-btn { padding: 0.6rem 0.2rem; }
+            .feature-btn i { font-size: 1.2rem !important; margin-bottom: 2px !important; }
+            .feature-btn p { font-size: 0.65rem; }
             #clock-time { font-size: 1.7rem; }
-            .cal-cell { min-height: 40px; }
+            .cal-cell { min-height: 38px; }
+            .schedule-card { padding: 8px 10px; gap: 8px; }
+            .schedule-date { min-width: 40px; padding: 4px 6px; }
+        }
+        /* 좁고 긴 기기 추가 최적화 */
+        @media (max-width: 480px) {
+            .max-w-4xl { padding-bottom: 8px; }
+            .feature-btn i { margin-bottom: 4px !important; }
+            .glass-panel.rounded-2xl.p-6 { padding: 0.875rem !important; }
         }
     </style>
 </head>
@@ -785,6 +794,7 @@ let allAttendanceRecords = [], allClassRecords = [], allDailyRecords = [];
 let allStudentRecords = [], allCounselRecords = [];
 let allScheduleRecords = [];
 let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+let activeMonthFilter = null;
 let clockTimer = null;
 const pagesLoaded = {};
 
@@ -803,7 +813,8 @@ function closeMobileMenu() {
 
 // ─── 초기화 ──────────────────────────────────────────────
 window.onload = function() {
-    const today = new Date().toISOString().split('T')[0];
+    const _now = new Date();
+    const today = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0') + '-' + String(_now.getDate()).padStart(2,'0');
     document.getElementById('att-date').value   = today;
     document.getElementById('class-date').value = today;
     document.getElementById('daily-date').value = today;
@@ -1009,7 +1020,7 @@ function loadScheduleList() {
     startScheduleClock();
     if (typeof google !== 'undefined' && google.script) {
         google.script.run
-            .withSuccessHandler(function(data) { allScheduleRecords = data; renderScheduleList(data); })
+            .withSuccessHandler(function(data) { allScheduleRecords = data; activeMonthFilter = null; renderScheduleList(data); })
             .withFailureHandler(function(e) { el.innerHTML = '<p class="text-red-400 text-sm p-3">일정 로드 실패: ' + e.message + '</p>'; })
             .getScheduleList();
     } else {
@@ -1067,40 +1078,36 @@ function renderMonthNav(records) {
         if (m) monthSet[m] = true;
     });
     var months = Object.keys(monthSet).sort();
-    var today = new Date().toISOString().split('T')[0];
-    var currentMonth = today.substring(0,7);
-    nav.innerHTML = months.map(function(m) {
+    var btnAll = '<button onclick="filterByMonth(null)" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+        (activeMonthFilter === null ? ' active' : '') + '" data-month="">전체</button>';
+    var btnMonths = months.map(function(m) {
         var parts = m.split('-');
         var label = parseInt(parts[1],10) + '월';
-        var isNow = m === currentMonth;
-        return '<button onclick="jumpToMonth(\'' + m + '\')" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
-            (isNow ? ' active' : '') + '" data-month="' + m + '">' + label + '</button>';
+        return '<button onclick="filterByMonth(\'' + m + '\')" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+            (activeMonthFilter === m ? ' active' : '') + '" data-month="' + m + '">' + label + '</button>';
     }).join('');
+    nav.innerHTML = btnAll + btnMonths;
 }
 
-function jumpToMonth(ym) {
-    var cards = document.querySelectorAll('#schedule-list .schedule-card[data-month]');
-    for (var i = 0; i < cards.length; i++) {
-        if (cards[i].getAttribute('data-month') === ym) {
-            cards[i].scrollIntoView({behavior:'smooth', block:'start'});
-            break;
-        }
-    }
-    document.querySelectorAll('.month-nav-btn').forEach(function(b) {
-        b.classList.toggle('active', b.getAttribute('data-month') === ym);
-    });
+function filterByMonth(ym) {
+    activeMonthFilter = ym;
+    var filtered = ym ? allScheduleRecords.filter(function(r) {
+        return r.date && r.date.substring(0,7) === ym;
+    }) : allScheduleRecords;
+    renderScheduleList(filtered);
 }
 
 function renderScheduleList(records) {
     var el = document.getElementById('schedule-list');
-    renderMonthNav(records);
+    renderMonthNav(allScheduleRecords);
     if (!records || records.length === 0) {
         el.innerHTML = '<div class="text-center text-gray-400 py-12">' +
             '<i class="fa-solid fa-calendar-xmark text-4xl mb-3 block opacity-40"></i>' +
             '<p class="text-sm">등록된 일정이 없습니다.<br>스프레드시트 [일정] 시트에 추가해주세요.</p></div>';
         return;
     }
-    var today = new Date().toISOString().split('T')[0];
+    var _now2 = new Date();
+    var today = _now2.getFullYear() + '-' + String(_now2.getMonth()+1).padStart(2,'0') + '-' + String(_now2.getDate()).padStart(2,'0');
     var catColors = {'1교시':'bg-blue-100 text-blue-700','2교시':'bg-purple-100 text-purple-700','3교시':'bg-indigo-100 text-indigo-700','4교시':'bg-green-100 text-green-700','5교시':'bg-orange-100 text-orange-700','6교시':'bg-pink-100 text-pink-700'};
     function makeCard(r) {
         var isPast = r.date < today;
@@ -1135,7 +1142,8 @@ function renderScheduleList(records) {
 }
 
 function renderCalendarView() {
-    var today = new Date().toISOString().split('T')[0];
+    var _nc = new Date();
+    var today = _nc.getFullYear() + '-' + String(_nc.getMonth()+1).padStart(2,'0') + '-' + String(_nc.getDate()).padStart(2,'0');
     document.getElementById('cal-month-label').textContent = calYear + '년 ' + (calMonth + 1) + '월';
     var firstDay    = new Date(calYear, calMonth, 1).getDay();
     var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
@@ -1214,7 +1222,8 @@ function populateStudentSelects() {
 
 // ─── 일정 추가/수정 ──────────────────────────────────────
 function openScheduleAdd() {
-    var today = new Date().toISOString().split('T')[0];
+    var _ns = new Date();
+    var today = _ns.getFullYear() + '-' + String(_ns.getMonth()+1).padStart(2,'0') + '-' + String(_ns.getDate()).padStart(2,'0');
     document.getElementById('schedule-edit-title').textContent = '일정 추가';
     document.getElementById('schedule-edit-row').value = '';
     document.getElementById('schedule-edit-date').value = today;
@@ -1910,7 +1919,8 @@ function renderToolList(tools) {
                 '<div class="grid grid-cols-2 md:grid-cols-4 gap-3">';
 
         groupedTools[cat].forEach(function(t) {
-            html += '<a href="' + escAttr(t.url) + '" target="_blank" ' +
+            html += '<a href="' + escAttr(t.url) + '" data-href="' + escAttr(t.url) + '" ' +
+                    'onclick="return openToolUrl(this);" ' +
                     'class="relative overflow-hidden bg-white p-4 rounded-xl shadow-sm hover:-translate-y-1 transition-all duration-200 flex flex-col justify-center items-center min-h-[80px] border border-gray-100 hover:shadow-md group">' +
                     '<div class="absolute inset-0 transition-opacity" ' +
                     'style="background-color:var(--accent-color);opacity:' + opacity + ';" ' +
@@ -1927,6 +1937,13 @@ function renderToolList(tools) {
         catIndex++;
     }
     container.innerHTML = html;
+}
+
+// ─── 디지털도구 링크 열기 (모바일 뒤로가기 대응) ─────────
+function openToolUrl(el) {
+    var url = el.getAttribute('data-href');
+    if (url) { window.open(url, '_blank', 'noopener,noreferrer'); }
+    return false;
 }
 
 // ─── 헬퍼 ────────────────────────────────────────────────
