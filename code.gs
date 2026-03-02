@@ -115,6 +115,7 @@ function getScheduleList() {
       }
     }
     result.push({
+      rowIndex: i + 1,
       date:     dateStr,
       title:    String(data[i][1] || ''),
       category: String(data[i][2] || '기타'),
@@ -126,7 +127,39 @@ function getScheduleList() {
 }
 
 // ==========================================
-// 6. 각 기록 저장 (Create)
+// 6. 일정 추가/수정, 학생정보 수정
+// ==========================================
+function addScheduleItem(data) {
+  var sheet = getSheet('일정');
+  sheet.appendRow([data.date, data.title, data.category || '기타', data.content || '']);
+  return '일정이 추가되었습니다.';
+}
+
+function updateScheduleItem(data) {
+  var sheet = getSheet('일정');
+  var row = parseInt(data.rowIndex, 10);
+  if (!row || row < 2) throw new Error('올바른 행 번호가 아닙니다.');
+  sheet.getRange(row, 1, 1, 4).setValues([[data.date, data.title, data.category || '기타', data.content || '']]);
+  return '일정이 수정되었습니다.';
+}
+
+function updateStudent(data) {
+  var sheet = getSheet('학생정보');
+  var rows = sheet.getDataRange().getValues();
+  var num = parseInt(String(data.studentNum), 10);
+  for (var i = 1; i < rows.length; i++) {
+    if (parseInt(String(rows[i][0]), 10) === num) {
+      sheet.getRange(i + 1, 1, 1, 7).setValues([[
+        data.studentNum, data.name, '', data.phone || '', data.parentPhone1 || '', data.parentPhone2 || '', data.note || ''
+      ]]);
+      return '학생 정보가 수정되었습니다.';
+    }
+  }
+  throw new Error('학생을 찾을 수 없습니다. (번호: ' + data.studentNum + ')');
+}
+
+// ==========================================
+// 7. 각 기록 저장 (Create)
 // ==========================================
 // 출결기록: A=ID, B=날짜, C=번호, D=이름, E=출결상태, F=사유, G=증빙자료
 function saveAttendanceRecord(data) {
@@ -177,7 +210,7 @@ function saveCounselRecord(data) {
 }
 
 // ==========================================
-// 7. 기록 삭제 (ID로 행 삭제)
+// 8. 기록 삭제 (ID로 행 삭제)
 // ==========================================
 function deleteRecord(sheetName, rowId) {
   var sheet = getSheet(sheetName);
