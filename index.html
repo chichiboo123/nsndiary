@@ -82,6 +82,7 @@
         }
         .page-section { display: none; }
         .page-section.active { display: block; }
+        #page-students.active { display: flex; flex-direction: column; overflow: hidden; }
 
         #toast {
             visibility: hidden; min-width: 240px;
@@ -380,7 +381,7 @@
     </div>
 </section>
 
-<section id="page-students" class="page-section glass-panel p-6 rounded-2xl flex flex-col" style="max-height:calc(100vh - 80px)">
+<section id="page-students" class="page-section glass-panel p-6 rounded-2xl" style="max-height:calc(100vh - 80px)">
     <h2 class="text-xl font-bold mb-3 border-b pb-3 flex-shrink-0"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
     <div class="overflow-x-auto overflow-y-auto rounded-xl flex-1">
         <table class="w-full text-left bg-white bg-opacity-60 rounded-xl overflow-hidden">
@@ -1025,15 +1026,14 @@ function setupAndConnect() {
 }
 
 function resetSetup() {
-    if (!confirm('스프레드시트 연동을 초기화하시겠습니까?\n다시 URL을 입력해야 합니다.')) return;
     localStorage.removeItem('nsn_ss_id');
+    var modal = document.getElementById('setup-modal');
+    modal.querySelector('h2').textContent = '스프레드시트 재설정';
+    modal.querySelector('p').innerHTML = '새 스프레드시트 URL을 입력하면<br><strong class="text-blue-500">자동으로 재연동됩니다.</strong>';
+    modal.classList.remove('hidden');
     if (typeof google !== 'undefined' && google.script) {
-        showLoading();
-        google.script.run
-            .withSuccessHandler(function() { hideLoading(); showToast('초기화 완료'); setTimeout(function(){ location.reload(); }, 1200); })
-            .withFailureHandler(function() { hideLoading(); setTimeout(function(){ location.reload(); }, 1200); })
-            .resetSetup();
-    } else { location.reload(); }
+        google.script.run.resetSetup();
+    }
 }
 
 // ─── 홈 / 내비게이션 ─────────────────────────────────────
