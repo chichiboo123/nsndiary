@@ -444,3 +444,16 @@ function getToolList() {
   }
   return result;
 }
+// ==========================================
+// 13. 자리배치 데이터 저장 및 불러오기
+// ==========================================
+function saveSeatingData(dataString) {
+  // 스크립트 내부 속성(Properties)에 데이터를 안전하게 저장합니다.
+  PropertiesService.getScriptProperties().setProperty('SEATING_DATA', dataString);
+  return '자리 배치가 안전하게 저장되었습니다.';
+}
+
+function getSeatingData() {
+  // 저장된 데이터를 불러옵니다. 없으면 빈 객체를 반환합니다.
+  return PropertiesService.getScriptProperties().getProperty('SEATING_DATA') || '{}';
+}
