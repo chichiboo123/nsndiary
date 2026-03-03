@@ -135,6 +135,22 @@ function addScheduleItem(data) {
   return '일정이 추가되었습니다.';
 }
 
+// 수업기록: A=ID, B=날짜, C=교시, D=과목, E=단원/차시, F=배움주제, G=수업내용, H=성찰, I=링크, J=파일URL
+function updateClassRecord(data) {
+  var sheet = getSheet('수업기록');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      sheet.getRange(i + 1, 2, 1, 8).setValues([[
+        data.date, data.periods || '', data.subjects || '', rows[i][4],
+        data.topic || '', data.content || '', data.reflection || '', data.link || ''
+      ]]);
+      return '수업 기록이 수정되었습니다.';
+    }
+  }
+  throw new Error('수업 기록을 찾을 수 없습니다. (ID: ' + data.id + ')');
+}
+
 function updateScheduleItem(data) {
   var sheet = getSheet('일정');
   var row = parseInt(data.rowIndex, 10);

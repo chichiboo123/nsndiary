@@ -95,6 +95,12 @@
 
         .student-name-btn { cursor: pointer; font-weight: bold; color: var(--accent-color); text-decoration: underline; background: none; border: none; padding: 0; }
         .student-name-btn:hover { opacity: 0.75; }
+        /* 학생 카드 */
+        .student-card { background: white; border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-top: 3px solid var(--accent-color); }
+        .student-card .s-num { font-size: 0.68rem; color: #9ca3af; font-weight: 700; }
+        .student-card .s-name { font-size: 0.92rem; font-weight: 700; }
+        .student-card .s-info { font-size: 0.68rem; color: #6b7280; line-height: 1.5; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .student-card .s-note { font-size: 0.68rem; color: #ef4444; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .del-btn { color: #d1d5db; transition: color 0.2s; background: none; border: none; cursor: pointer; padding: 4px; }
         .del-btn:hover { color: #ef4444; }
 
@@ -376,22 +382,7 @@
 
 <section id="page-students" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
-    <div class="overflow-x-auto rounded-xl">
-        <table class="w-full text-left bg-white bg-opacity-60 rounded-xl overflow-hidden text-sm">
-            <thead class="bg-gray-100 bg-opacity-80">
-                <tr>
-                    <th class="p-3 font-semibold text-gray-600">번호</th>
-                    <th class="p-3 font-semibold text-gray-600">이름</th>
-                    <th class="p-3 font-semibold text-gray-600 hidden md:table-cell">학생 연락처</th>
-                    <th class="p-3 font-semibold text-gray-600 hidden md:table-cell">보호자1</th>
-                    <th class="p-3 font-semibold text-gray-600 hidden md:table-cell">보호자2</th>
-                    <th class="p-3 font-semibold text-gray-600">특이사항</th>
-                    <th class="p-3 w-8"></th>
-                </tr>
-            </thead>
-            <tbody id="student-table-body"></tbody>
-        </table>
-    </div>
+    <div id="student-card-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
 </section>
 
 <section id="page-attendance" class="page-section glass-panel p-6 rounded-2xl">
@@ -642,13 +633,14 @@
 <section id="page-seating" class="page-section glass-panel p-6 rounded-2xl">
     <div class="flex justify-between items-center mb-5 border-b pb-3">
         <h2 class="text-xl font-bold"><i class="fa-solid fa-border-all mr-2"></i> 우리 반 자리배치</h2>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap justify-end">
+            <button id="seating-flip-btn" onclick="toggleSeatingFlip()" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-200 transition"><i class="fa-solid fa-arrows-rotate mr-1"></i> 뒤집기</button>
             <button onclick="saveSeatingToServer()" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm"><i class="fa-solid fa-save mr-1"></i> 저장하기</button>
             <button onclick="resetSeating()" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-200 transition"><i class="fa-solid fa-rotate-left mr-1"></i> 전체 비우기</button>
         </div>
     </div>
-    
-    <div class="p-4 bg-white bg-opacity-50 rounded-xl border border-gray-100 overflow-x-auto min-h-[500px] flex flex-col justify-end">
+
+    <div id="seating-container" class="p-4 bg-white bg-opacity-50 rounded-xl border border-gray-100 overflow-x-auto min-h-[500px] flex flex-col justify-end">
         <div id="seating-grid" class="min-w-max mx-auto py-2 w-full">
             </div>
     </div>
@@ -661,17 +653,39 @@
     <p class="font-bold text-gray-600">처리 중입니다...</p>
 </div>
 
+<!-- 학생기록 상세 팝업 -->
+<div id="student-rec-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeStudentRecModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+        <div class="px-5 pt-5 pb-3 border-b flex justify-between items-center flex-shrink-0">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="font-bold text-gray-800" id="srm-name"></span>
+                <span class="badge bg-purple-100 text-purple-700" id="srm-category"></span>
+            </div>
+            <button onclick="closeStudentRecModal()" class="text-gray-400 hover:text-gray-700 text-xl ml-3 flex-shrink-0 leading-none">&times;</button>
+        </div>
+        <div class="px-5 py-4 flex-1 overflow-y-auto">
+            <p class="text-xs text-gray-400 mb-2" id="srm-timestamp"></p>
+            <p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed" id="srm-content"></p>
+        </div>
+        <div class="px-5 py-3 border-t flex justify-between items-center flex-shrink-0">
+            <button id="srm-del" class="text-red-400 hover:text-red-600 text-sm font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
+            <button onclick="closeStudentRecModal()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold">닫기</button>
+        </div>
+    </div>
+</div>
+
 <!-- 수업기록 상세 팝업 -->
 <div id="class-card-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeClassCard()">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
         <div class="px-6 pt-5 pb-3 border-b flex justify-between items-start flex-shrink-0">
             <div>
                 <div class="flex flex-wrap gap-1.5 mb-1" id="cls-modal-badges"></div>
-                <span class="text-xs text-gray-400" id="cls-modal-date"></span>
+                <span class="text-xs text-gray-400" id="cls-modal-date-label"></span>
             </div>
             <button onclick="closeClassCard()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
         </div>
-        <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+        <!-- 보기 모드 -->
+        <div id="cls-view-body" class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
             <div>
                 <p class="text-xs font-bold text-gray-400 mb-1">배움 주제</p>
                 <p class="font-bold text-gray-800 text-base leading-snug" id="cls-modal-topic"></p>
@@ -686,9 +700,51 @@
             </div>
             <div class="flex flex-wrap gap-4 pt-1" id="cls-modal-links"></div>
         </div>
-        <div class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+        <!-- 수정 모드 -->
+        <div id="cls-edit-body" class="hidden px-6 py-4 space-y-3 overflow-y-auto flex-1">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">날짜</label>
+                    <input type="date" id="cls-edit-date" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">교시</label>
+                    <input type="text" id="cls-edit-periods" placeholder="예: 1교시, 2교시" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">과목</label>
+                <input type="text" id="cls-edit-subjects" placeholder="예: 국어" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">배움 주제</label>
+                <input type="text" id="cls-edit-topic" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">수업 내용</label>
+                <textarea id="cls-edit-content" rows="3" class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">수업 성찰</label>
+                <textarea id="cls-edit-reflection" rows="3" class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">링크</label>
+                <input type="url" id="cls-edit-link" placeholder="https://..." class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+        </div>
+        <!-- 보기 모드 푸터 -->
+        <div id="cls-view-footer" class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
             <button id="cls-modal-del" class="text-red-400 hover:text-red-600 text-sm font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
-            <button onclick="closeClassCard()" class="btn-primary px-6 py-2 rounded-xl text-sm font-bold">닫기</button>
+            <div class="flex gap-2">
+                <button onclick="startClassEdit()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition"><i class="fa-solid fa-pen mr-1"></i>수정</button>
+                <button onclick="closeClassCard()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold">닫기</button>
+            </div>
+        </div>
+        <!-- 수정 모드 푸터 -->
+        <div id="cls-edit-footer" class="hidden px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+            <button onclick="cancelClassEdit()" class="text-gray-500 hover:text-gray-700 text-sm font-bold transition"><i class="fa-solid fa-xmark mr-1"></i>취소</button>
+            <button onclick="saveClassEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
         </div>
     </div>
 </div>
@@ -862,7 +918,8 @@ let clockTimer = null;
 const pagesLoaded = {};
 
 // 자리배치를 위한 변수
-let seatingData = {}; 
+let seatingData = {};
+let seatingFlipped = false;
 let currentTargetDesk = null;
 
 const classPeriodsList  = ['1교시','2교시','3교시','4교시','5교시','6교시'];
@@ -1283,16 +1340,22 @@ function selectCalendarDay(ds) {
 
 // ─── 학생 렌더링 ─────────────────────────────────────────
 function renderStudents() {
-    document.getElementById('student-table-body').innerHTML = students.map(function(s) {
-        return '<tr class="border-b hover:bg-white transition text-sm text-gray-800">' +
-            '<td class="p-3">' + s.num + '</td>' +
-            '<td class="p-3"><button class="student-name-btn" onclick="openStudentDashboard(' + s.num + ')">' + escHtml(s.name) + '</button></td>' +
-            '<td class="p-3 hidden md:table-cell">' + (s.phone || '-') + '</td>' +
-            '<td class="p-3 hidden md:table-cell">' + (s.parentPhone1 || '-') + '</td>' +
-            '<td class="p-3 hidden md:table-cell">' + (s.parentPhone2 || '-') + '</td>' +
-            '<td class="p-3 text-red-500">' + escHtml(s.note || '') + '</td>' +
-            '<td class="p-3"><button class="text-gray-400 hover:text-blue-500 transition" onclick="openStudentEdit(' + s.num + ')" title="수정"><i class="fa-solid fa-pen text-xs"></i></button></td>' +
-            '</tr>';
+    var grid = document.getElementById('student-card-grid');
+    if (!students || students.length === 0) {
+        grid.innerHTML = '<p class="text-gray-400 text-sm col-span-full text-center py-8">등록된 학생이 없습니다.</p>';
+        return;
+    }
+    grid.innerHTML = students.map(function(s) {
+        var contacts = [s.phone, s.parentPhone1, s.parentPhone2].filter(Boolean).join(' / ');
+        return '<div class="student-card">' +
+            '<div class="flex justify-between items-start">' +
+            '<div><div class="s-num">' + s.num + '번</div>' +
+            '<button class="student-name-btn s-name" onclick="openStudentDashboard(' + s.num + ')">' + escHtml(s.name) + '</button></div>' +
+            '<button class="text-gray-300 hover:text-blue-500 transition ml-1 flex-shrink-0" onclick="openStudentEdit(' + s.num + ')" title="수정"><i class="fa-solid fa-pen text-xs"></i></button>' +
+            '</div>' +
+            (contacts ? '<div class="s-info" title="' + escAttr(contacts) + '">' + escHtml(contacts) + '</div>' : '') +
+            (s.note    ? '<div class="s-note" title="' + escAttr(s.note) + '">' + escHtml(s.note) + '</div>' : '') +
+            '</div>';
     }).join('');
 }
 
@@ -1601,10 +1664,13 @@ function renderClassList(records) {
 }
 function reloadClassList() { pagesLoaded.cls=false; loadClassList(); pagesLoaded.cls=true; }
 
+var currentClassCardIdx = -1;
+
 function openClassCard(idx) {
+    currentClassCardIdx = idx;
     var r = currentClassCardList[idx];
     if (!r) return;
-    document.getElementById('cls-modal-date').textContent = r.date;
+    document.getElementById('cls-modal-date-label').textContent = r.date;
     var badges = '';
     if (r.periods)  badges += '<span class="badge bg-gray-100 text-gray-700">' + escHtml(r.periods)  + '</span>';
     if (r.subjects) badges += '<span class="badge bg-blue-100 text-blue-700">' + escHtml(r.subjects) + '</span>';
@@ -1624,10 +1690,56 @@ function openClassCard(idx) {
         if (!confirm('이 수업 기록을 삭제할까요?')) return;
         deleteRec('수업기록', r.id, function() { closeClassCard(); reloadClassList(); });
     };
+    // 보기 모드로 초기화
+    document.getElementById('cls-view-body').classList.remove('hidden');
+    document.getElementById('cls-edit-body').classList.add('hidden');
+    document.getElementById('cls-view-footer').classList.remove('hidden');
+    document.getElementById('cls-edit-footer').classList.add('hidden');
     document.getElementById('class-card-modal').classList.remove('hidden');
 }
 function closeClassCard() {
     document.getElementById('class-card-modal').classList.add('hidden');
+    currentClassCardIdx = -1;
+}
+function startClassEdit() {
+    var r = currentClassCardList[currentClassCardIdx];
+    if (!r) return;
+    document.getElementById('cls-edit-date').value       = r.date || '';
+    document.getElementById('cls-edit-periods').value    = r.periods || '';
+    document.getElementById('cls-edit-subjects').value   = r.subjects || '';
+    document.getElementById('cls-edit-topic').value      = r.topic || '';
+    document.getElementById('cls-edit-content').value    = r.content || '';
+    document.getElementById('cls-edit-reflection').value = r.reflection || '';
+    document.getElementById('cls-edit-link').value       = r.link || '';
+    document.getElementById('cls-view-body').classList.add('hidden');
+    document.getElementById('cls-edit-body').classList.remove('hidden');
+    document.getElementById('cls-view-footer').classList.add('hidden');
+    document.getElementById('cls-edit-footer').classList.remove('hidden');
+}
+function cancelClassEdit() {
+    document.getElementById('cls-view-body').classList.remove('hidden');
+    document.getElementById('cls-edit-body').classList.add('hidden');
+    document.getElementById('cls-view-footer').classList.remove('hidden');
+    document.getElementById('cls-edit-footer').classList.add('hidden');
+}
+function saveClassEdit() {
+    var r = currentClassCardList[currentClassCardIdx];
+    if (!r) return;
+    var data = {
+        id:         r.id,
+        date:       document.getElementById('cls-edit-date').value,
+        periods:    document.getElementById('cls-edit-periods').value,
+        subjects:   document.getElementById('cls-edit-subjects').value,
+        topic:      document.getElementById('cls-edit-topic').value,
+        content:    document.getElementById('cls-edit-content').value,
+        reflection: document.getElementById('cls-edit-reflection').value,
+        link:       document.getElementById('cls-edit-link').value
+    };
+    if (!data.topic.trim()) { showToast('배움 주제를 입력하세요.'); return; }
+    gasCall('updateClassRecord', data, '수업 기록이 수정되었습니다.', function() {
+        closeClassCard();
+        reloadClassList();
+    });
 }
 
 function filterClassList() {
@@ -1750,25 +1862,44 @@ function loadStudentRecordList() {
     }
 }
 
+var currentStudentRecList = [];
+
 function renderStudentRecordList(records) {
     var el = document.getElementById('student-record-list');
-    if (!records || records.length === 0) { el.innerHTML = emptyMsg('학생 기록이 없습니다.'); return; }
-    var sorted = records.slice().sort(function(a,b){ return b.timestamp.localeCompare(a.timestamp); });
-    el.innerHTML = sorted.map(function(r) {
-        return '<div class="rec-card">' +
-            '<div class="flex justify-between items-start gap-2">' +
-            '<div class="flex flex-wrap items-center gap-1.5">' +
-            '<span class="meta">' + r.timestamp + '</span>' +
-            '<span class="font-bold text-gray-800 text-sm">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
-            '<span class="badge bg-purple-100 text-purple-700">' + escHtml(r.category) + '</span>' +
-            '</div>' +
-            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'학생기록\',\'' + escAttr(r.id) + '\',reloadStudentRecordList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
-            '</div>' +
-            '<p class="text-sm text-gray-700 mt-1.5">' + escHtml(r.content) + '</p>' +
-            '</div>';
+    if (!records || records.length === 0) { el.innerHTML = emptyMsg('학생 기록이 없습니다.'); currentStudentRecList = []; return; }
+    currentStudentRecList = records.slice().sort(function(a,b){ return b.timestamp.localeCompare(a.timestamp); });
+    el.innerHTML = currentStudentRecList.map(function(r, idx) {
+        var dateStr = r.timestamp ? r.timestamp.substring(0,10) : '';
+        var preview = (r.content || '').replace(/\n/g, ' ');
+        if (preview.length > 28) preview = preview.substring(0,28) + '…';
+        return '<div class="cls-row" onclick="openStudentRecModal(' + idx + ')">' +
+            '<span class="cls-date">' + dateStr + '</span>' +
+            '<span class="font-bold text-gray-800 text-xs flex-shrink-0">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
+            '<span class="badge bg-purple-100 text-purple-700 flex-shrink-0 text-xs">' + escHtml(r.category) + '</span>' +
+            '<span class="cls-title text-gray-500 font-normal">' + escHtml(preview) + '</span>' +
+            '<span class="cls-icons">' +
+            '<button class="del-btn" onclick="event.stopPropagation();deleteRec(\'학생기록\',\'' + escAttr(r.id) + '\',reloadStudentRecordList)" title="삭제"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '</span></div>';
     }).join('');
 }
 function reloadStudentRecordList() { pagesLoaded.sr=false; loadStudentRecordList(); pagesLoaded.sr=true; }
+
+function openStudentRecModal(idx) {
+    var r = currentStudentRecList[idx];
+    if (!r) return;
+    document.getElementById('srm-name').textContent = r.studentNum + '번 ' + (r.studentName || '');
+    document.getElementById('srm-category').textContent = r.category || '';
+    document.getElementById('srm-timestamp').textContent = r.timestamp || '';
+    document.getElementById('srm-content').textContent = r.content || '';
+    document.getElementById('srm-del').onclick = function() {
+        if (!confirm('이 기록을 삭제할까요?')) return;
+        deleteRec('학생기록', r.id, function() { closeStudentRecModal(); reloadStudentRecordList(); });
+    };
+    document.getElementById('student-rec-modal').classList.remove('hidden');
+}
+function closeStudentRecModal() {
+    document.getElementById('student-rec-modal').classList.add('hidden');
+}
 
 function filterStudentRecordList() {
     var start = document.getElementById('sr-filter-start').value;
@@ -2021,12 +2152,12 @@ function renderToolList(tools) {
     });
 
     var html = '';
-    var overlayOpacities = [0.07, 0.13, 0.09, 0.16, 0.11, 0.08];
+    var overlayOpacities = [0.14, 0.20, 0.17, 0.24, 0.18, 0.15];
     var catIndex = 0;
 
     for (var cat in groupedTools) {
         var opacity = overlayOpacities[catIndex % overlayOpacities.length];
-        var hoverOpacity = Math.min(opacity * 2.5, 0.28).toFixed(2);
+        var hoverOpacity = Math.min(opacity * 1.8, 0.38).toFixed(2);
 
         html += '<div class="mb-6"><h3 class="text-base font-bold mb-3 border-l-4 pl-3 text-gray-800" style="border-color:var(--accent-color)">' + escHtml(cat) + '</h3>' +
                 '<div class="grid grid-cols-2 md:grid-cols-4 gap-3">';
@@ -2034,7 +2165,8 @@ function renderToolList(tools) {
         groupedTools[cat].forEach(function(t) {
             html += '<a href="' + escAttr(t.url) + '" data-href="' + escAttr(t.url) + '" ' +
                     'onclick="return openToolUrl(this);" ' +
-                    'class="relative overflow-hidden bg-white p-4 rounded-xl shadow-sm hover:-translate-y-1 transition-all duration-200 flex flex-col justify-center items-center min-h-[80px] border border-gray-100 hover:shadow-md group">' +
+                    'class="relative overflow-hidden bg-white p-4 rounded-xl shadow-sm hover:-translate-y-1 transition-all duration-200 flex flex-col justify-center items-center min-h-[80px] border hover:shadow-md group" ' +
+                    'style="border-color:var(--accent-color);border-left-width:3px;">' +
                     '<div class="absolute inset-0 transition-opacity" ' +
                     'style="background-color:var(--accent-color);opacity:' + opacity + ';" ' +
                     'onmouseover="this.style.opacity=\'' + hoverOpacity + '\'" ' +
@@ -2061,61 +2193,89 @@ function openToolUrl(el) {
 // ─── 자리배치 (완벽한 구조 매핑 및 서버 저장) ──────────────────────────
 function renderSeatingGrid() {
     var grid = document.getElementById('seating-grid');
-    
+    var container = document.getElementById('seating-container');
+
     // 개별 책상 HTML 생성 헬퍼
-    function createDeskHTML(deskId) {
+    function desk(deskId) {
         var studentNum = seatingData[deskId];
         var s = studentNum ? students.find(function(x){ return x.num == studentNum; }) : null;
-        
-        if(s) {
+        if (s) {
             return '<div class="desk-box filled" onclick="openSeatingModal(\''+deskId+'\')">' +
                    '<span class="desk-num">' + s.num + '번</span>' +
                    '<span class="desk-name">' + escHtml(s.name) + '</span>' +
                    '</div>';
-        } else {
-            return '<div class="desk-box" onclick="openSeatingModal(\''+deskId+'\')">' +
-                   '<i class="fa-solid fa-plus text-gray-300 text-lg"></i>' +
-                   '</div>';
         }
+        return '<div class="desk-box" onclick="openSeatingModal(\''+deskId+'\')">' +
+               '<i class="fa-solid fa-plus text-gray-300 text-lg"></i>' +
+               '</div>';
     }
 
-    // 21석 구조 생성
-    var html = '<div class="desk-grid-wrap">';
-
-    // 1. 왼쪽 분단 (2열 x 3행 = 6석)
-    html += '<div class="desk-col-2">';
-    for(var r=3; r>=1; r--) {
-        html += createDeskHTML('L-'+r+'-1') + createDeskHTML('L-'+r+'-2');
-    }
-    html += '</div>';
-
-    // 2. 가운데 분단 (맨 뒤 3석 + 그 아래 2열x3행 = 총 9석)
-    html += '<div class="flex flex-col items-center" style="gap:6px;">';
-    html += '<div class="desk-col-3">';
-    html += createDeskHTML('M-4-1') + createDeskHTML('M-4-2') + createDeskHTML('M-4-3');
-    html += '</div>';
-    html += '<div class="desk-col-2">';
-    for(var r=3; r>=1; r--) {
-        html += createDeskHTML('M-'+r+'-1') + createDeskHTML('M-'+r+'-2');
-    }
-    html += '</div></div>';
-
-    // 3. 오른쪽 분단 (2열 x 3행 = 6석)
-    html += '<div class="desk-col-2">';
-    for(var r=3; r>=1; r--) {
-        html += createDeskHTML('R-'+r+'-1') + createDeskHTML('R-'+r+'-2');
-    }
-    html += '</div>';
-
-    html += '</div>';
-
-    // 칠판
-    html += '<div class="w-full max-w-xl mx-auto h-12 bg-white border-2 border-gray-300 rounded-xl flex items-center justify-center shadow-sm relative overflow-hidden mt-4">' +
+    var boardHTML = '<div class="w-full max-w-xl mx-auto h-12 bg-white border-2 border-gray-300 rounded-xl flex items-center justify-center shadow-sm relative overflow-hidden">' +
             '<div class="absolute inset-0 opacity-20" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, #cbd5e1 10px, #cbd5e1 20px);"></div>' +
             '<span class="font-bold text-gray-600 relative z-10 text-base tracking-[1em] ml-[1em]">칠판</span>' +
             '</div>';
 
+    var html = '';
+
+    if (!seatingFlipped) {
+        // ── 정방향: 칠판 아래, 학생들이 칠판을 바라봄 ──
+        container.style.justifyContent = 'flex-end';
+
+        html += '<div class="desk-grid-wrap">';
+        // 왼쪽 분단 (r=3→1, 뒤→앞)
+        html += '<div class="desk-col-2">';
+        for (var r = 3; r >= 1; r--) { html += desk('L-'+r+'-1') + desk('L-'+r+'-2'); }
+        html += '</div>';
+        // 가운데 분단
+        html += '<div class="flex flex-col items-center" style="gap:6px;">';
+        html += '<div class="desk-col-3">';
+        html += desk('M-4-1') + desk('M-4-2') + desk('M-4-3');
+        html += '</div><div class="desk-col-2">';
+        for (var r = 3; r >= 1; r--) { html += desk('M-'+r+'-1') + desk('M-'+r+'-2'); }
+        html += '</div></div>';
+        // 오른쪽 분단 (r=3→1)
+        html += '<div class="desk-col-2">';
+        for (var r = 3; r >= 1; r--) { html += desk('R-'+r+'-1') + desk('R-'+r+'-2'); }
+        html += '</div>';
+        html += '</div>';
+        html += '<div style="margin-top:16px;">' + boardHTML + '</div>';
+
+    } else {
+        // ── 뒤집기: 칠판 위, 학생 시점(교실 뒤에서 앞 바라봄) ──
+        container.style.justifyContent = 'flex-start';
+
+        html += '<div style="margin-bottom:16px;">' + boardHTML + '</div>';
+        html += '<div class="desk-grid-wrap">';
+        // 오른쪽 분단이 왼쪽에 (시점 반전): r=1→3, 열도 2→1 순
+        html += '<div class="desk-col-2">';
+        for (var r = 1; r <= 3; r++) { html += desk('R-'+r+'-2') + desk('R-'+r+'-1'); }
+        html += '</div>';
+        // 가운데 분단
+        html += '<div class="flex flex-col items-center" style="gap:6px;">';
+        html += '<div class="desk-col-2">';
+        for (var r = 1; r <= 3; r++) { html += desk('M-'+r+'-2') + desk('M-'+r+'-1'); }
+        html += '</div>';
+        html += '<div class="desk-col-3">';
+        html += desk('M-4-3') + desk('M-4-2') + desk('M-4-1');
+        html += '</div></div>';
+        // 왼쪽 분단이 오른쪽에: r=1→3, 열도 2→1 순
+        html += '<div class="desk-col-2">';
+        for (var r = 1; r <= 3; r++) { html += desk('L-'+r+'-2') + desk('L-'+r+'-1'); }
+        html += '</div>';
+        html += '</div>';
+    }
+
     grid.innerHTML = html;
+}
+
+function toggleSeatingFlip() {
+    seatingFlipped = !seatingFlipped;
+    var btn = document.getElementById('seating-flip-btn');
+    btn.innerHTML = seatingFlipped
+        ? '<i class="fa-solid fa-arrows-rotate mr-1"></i> 정방향'
+        : '<i class="fa-solid fa-arrows-rotate mr-1"></i> 뒤집기';
+    btn.style.color = seatingFlipped ? 'var(--accent-color)' : '';
+    renderSeatingGrid();
 }
 
 function openSeatingModal(deskId) {
