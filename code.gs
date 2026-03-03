@@ -169,12 +169,12 @@ function saveAttendanceRecord(data) {
   return '출결 기록이 저장되었습니다.';
 }
 
-// 수업기록: A=ID, B=날짜, C=교시, D=과목, E=단원/차시, F=배움주제, G=성찰, H=링크, I=파일URL
+// 수업기록: A=ID, B=날짜, C=교시, D=과목, E=단원/차시, F=배움주제, G=수업내용, H=성찰, I=링크, J=파일URL
 function saveClassRecord(data) {
   const sheet = getSheet('수업기록');
   const id = 'CLS-' + new Date().getTime();
   sheet.appendRow([id, data.date, data.periods.join(', '), data.subjects.join(', '),
-    data.unit, data.topic, data.reflection, data.link, data.files]);
+    data.unit, data.topic, data.content || '', data.reflection, data.link, data.files]);
   return '수업 기록이 저장되었습니다.';
 }
 
@@ -256,8 +256,9 @@ function getClassList() {
     result.push({
       id: String(data[i][0]), date: _fmt(data[i][1], tz),
       periods: String(data[i][2] || ''), subjects: String(data[i][3] || ''),
-      topic: String(data[i][5] || ''), reflection: String(data[i][6] || ''),
-      link: String(data[i][7] || ''), files: String(data[i][8] || '')
+      topic: String(data[i][5] || ''), content: String(data[i][6] || ''),
+      reflection: String(data[i][7] || ''),
+      link: String(data[i][8] || ''), files: String(data[i][9] || '')
     });
   }
   return result;
@@ -408,7 +409,7 @@ function globalSearch(keyword) {
 
   // 일정: A=날짜(0), B=제목(1), D=내용(3)
   search('일정',    'page-schedule',       '일정',   1, 3, 0);
-  // 수업기록: B=날짜(1), F=배움주제(5), G=성찰(6)
+  // 수업기록: B=날짜(1), F=배움주제(5), G=수업내용(6), H=성찰(7)
   search('수업기록', 'page-class',         '수업기록', 5, 6, 1);
   // 일상기록: B=날짜(1), C=키워드(2), D=내용(3)
   search('일상기록', 'page-daily',         '일상기록', 2, 3, 1);
