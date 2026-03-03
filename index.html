@@ -82,7 +82,6 @@
         }
         .page-section { display: none; }
         .page-section.active { display: block; }
-        #page-students.active { display: flex; flex-direction: column; overflow: hidden; }
 
         #toast {
             visibility: hidden; min-width: 240px;
@@ -164,6 +163,12 @@
         .cal-nav-btn { padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.7); border: 1px solid #e5e7eb; cursor: pointer; transition: background 0.2s; }
         .cal-nav-btn:hover { background: white; }
 
+        /* 학생 이름 버튼 카드 */
+        .student-name-card { background: white; border: 1.5px solid rgba(115,146,193,0.18); border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .student-name-card:hover { border-color: var(--accent-color); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); background: #f8faff; }
+        .snc-num { font-size: 0.65rem; color: #9ca3af; font-weight: 700; line-height: 1.2; }
+        .snc-name { font-size: 0.88rem; font-weight: 700; color: #1f2937; line-height: 1.3; }
+
         /* ── 자리배치 전용 CSS ── */
         .desk-grid-wrap { display: flex; justify-content: center; gap: 16px; align-items: flex-end; margin-bottom: 2rem; }
         .desk-col-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
@@ -176,6 +181,7 @@
 
         /* ── 세로형 모바일 (≤ 480px) ── */
         @media (max-width: 480px) {
+            #student-grid-view { grid-template-columns: repeat(4,1fr) !important; }
             .main-scroll { padding: 10px; }
             .glass-panel { padding: 1rem !important; }
             .filter-bar { padding: 10px; }
@@ -205,6 +211,7 @@
             .desk-num { font-size: 0.55rem; }
         }
         @media (max-width: 360px) {
+            #student-grid-view { grid-template-columns: repeat(3,1fr) !important; }
             .glass-panel { padding: 0.75rem !important; }
             .feature-btn { padding: 0.6rem 0.2rem; }
             .feature-btn i { font-size: 1.2rem !important; margin-bottom: 2px !important; }
@@ -381,11 +388,20 @@
     </div>
 </section>
 
-<section id="page-students" class="page-section glass-panel p-6 rounded-2xl" style="max-height:calc(100vh - 80px)">
-    <h2 class="text-xl font-bold mb-3 border-b pb-3 flex-shrink-0"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
-    <div class="overflow-x-auto overflow-y-auto rounded-xl flex-1">
+<section id="page-students" class="page-section glass-panel p-6 rounded-2xl">
+    <div class="flex justify-between items-center mb-4 border-b pb-3">
+        <h2 class="text-xl font-bold"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
+        <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+            <button id="btn-student-grid" onclick="setStudentView('grid')" class="sch-view-btn active"><i class="fa-solid fa-grip mr-1"></i>버튼형</button>
+            <button id="btn-student-list" onclick="setStudentView('list')" class="sch-view-btn"><i class="fa-solid fa-list mr-1"></i>리스트</button>
+        </div>
+    </div>
+    <!-- 버튼 그리드 (기본) -->
+    <div id="student-grid-view" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;"></div>
+    <!-- 리스트 테이블 (숨김) -->
+    <div id="student-list-view" style="display:none;" class="overflow-x-auto rounded-xl">
         <table class="w-full text-left bg-white bg-opacity-60 rounded-xl overflow-hidden">
-            <thead class="bg-gray-100 bg-opacity-90" style="position:sticky;top:0;z-index:2">
+            <thead class="bg-gray-100 bg-opacity-90">
                 <tr>
                     <th class="px-2 py-2 font-semibold text-gray-500 text-xs w-8">#</th>
                     <th class="px-2 py-2 font-semibold text-gray-600 text-xs">이름</th>
@@ -647,18 +663,25 @@
 </section>
 
 <section id="page-seating" class="page-section glass-panel p-6 rounded-2xl">
-    <div class="flex justify-between items-center mb-5 border-b pb-3">
+    <div class="flex justify-between items-center mb-4 border-b pb-3 flex-wrap gap-2">
         <h2 class="text-xl font-bold"><i class="fa-solid fa-border-all mr-2"></i> 우리 반 자리배치</h2>
         <div class="flex gap-2 flex-wrap justify-end">
             <button id="seating-flip-btn" onclick="toggleSeatingFlip()" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-200 transition"><i class="fa-solid fa-arrows-rotate mr-1"></i> 뒤집기</button>
             <button onclick="saveSeatingToServer()" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm"><i class="fa-solid fa-save mr-1"></i> 저장하기</button>
-            <button onclick="resetSeating()" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-200 transition"><i class="fa-solid fa-rotate-left mr-1"></i> 전체 비우기</button>
+            <button onclick="resetSeating()" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-200 transition"><i class="fa-solid fa-rotate-left mr-1"></i> 비우기</button>
         </div>
     </div>
+    <!-- 자리 세팅 선택 바 -->
+    <div class="flex items-center gap-2 mb-4 bg-white bg-opacity-60 rounded-xl px-3 py-2 border border-gray-100">
+        <span class="text-xs text-gray-500 font-bold flex-shrink-0 hidden sm:inline">자리 세팅:</span>
+        <select id="layout-selector" onchange="switchLayout(this.value)" class="flex-1 text-sm p-1.5 rounded-lg border border-gray-200 focus:outline-none bg-white min-w-0"></select>
+        <button onclick="openLayoutManager()" class="bg-gray-100 text-gray-500 px-2.5 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition flex-shrink-0" title="세팅 관리"><i class="fa-solid fa-list-check"></i></button>
+        <button onclick="openLayoutCreator()" class="btn-primary px-2.5 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"><i class="fa-solid fa-plus mr-1"></i>새로 만들기</button>
+    </div>
 
-    <div id="seating-container" class="p-4 bg-white bg-opacity-50 rounded-xl border border-gray-100 overflow-x-auto min-h-[500px] flex flex-col justify-end">
-        <div id="seating-grid" class="min-w-max mx-auto py-2 w-full">
-            </div>
+    <div id="seating-container" class="p-4 bg-white bg-opacity-50 rounded-xl border border-gray-100 overflow-x-auto">
+        <div id="seating-grid" class="min-w-max mx-auto">
+        </div>
     </div>
 </section>
 
@@ -908,6 +931,93 @@
     </div>
 </div>
 
+<!-- 학생 정보 카드 팝업 -->
+<div id="student-card-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeStudentCard()">
+    <div class="bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <p class="text-xs text-gray-400 mb-0.5 font-bold" id="sc-num"></p>
+                <h3 class="text-xl font-bold text-gray-900" id="sc-name"></h3>
+            </div>
+            <button onclick="closeStudentCard()" class="text-gray-400 hover:text-gray-700 text-xl leading-none ml-3 mt-1">&times;</button>
+        </div>
+        <div class="space-y-2.5 text-sm mb-5 bg-gray-50 rounded-xl p-3">
+            <div class="flex gap-2 items-baseline">
+                <span class="text-xs text-gray-400 w-20 flex-shrink-0">학생 연락처</span>
+                <span id="sc-phone" class="font-semibold text-gray-800"></span>
+            </div>
+            <div class="flex gap-2 items-baseline">
+                <span class="text-xs text-gray-400 w-20 flex-shrink-0">보호자1</span>
+                <span id="sc-p1" class="font-semibold text-gray-800"></span>
+            </div>
+            <div class="flex gap-2 items-baseline">
+                <span class="text-xs text-gray-400 w-20 flex-shrink-0">보호자2</span>
+                <span id="sc-p2" class="font-semibold text-gray-800"></span>
+            </div>
+            <div id="sc-note-row" class="flex gap-2 items-baseline">
+                <span class="text-xs text-gray-400 w-20 flex-shrink-0">특이사항</span>
+                <span id="sc-note" class="font-semibold text-red-500"></span>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button id="sc-edit-btn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold transition"><i class="fa-solid fa-pen mr-1"></i>정보 수정</button>
+            <button id="sc-dashboard-btn" class="flex-1 btn-primary py-2.5 rounded-xl text-sm font-bold"><i class="fa-solid fa-chart-line mr-1"></i>기록 보기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 자리 세팅 생성/수정 모달 -->
+<div id="seating-creator-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4" onclick="if(event.target===this)closeLayoutCreator()">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="px-5 py-4 border-b flex justify-between items-center flex-shrink-0">
+            <h2 id="creator-modal-title" class="font-bold text-lg">자리 세팅 만들기</h2>
+            <button onclick="closeLayoutCreator()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+        </div>
+        <div class="p-5 overflow-y-auto flex-1 space-y-4">
+            <div>
+                <label class="block font-bold text-sm text-gray-700 mb-1">세팅 이름</label>
+                <input type="text" id="creator-name" placeholder="예: 3분단 기본형" class="w-full p-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-sm">
+            </div>
+            <div>
+                <label class="block font-bold text-sm text-gray-700 mb-2">분단 수 (좌→우)</label>
+                <div class="flex gap-2">
+                    <button onclick="setCreatorSections(1)" class="creator-sec-btn bg-gray-100 text-gray-600 w-10 h-10 rounded-xl text-sm font-bold hover:bg-gray-200 transition">1</button>
+                    <button onclick="setCreatorSections(2)" class="creator-sec-btn bg-gray-100 text-gray-600 w-10 h-10 rounded-xl text-sm font-bold hover:bg-gray-200 transition">2</button>
+                    <button onclick="setCreatorSections(3)" class="creator-sec-btn btn-primary w-10 h-10 rounded-xl text-sm font-bold">3</button>
+                    <button onclick="setCreatorSections(4)" class="creator-sec-btn bg-gray-100 text-gray-600 w-10 h-10 rounded-xl text-sm font-bold hover:bg-gray-200 transition">4</button>
+                    <button onclick="setCreatorSections(5)" class="creator-sec-btn bg-gray-100 text-gray-600 w-10 h-10 rounded-xl text-sm font-bold hover:bg-gray-200 transition">5</button>
+                </div>
+            </div>
+            <div id="creator-sections-config" class="space-y-2"></div>
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="font-bold text-sm text-gray-700">자리 미리보기</label>
+                    <span class="text-xs text-gray-400"><i class="fa-solid fa-hand-pointer mr-1"></i>클릭 → X(사용 안 함) 토글</span>
+                </div>
+                <div id="creator-preview" class="bg-gray-50 rounded-xl p-3 overflow-x-auto border border-gray-100"></div>
+            </div>
+        </div>
+        <div class="px-5 py-4 border-t flex justify-end gap-2 flex-shrink-0">
+            <button onclick="closeLayoutCreator()" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition">취소</button>
+            <button onclick="saveNewLayout()" class="btn-primary px-5 py-2.5 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장하기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 자리 세팅 관리 모달 -->
+<div id="seating-manager-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4" onclick="if(event.target===this)closeLayoutManager()">
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+        <div class="px-5 py-4 border-b flex justify-between items-center">
+            <h2 class="font-bold text-lg">자리 세팅 관리</h2>
+            <button onclick="closeLayoutManager()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+        </div>
+        <div id="layout-manager-list" class="p-4 space-y-2 max-h-72 overflow-y-auto"></div>
+        <div class="p-4 border-t">
+            <button onclick="closeLayoutManager(); openLayoutCreator()" class="w-full btn-primary p-3 rounded-xl font-bold text-sm"><i class="fa-solid fa-plus mr-1"></i>새 세팅 만들기</button>
+        </div>
+    </div>
+</div>
+
 <div id="seating-select-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-5">
         <div class="flex justify-between items-center mb-4">
@@ -937,6 +1047,14 @@ const pagesLoaded = {};
 let seatingData = {};
 let seatingFlipped = false;
 let currentTargetDesk = null;
+// 자리 레이아웃 관리
+let seatingLayouts = [];
+let currentLayoutId = null;
+let creatorSectionCount = 3;
+let creatorDisabled = {};
+let editingLayoutId = null;
+// 학생 카드 팝업
+let currentStudentCardNum = null;
 
 const classPeriodsList  = ['1교시','2교시','3교시','4교시','5교시','6교시'];
 const classSubjectsList = ['국어','도덕','사회','수학','과학','실과','체육','음악','미술','영어','창체','융합'];
@@ -1070,22 +1188,35 @@ function showPage(pageId, element) {
     if (pageId === 'page-counsel'  && !pagesLoaded.cns)  { loadCounselList();       pagesLoaded.cns = true; }
     if (pageId === 'page-tools'    && !pagesLoaded.tools) { loadToolList();          pagesLoaded.tools = true; }
     
-    // 자리배치 화면 진입 시 서버에서 데이터 가져오기
-    if (pageId === 'page-seating'  && !pagesLoaded.seating) { 
-        if (typeof google !== 'undefined' && google.script) {
+    // 자리배치 화면 진입 시 레이아웃 및 데이터 로드
+    if (pageId === 'page-seating' && !pagesLoaded.seating) {
+        loadSeatingLayouts();
+        renderLayoutSelector();
+        var localData = currentLayoutId ? localStorage.getItem('nsn_seat_data_' + currentLayoutId) : null;
+        if (localData) {
+            try { seatingData = JSON.parse(localData); } catch(e) { seatingData = {}; }
+            renderSeatingGrid();
+            pagesLoaded.seating = true;
+        } else if (typeof google !== 'undefined' && google.script) {
             showLoading();
             google.script.run
                 .withSuccessHandler(function(res) {
-                    try { seatingData = JSON.parse(res); } catch(e) { seatingData = {}; }
-                    renderSeatingGrid();   
+                    if (res) {
+                        try {
+                            var parsed = JSON.parse(res);
+                            seatingData = migrateOldSeatingData(parsed);
+                        } catch(e) { seatingData = {}; }
+                        saveCurrentSeatingData();
+                    }
+                    renderSeatingGrid();
                     pagesLoaded.seating = true;
                     hideLoading();
                 })
-                .withFailureHandler(function(e) { hideLoading(); showToast('자리배치 로드 실패'); })
+                .withFailureHandler(function(e) { hideLoading(); renderSeatingGrid(); pagesLoaded.seating = true; })
                 .getSeatingData();
         } else {
-            renderSeatingGrid();   
-            pagesLoaded.seating = true; 
+            renderSeatingGrid();
+            pagesLoaded.seating = true;
         }
     }
 }
@@ -1355,15 +1486,25 @@ function selectCalendarDay(ds) {
 
 // ─── 학생 렌더링 ─────────────────────────────────────────
 function renderStudents() {
-    var tbody = document.getElementById('student-table-body');
+    var gridDiv = document.getElementById('student-grid-view');
+    var tbody   = document.getElementById('student-table-body');
     if (!students || students.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-8 text-sm">등록된 학생이 없습니다.</td></tr>';
+        gridDiv.innerHTML = '<p class="text-gray-400 text-sm text-center py-8 col-span-5">등록된 학생이 없습니다.</p>';
+        tbody.innerHTML   = '<tr><td colspan="7" class="text-center text-gray-400 py-8 text-sm">등록된 학생이 없습니다.</td></tr>';
         return;
     }
+    // 버튼 그리드 뷰
+    gridDiv.innerHTML = students.map(function(s) {
+        return '<button class="student-name-card" onclick="openStudentCard(' + s.num + ')">' +
+            '<span class="snc-num">' + s.num + '번</span>' +
+            '<span class="snc-name">' + escHtml(s.name) + '</span>' +
+            '</button>';
+    }).join('');
+    // 리스트 테이블 뷰
     tbody.innerHTML = students.map(function(s) {
         return '<tr class="border-b border-gray-100 hover:bg-white transition">' +
             '<td class="px-2 py-1.5 text-xs text-gray-400 font-semibold">' + s.num + '</td>' +
-            '<td class="px-2 py-1.5 whitespace-nowrap"><button class="student-name-btn text-sm" onclick="openStudentDashboard(' + s.num + ')">' + escHtml(s.name) + '</button></td>' +
+            '<td class="px-2 py-1.5 whitespace-nowrap"><button class="student-name-btn text-sm" onclick="openStudentCard(' + s.num + ')">' + escHtml(s.name) + '</button></td>' +
             '<td class="px-2 py-1.5 text-xs text-gray-600 whitespace-nowrap">' + escHtml(s.phone || '-') + '</td>' +
             '<td class="px-2 py-1.5 text-xs text-gray-600 whitespace-nowrap">' + escHtml(s.parentPhone1 || '-') + '</td>' +
             '<td class="px-2 py-1.5 text-xs text-gray-600 whitespace-nowrap">' + escHtml(s.parentPhone2 || '-') + '</td>' +
@@ -1371,6 +1512,33 @@ function renderStudents() {
             '<td class="px-2 py-1.5"><button class="text-gray-300 hover:text-blue-500 transition" onclick="openStudentEdit(' + s.num + ')" title="수정"><i class="fa-solid fa-pen text-xs"></i></button></td>' +
             '</tr>';
     }).join('');
+}
+function setStudentView(mode) {
+    document.getElementById('student-grid-view').style.display = mode === 'grid' ? 'grid' : 'none';
+    document.getElementById('student-list-view').style.display = mode === 'list' ? '' : 'none';
+    var bg = document.getElementById('btn-student-grid');
+    var bl = document.getElementById('btn-student-list');
+    if (bg) { bg.classList.toggle('active', mode === 'grid'); }
+    if (bl) { bl.classList.toggle('active', mode === 'list'); }
+}
+function openStudentCard(num) {
+    var s = students.find(function(x){ return x.num == num; });
+    if (!s) return;
+    currentStudentCardNum = num;
+    document.getElementById('sc-num').textContent  = s.num + '번';
+    document.getElementById('sc-name').textContent = s.name;
+    document.getElementById('sc-phone').textContent = s.phone || '-';
+    document.getElementById('sc-p1').textContent    = s.parentPhone1 || '-';
+    document.getElementById('sc-p2').textContent    = s.parentPhone2 || '-';
+    document.getElementById('sc-note').textContent  = s.note || '';
+    document.getElementById('sc-note-row').style.display = s.note ? '' : 'none';
+    document.getElementById('sc-edit-btn').onclick      = function(){ closeStudentCard(); openStudentEdit(num); };
+    document.getElementById('sc-dashboard-btn').onclick = function(){ closeStudentCard(); openStudentDashboard(num); };
+    document.getElementById('student-card-modal').classList.remove('hidden');
+}
+function closeStudentCard() {
+    document.getElementById('student-card-modal').classList.add('hidden');
+    currentStudentCardNum = null;
 }
 
 function populateStudentSelects() {
@@ -2205,81 +2373,244 @@ function openToolUrl(el) {
 }
 
 // ─── 자리배치 (완벽한 구조 매핑 및 서버 저장) ──────────────────────────
-function renderSeatingGrid() {
-    var grid = document.getElementById('seating-grid');
-    var container = document.getElementById('seating-container');
-
-    // 개별 책상 HTML 생성 헬퍼
-    function desk(deskId) {
-        var studentNum = seatingData[deskId];
-        var s = studentNum ? students.find(function(x){ return x.num == studentNum; }) : null;
-        if (s) {
-            return '<div class="desk-box filled" onclick="openSeatingModal(\''+deskId+'\')">' +
-                   '<span class="desk-num">' + s.num + '번</span>' +
-                   '<span class="desk-name">' + escHtml(s.name) + '</span>' +
-                   '</div>';
-        }
-        return '<div class="desk-box" onclick="openSeatingModal(\''+deskId+'\')">' +
-               '<i class="fa-solid fa-plus text-gray-300 text-lg"></i>' +
-               '</div>';
+// ─── 자리 레이아웃 관리 ──────────────────────────────────
+function migrateOldSeatingData(data) {
+    // L-r-c → 1-r-c, M-r-c → 2-r-c, R-r-c → 3-r-c
+    var result = {};
+    Object.keys(data).forEach(function(k) {
+        var nk = k.replace(/^L-/, '1-').replace(/^M-/, '2-').replace(/^R-/, '3-');
+        result[nk] = data[k];
+    });
+    return result;
+}
+function loadSeatingLayouts() {
+    try {
+        seatingLayouts  = JSON.parse(localStorage.getItem('nsn_seat_layouts') || '[]');
+        currentLayoutId = localStorage.getItem('nsn_seat_current') || null;
+    } catch(e) { seatingLayouts = []; currentLayoutId = null; }
+    if (seatingLayouts.length === 0) {
+        var def = { id:'default', name:'기본 자리 (3분단)',
+            sections:[{rows:3,cols:2},{rows:4,cols:3},{rows:3,cols:2}],
+            disabled:{'2-1-3':true,'2-2-3':true,'2-3-3':true} };
+        seatingLayouts = [def]; currentLayoutId = 'default';
+        saveSeatingLayouts();
     }
-
-    var boardHTML = '<div class="w-full max-w-xl mx-auto h-12 bg-white border-2 border-gray-300 rounded-xl flex items-center justify-center shadow-sm relative overflow-hidden">' +
-            '<div class="absolute inset-0 opacity-20" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, #cbd5e1 10px, #cbd5e1 20px);"></div>' +
-            '<span class="font-bold text-gray-600 relative z-10 text-base tracking-[1em] ml-[1em]">칠판</span>' +
+    if (!currentLayoutId || !seatingLayouts.find(function(l){return l.id===currentLayoutId;})) {
+        currentLayoutId = seatingLayouts[0].id;
+    }
+    var ld = localStorage.getItem('nsn_seat_data_' + currentLayoutId);
+    if (ld) { try { seatingData = JSON.parse(ld); } catch(e) { seatingData = {}; } }
+}
+function saveSeatingLayouts() {
+    localStorage.setItem('nsn_seat_layouts', JSON.stringify(seatingLayouts));
+    localStorage.setItem('nsn_seat_current', currentLayoutId || '');
+}
+function saveCurrentSeatingData() {
+    if (currentLayoutId) localStorage.setItem('nsn_seat_data_' + currentLayoutId, JSON.stringify(seatingData));
+}
+function getCurrentLayout() {
+    return seatingLayouts.find(function(l){return l.id===currentLayoutId;}) || null;
+}
+function renderLayoutSelector() {
+    var sel = document.getElementById('layout-selector');
+    if (!sel) return;
+    sel.innerHTML = seatingLayouts.map(function(l) {
+        return '<option value="' + escAttr(l.id) + '"' + (l.id===currentLayoutId?' selected':'') + '>' + escHtml(l.name) + '</option>';
+    }).join('');
+}
+function switchLayout(id) {
+    saveCurrentSeatingData();
+    currentLayoutId = id;
+    localStorage.setItem('nsn_seat_current', id);
+    var ld = localStorage.getItem('nsn_seat_data_' + id);
+    seatingData = ld ? (JSON.parse(ld)||{}) : {};
+    renderSeatingGrid();
+    renderLayoutSelector();
+    closeLayoutManager();
+}
+function deleteLayout(id) {
+    if (seatingLayouts.length <= 1) { showToast('마지막 세팅은 삭제할 수 없습니다.'); return; }
+    seatingLayouts = seatingLayouts.filter(function(l){return l.id!==id;});
+    localStorage.removeItem('nsn_seat_data_' + id);
+    if (currentLayoutId === id) {
+        currentLayoutId = seatingLayouts[0].id;
+        var ld = localStorage.getItem('nsn_seat_data_' + currentLayoutId);
+        seatingData = ld ? (JSON.parse(ld)||{}) : {};
+    }
+    saveSeatingLayouts();
+    renderSeatingGrid(); renderLayoutSelector(); renderLayoutManagerList();
+}
+function openLayoutManager() { renderLayoutManagerList(); document.getElementById('seating-manager-modal').classList.remove('hidden'); }
+function closeLayoutManager() { document.getElementById('seating-manager-modal').classList.add('hidden'); }
+function renderLayoutManagerList() {
+    var list = document.getElementById('layout-manager-list');
+    if (!list) return;
+    if (!seatingLayouts.length) { list.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">저장된 세팅이 없습니다.</p>'; return; }
+    list.innerHTML = seatingLayouts.map(function(l) {
+        var cur = l.id === currentLayoutId;
+        return '<div class="flex items-center gap-2 p-2.5 rounded-xl ' + (cur?'bg-blue-50 border border-blue-200':'bg-gray-50') + '">' +
+            '<span class="flex-1 text-sm font-bold ' + (cur?'text-blue-700':'text-gray-700') + '">' + escHtml(l.name) +
+            (cur ? '<span class="ml-2 text-xs bg-blue-100 text-blue-500 px-1.5 py-0.5 rounded-full">사용 중</span>' : '') + '</span>' +
+            (!cur ? '<button onclick="switchLayout(\'' + escAttr(l.id) + '\')" class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-lg font-bold hover:bg-blue-100 transition">적용</button>' : '') +
+            '<button onclick="openLayoutEditor(\'' + escAttr(l.id) + '\')" class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold hover:bg-gray-200 transition">수정</button>' +
+            (seatingLayouts.length > 1 ? '<button onclick="deleteLayout(\'' + escAttr(l.id) + '\')" class="text-red-300 hover:text-red-500 px-1 transition"><i class="fa-solid fa-trash-can text-xs"></i></button>' : '') +
             '</div>';
-
+    }).join('');
+}
+function openLayoutCreator() {
+    editingLayoutId = null; creatorDisabled = {};
+    document.getElementById('creator-name').value = '';
+    document.getElementById('creator-modal-title').textContent = '자리 세팅 만들기';
+    setCreatorSections(3);
+    document.getElementById('seating-creator-modal').classList.remove('hidden');
+    document.getElementById('seating-manager-modal').classList.add('hidden');
+}
+function openLayoutEditor(id) {
+    var layout = seatingLayouts.find(function(l){return l.id===id;});
+    if (!layout) return;
+    editingLayoutId = id; creatorDisabled = Object.assign({}, layout.disabled||{});
+    document.getElementById('creator-name').value = layout.name;
+    document.getElementById('creator-modal-title').textContent = '자리 세팅 수정';
+    setCreatorSections(layout.sections.length, layout.sections);
+    document.getElementById('seating-creator-modal').classList.remove('hidden');
+    document.getElementById('seating-manager-modal').classList.add('hidden');
+}
+function closeLayoutCreator() {
+    document.getElementById('seating-creator-modal').classList.add('hidden');
+    editingLayoutId = null; creatorDisabled = {};
+}
+function setCreatorSections(n, existing) {
+    creatorSectionCount = n;
+    document.querySelectorAll('.creator-sec-btn').forEach(function(btn, i) {
+        var active = (i + 1 === n);
+        btn.className = 'creator-sec-btn w-10 h-10 rounded-xl text-sm font-bold transition ' +
+            (active ? 'btn-primary' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+    });
+    var cfg = document.getElementById('creator-sections-config');
     var html = '';
-
-    if (!seatingFlipped) {
-        // ── 정방향: 칠판 아래, 학생들이 칠판을 바라봄 ──
-        container.style.justifyContent = 'flex-end';
-
-        html += '<div class="desk-grid-wrap">';
-        // 왼쪽 분단 (r=3→1, 뒤→앞)
-        html += '<div class="desk-col-2">';
-        for (var r = 3; r >= 1; r--) { html += desk('L-'+r+'-1') + desk('L-'+r+'-2'); }
-        html += '</div>';
-        // 가운데 분단
-        html += '<div class="flex flex-col items-center" style="gap:6px;">';
-        html += '<div class="desk-col-3">';
-        html += desk('M-4-1') + desk('M-4-2') + desk('M-4-3');
-        html += '</div><div class="desk-col-2">';
-        for (var r = 3; r >= 1; r--) { html += desk('M-'+r+'-1') + desk('M-'+r+'-2'); }
+    for (var i = 0; i < n; i++) {
+        var rows = existing && existing[i] ? existing[i].rows : 3;
+        var cols = existing && existing[i] ? existing[i].cols : 2;
+        html += '<div class="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5">' +
+            '<span class="text-sm font-bold text-gray-500 w-14">' + (i+1) + '분단</span>' +
+            '<label class="text-xs text-gray-500">행</label>' +
+            '<input type="number" class="creator-rows w-14 p-1.5 rounded-lg border text-sm text-center focus:outline-none" min="1" max="10" value="' + rows + '" data-sec="' + i + '" oninput="updateCreatorPreview()">' +
+            '<label class="text-xs text-gray-500">열</label>' +
+            '<input type="number" class="creator-cols w-14 p-1.5 rounded-lg border text-sm text-center focus:outline-none" min="1" max="6" value="' + cols + '" data-sec="' + i + '" oninput="updateCreatorPreview()">' +
+            '</div>';
+    }
+    cfg.innerHTML = html;
+    updateCreatorPreview();
+}
+function getCreatorSectionsConfig() {
+    var rows = document.querySelectorAll('.creator-rows');
+    var cols = document.querySelectorAll('.creator-cols');
+    var sections = [];
+    for (var i = 0; i < creatorSectionCount; i++) {
+        sections.push({
+            rows: Math.max(1, Math.min(10, parseInt(rows[i] ? rows[i].value : 3)||3)),
+            cols: Math.max(1, Math.min(6,  parseInt(cols[i] ? cols[i].value : 2)||2))
+        });
+    }
+    return sections;
+}
+function updateCreatorPreview() {
+    var secs = getCreatorSectionsConfig();
+    var html = '<div style="display:flex;gap:10px;justify-content:center;align-items:flex-start;flex-wrap:wrap;">';
+    secs.forEach(function(sec, si) {
+        var sIdx = si + 1;
+        html += '<div><div style="font-size:0.7rem;text-align:center;color:#9ca3af;font-weight:700;margin-bottom:4px;">' + sIdx + '분단</div>';
+        html += '<div style="display:grid;grid-template-columns:repeat(' + sec.cols + ',44px);gap:4px;">';
+        for (var r = sec.rows; r >= 1; r--) {
+            for (var c = 1; c <= sec.cols; c++) {
+                var did = sIdx + '-' + r + '-' + c;
+                var dis = !!creatorDisabled[did];
+                html += '<div onclick="creatorToggleDisabled(\'' + did + '\')" style="width:44px;height:36px;border:2px solid ' +
+                    (dis?'#e5e7eb':'#cbd5e1') + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;' +
+                    'background:' + (dis?'#f9fafb':'white') + ';color:' + (dis?'#d1d5db':'#94a3b8') + ';">' +
+                    (dis ? '<i class="fa-solid fa-xmark" style="font-size:14px;"></i>' :
+                           '<span style="font-size:10px;">' + r + '-' + c + '</span>') + '</div>';
+            }
+        }
         html += '</div></div>';
-        // 오른쪽 분단 (r=3→1)
-        html += '<div class="desk-col-2">';
-        for (var r = 3; r >= 1; r--) { html += desk('R-'+r+'-1') + desk('R-'+r+'-2'); }
-        html += '</div>';
-        html += '</div>';
-        html += '<div style="margin-top:16px;">' + boardHTML + '</div>';
-
+    });
+    html += '</div>';
+    document.getElementById('creator-preview').innerHTML = html;
+}
+function creatorToggleDisabled(deskId) {
+    if (creatorDisabled[deskId]) delete creatorDisabled[deskId]; else creatorDisabled[deskId] = true;
+    updateCreatorPreview();
+}
+function saveNewLayout() {
+    var name = (document.getElementById('creator-name').value || '').trim();
+    if (!name) { showToast('세팅 이름을 입력해주세요.'); return; }
+    var sections = getCreatorSectionsConfig();
+    if (editingLayoutId) {
+        var layout = seatingLayouts.find(function(l){return l.id===editingLayoutId;});
+        if (layout) { layout.name = name; layout.sections = sections; layout.disabled = Object.assign({}, creatorDisabled); }
+        saveSeatingLayouts();
+        renderSeatingGrid(); renderLayoutSelector();
+        closeLayoutCreator();
+        showToast('자리 세팅이 수정되었습니다.');
     } else {
-        // ── 뒤집기: 칠판 위, 학생 시점(교실 뒤에서 앞 바라봄) ──
-        container.style.justifyContent = 'flex-start';
+        var id = 'layout_' + Date.now();
+        seatingLayouts.push({ id:id, name:name, sections:sections, disabled:Object.assign({},creatorDisabled) });
+        saveCurrentSeatingData();
+        currentLayoutId = id; seatingData = {};
+        saveSeatingLayouts();
+        renderSeatingGrid(); renderLayoutSelector();
+        closeLayoutCreator();
+        showToast('새 자리 세팅이 저장되었습니다.');
+    }
+}
 
-        html += '<div style="margin-bottom:16px;">' + boardHTML + '</div>';
-        html += '<div class="desk-grid-wrap">';
-        // 오른쪽 분단이 왼쪽에 (시점 반전): r=1→3, 열도 2→1 순
-        html += '<div class="desk-col-2">';
-        for (var r = 1; r <= 3; r++) { html += desk('R-'+r+'-2') + desk('R-'+r+'-1'); }
-        html += '</div>';
-        // 가운데 분단
-        html += '<div class="flex flex-col items-center" style="gap:6px;">';
-        html += '<div class="desk-col-2">';
-        for (var r = 1; r <= 3; r++) { html += desk('M-'+r+'-2') + desk('M-'+r+'-1'); }
-        html += '</div>';
-        html += '<div class="desk-col-3">';
-        html += desk('M-4-3') + desk('M-4-2') + desk('M-4-1');
-        html += '</div></div>';
-        // 왼쪽 분단이 오른쪽에: r=1→3, 열도 2→1 순
-        html += '<div class="desk-col-2">';
-        for (var r = 1; r <= 3; r++) { html += desk('L-'+r+'-2') + desk('L-'+r+'-1'); }
-        html += '</div>';
-        html += '</div>';
+// ─── 자리 그리드 렌더링 ───────────────────────────────────
+function renderSeatingGrid() {
+    var layout = getCurrentLayout();
+    var grid   = document.getElementById('seating-grid');
+    if (!layout) { grid.innerHTML = '<p class="text-gray-400 text-sm text-center py-8">자리 세팅을 선택해주세요.</p>'; return; }
+
+    var disabled = layout.disabled || {};
+    function deskCell(deskId) {
+        if (disabled[deskId]) {
+            return '<div class="desk-box" style="opacity:0.3;cursor:default;pointer-events:none;"><i class="fa-solid fa-xmark" style="color:#9ca3af;font-size:1.1rem;"></i></div>';
+        }
+        var n = seatingData[deskId];
+        var s = n ? students.find(function(x){return x.num==n;}) : null;
+        if (s) return '<div class="desk-box filled" onclick="openSeatingModal(\'' + deskId + '\')">' +
+            '<span class="desk-num">' + s.num + '번</span><span class="desk-name">' + escHtml(s.name) + '</span></div>';
+        return '<div class="desk-box" onclick="openSeatingModal(\'' + deskId + '\')"><i class="fa-solid fa-plus text-gray-300 text-lg"></i></div>';
     }
 
-    grid.innerHTML = html;
+    var boardHTML = '<div style="width:100%;max-width:480px;margin:0 auto;height:44px;background:white;border:2px solid #d1d5db;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);">' +
+        '<div style="position:absolute;inset:0;opacity:0.15;background:repeating-linear-gradient(45deg,transparent,transparent 10px,#cbd5e1 10px,#cbd5e1 20px);"></div>' +
+        '<span style="font-weight:bold;color:#4b5563;position:relative;letter-spacing:0.12em;">칠판</span></div>';
+
+    var secs = layout.sections;
+    var order = secs.map(function(_,i){return i;});
+    if (seatingFlipped) order = order.slice().reverse();
+
+    var gridWrap = '<div style="display:flex;gap:14px;justify-content:center;align-items:flex-end;flex-wrap:nowrap;">';
+    order.forEach(function(si) {
+        var sec  = secs[si];
+        var sIdx = si + 1;
+        gridWrap += '<div style="display:grid;grid-template-columns:repeat(' + sec.cols + ',1fr);gap:6px;">';
+        var rowArr = [];
+        if (!seatingFlipped) { for (var r=sec.rows;r>=1;r--) rowArr.push(r); }
+        else                 { for (var r=1;r<=sec.rows;r++) rowArr.push(r); }
+        rowArr.forEach(function(r) {
+            var cArr = [];
+            if (!seatingFlipped) { for (var c=1;c<=sec.cols;c++) cArr.push(c); }
+            else                 { for (var c=sec.cols;c>=1;c--) cArr.push(c); }
+            cArr.forEach(function(c) { gridWrap += deskCell(sIdx+'-'+r+'-'+c); });
+        });
+        gridWrap += '</div>';
+    });
+    gridWrap += '</div>';
+
+    grid.innerHTML = seatingFlipped
+        ? (boardHTML + '<div style="margin-top:12px;">' + gridWrap + '</div>')
+        : (gridWrap + '<div style="margin-top:12px;">' + boardHTML + '</div>');
 }
 
 function toggleSeatingFlip() {
@@ -2326,23 +2657,19 @@ function closeSeatingModal() {
 }
 
 function resetSeating() {
-    if(!confirm('자리 배치를 모두 초기화하시겠습니까?\n(아직 서버에 저장되진 않습니다. 저장버튼을 눌러야 반영됩니다.)')) return;
     seatingData = {};
+    saveCurrentSeatingData();
     renderSeatingGrid();
+    showToast('자리 배치가 초기화되었습니다.');
 }
 
 function saveSeatingToServer() {
+    saveCurrentSeatingData();
     if (typeof google !== 'undefined' && google.script) {
         showLoading();
         google.script.run
-            .withSuccessHandler(function(msg) {
-                hideLoading();
-                showToast(msg);
-            })
-            .withFailureHandler(function(e) {
-                hideLoading();
-                showToast('저장 실패: ' + e.message);
-            })
+            .withSuccessHandler(function(msg) { hideLoading(); showToast(msg); })
+            .withFailureHandler(function(e) { hideLoading(); showToast('저장 실패: ' + e.message); })
             .saveSeatingData(JSON.stringify(seatingData));
     } else {
         showToast('저장되었습니다. (테스트 모드)');
