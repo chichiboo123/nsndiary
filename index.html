@@ -380,9 +380,24 @@
     </div>
 </section>
 
-<section id="page-students" class="page-section glass-panel p-6 rounded-2xl">
-    <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
-    <div id="student-card-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
+<section id="page-students" class="page-section glass-panel p-6 rounded-2xl flex flex-col" style="max-height:calc(100vh - 80px)">
+    <h2 class="text-xl font-bold mb-3 border-b pb-3 flex-shrink-0"><i class="fa-solid fa-users mr-2"></i> 우리 반 아이들</h2>
+    <div class="overflow-x-auto overflow-y-auto rounded-xl flex-1">
+        <table class="w-full text-left bg-white bg-opacity-60 rounded-xl overflow-hidden">
+            <thead class="bg-gray-100 bg-opacity-90" style="position:sticky;top:0;z-index:2">
+                <tr>
+                    <th class="px-2 py-2 font-semibold text-gray-500 text-xs w-8">#</th>
+                    <th class="px-2 py-2 font-semibold text-gray-600 text-xs">이름</th>
+                    <th class="px-2 py-2 font-semibold text-gray-500 text-xs">학생 연락처</th>
+                    <th class="px-2 py-2 font-semibold text-gray-500 text-xs">보호자1</th>
+                    <th class="px-2 py-2 font-semibold text-gray-500 text-xs">보호자2</th>
+                    <th class="px-2 py-2 font-semibold text-gray-500 text-xs">특이사항</th>
+                    <th class="px-2 py-2 w-6"></th>
+                </tr>
+            </thead>
+            <tbody id="student-table-body"></tbody>
+        </table>
+    </div>
 </section>
 
 <section id="page-attendance" class="page-section glass-panel p-6 rounded-2xl">
@@ -1340,22 +1355,21 @@ function selectCalendarDay(ds) {
 
 // ─── 학생 렌더링 ─────────────────────────────────────────
 function renderStudents() {
-    var grid = document.getElementById('student-card-grid');
+    var tbody = document.getElementById('student-table-body');
     if (!students || students.length === 0) {
-        grid.innerHTML = '<p class="text-gray-400 text-sm col-span-full text-center py-8">등록된 학생이 없습니다.</p>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-8 text-sm">등록된 학생이 없습니다.</td></tr>';
         return;
     }
-    grid.innerHTML = students.map(function(s) {
-        var contacts = [s.phone, s.parentPhone1, s.parentPhone2].filter(Boolean).join(' / ');
-        return '<div class="student-card">' +
-            '<div class="flex justify-between items-start">' +
-            '<div><div class="s-num">' + s.num + '번</div>' +
-            '<button class="student-name-btn s-name" onclick="openStudentDashboard(' + s.num + ')">' + escHtml(s.name) + '</button></div>' +
-            '<button class="text-gray-300 hover:text-blue-500 transition ml-1 flex-shrink-0" onclick="openStudentEdit(' + s.num + ')" title="수정"><i class="fa-solid fa-pen text-xs"></i></button>' +
-            '</div>' +
-            (contacts ? '<div class="s-info" title="' + escAttr(contacts) + '">' + escHtml(contacts) + '</div>' : '') +
-            (s.note    ? '<div class="s-note" title="' + escAttr(s.note) + '">' + escHtml(s.note) + '</div>' : '') +
-            '</div>';
+    tbody.innerHTML = students.map(function(s) {
+        return '<tr class="border-b border-gray-100 hover:bg-white transition">' +
+            '<td class="px-2 py-1.5 text-xs text-gray-400 font-semibold">' + s.num + '</td>' +
+            '<td class="px-2 py-1.5 whitespace-nowrap"><button class="student-name-btn text-sm" onclick="openStudentDashboard(' + s.num + ')">' + escHtml(s.name) + '</button></td>' +
+            '<td class="px-2 py-1.5 text-xs text-gray-600 whitespace-nowrap">' + escHtml(s.phone || '-') + '</td>' +
+            '<td class="px-2 py-1.5 text-xs text-gray-600 whitespace-nowrap">' + escHtml(s.parentPhone1 || '-') + '</td>' +
+            '<td class="px-2 py-1.5 text-xs text-gray-600 whitespace-nowrap">' + escHtml(s.parentPhone2 || '-') + '</td>' +
+            '<td class="px-2 py-1.5 text-xs text-red-500 max-w-[120px]"><span class="block overflow-hidden text-ellipsis whitespace-nowrap" title="' + escAttr(s.note || '') + '">' + escHtml(s.note || '') + '</span></td>' +
+            '<td class="px-2 py-1.5"><button class="text-gray-300 hover:text-blue-500 transition" onclick="openStudentEdit(' + s.num + ')" title="수정"><i class="fa-solid fa-pen text-xs"></i></button></td>' +
+            '</tr>';
     }).join('');
 }
 
