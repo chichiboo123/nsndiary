@@ -204,9 +204,13 @@
             .main-scroll { padding-bottom: 68px !important; }
         }
 
-        /* ── 데스크탑 기능 버튼 4열 ── */
+        /* ── 데스크탑 레이아웃 최적화 (≥ 1100px) ── */
         @media (min-width: 1100px) {
-            #feature-btn-grid { grid-template-columns: repeat(4, 1fr); }
+            html { font-size: 17.5px; }
+            #main-content-wrap { max-width: none; padding: 0 8px 64px; }
+            .main-scroll { padding: 24px 28px; }
+            #feature-btn-grid { grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+            .feature-btn { padding: 1.75rem 1rem; }
         }
 
         /* ── 모바일 레이아웃 최적화 (< 1100px) ── */
@@ -321,7 +325,7 @@
     </header>
 
     <div class="main-scroll">
-    <div class="max-w-4xl mx-auto pb-16">
+    <div class="max-w-4xl mx-auto pb-16" id="main-content-wrap">
 
 <section id="page-home" class="page-section active">
     <div class="glass-panel rounded-2xl p-4 mb-4">
