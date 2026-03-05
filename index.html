@@ -68,8 +68,9 @@
             background-color: rgba(255,255,255,0.25); font-weight: bold; }
 
         /* ── 메인 레이아웃 ── */
-        body > .app-wrap { display: flex; height: 100vh; overflow: hidden; }
-        .main-area { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        /* dvh: 모바일 주소창 변화에도 안정적 (미지원 시 vh fallback) */
+        body > .app-wrap { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
+        .main-area { flex: 1; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
         .main-scroll { flex: 1; overflow-y: auto; padding: 16px; }
 
         /* ── 공통 컴포넌트 ── */
@@ -272,16 +273,82 @@
             .desk-name { font-size: 0.8rem; }
             .desk-num { font-size: 0.55rem; }
         }
+        /* ═══════════════════════════════════════════════════════
+           Tall & Narrow Mode  (≤ 360px — Z Fold 커버 등 초좁은 세로형 기기)
+           목표: 글자/버튼 가독성 확보, 가로 밀도 완화, 세로 리듬 강화
+        ═══════════════════════════════════════════════════════ */
         @media (max-width: 360px) {
-            #student-grid-view { grid-template-columns: repeat(3,1fr) !important; }
-            .glass-panel { padding: 0.75rem !important; }
-            .feature-btn { padding: 0.6rem 0.2rem; }
-            .feature-btn i { font-size: 1.2rem !important; margin-bottom: 2px !important; }
-            .feature-btn p { font-size: 0.65rem; }
+            /* ── 글꼴·기본 타이포 ── */
+            html { font-size: 14.5px; }
+            body { line-height: 1.55; }
+
+            /* ── 레이아웃 ── */
+            .main-scroll { padding: 8px !important; }
+            .glass-panel { padding: 0.85rem !important; border-radius: 0.9rem !important; }
+            .max-w-4xl, .max-w-2xl, .max-w-xl { max-width: 100% !important; }
+
+            /* ── 헤더 ── */
+            header { padding: 6px 10px !important; gap: 6px; }
+            header h1 { font-size: 0.95rem !important; letter-spacing: -0.01em; }
+            #current-page-title { display: none !important; }
+
+            /* ── 기능 버튼 그리드: 3열 → 2열 ── */
+            #feature-btn-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.55rem; }
+            .feature-btn { padding: 0.9rem 0.3rem; min-height: 76px; }
+            .feature-btn i { font-size: 1.4rem !important; margin-bottom: 3px !important; }
+            .feature-btn p { font-size: 0.7rem; }
+
+            /* ── 학생 그리드: 4열 → 3열 ── */
+            #student-grid-view { grid-template-columns: repeat(3, 1fr) !important; }
+
+            /* ── 필터 바: 모든 입력을 1열 세로 스택 ── */
+            .filter-bar { padding: 8px !important; }
+            .filter-bar .grid { grid-template-columns: 1fr !important; gap: 6px; }
+            .filter-bar .grid > :last-child { grid-column: auto; }
+
+            /* ── 카드·목록 ── */
+            .rec-card { padding: 9px 11px; }
+            .schedule-card { padding: 8px 10px; gap: 8px; }
+            .schedule-date { min-width: 40px; padding: 4px 6px; font-size: 0.65rem; }
+
+            /* ── 버튼 터치 타겟 ── */
+            .btn-primary, button[type="submit"] { min-height: 44px; }
+            .menu-item { min-height: 46px; padding: 9px 12px; }
+
+            /* ── 모달 ── */
+            .fixed.inset-0 > div { width: 97% !important; max-width: none !important; border-radius: 1rem !important; }
+
+            /* ── 캘린더 ── */
             #clock-time { font-size: 1.7rem; }
             .cal-cell { min-height: 38px; }
-            .schedule-card { padding: 8px 10px; gap: 8px; }
-            .schedule-date { min-width: 40px; padding: 4px 6px; }
+            .cal-day-num { font-size: 0.66rem; }
+
+            /* ── 수업기록 목록 ── */
+            .cls-row { gap: 4px; padding: 7px 8px; }
+            .cls-title { font-size: 0.8rem; }
+
+            /* ── 제출확인 그리드: 4열 → 3열 ── */
+            .subm-grid { grid-template-columns: repeat(3, 1fr) !important; }
+            .subm-name { font-size: 0.76rem; }
+            .subm-btn { padding: 6px 2px; }
+
+            /* ── 자리배치 ── */
+            .desk-box { width: 46px; height: 40px; border-radius: 4px; }
+            .desk-name { font-size: 0.75rem; }
+            .desk-num { font-size: 0.52rem; }
+
+            /* ── 하단 내비게이션 터치 영역 확보 ── */
+            #bottom-nav { height: 62px; padding-bottom: env(safe-area-inset-bottom, 0); }
+            #bottom-nav a { font-size: 0.58rem; padding: 7px 0 5px; gap: 3px; }
+            #bottom-nav i { font-size: 1.3rem; }
+        }
+
+        /* ── 추가: aspect-ratio 기반 감지 (폭은 넓어도 극단적 세로형) ── */
+        @media (max-width: 400px) and (max-aspect-ratio: 9/20) {
+            /* 400px 이하 폭 + 9:20 이상 세로 비율 → 세로 공간 적극 활용 */
+            .filter-bar .grid { grid-template-columns: 1fr !important; }
+            .glass-panel { padding: 0.85rem !important; }
+            #feature-btn-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
 
         /* ── 제출확인 ── */
@@ -807,6 +874,8 @@
         <h2 class="text-xl font-bold"><i class="fa-solid fa-border-all mr-2"></i> 우리 반 자리배치</h2>
         <div class="flex gap-2 flex-wrap justify-end">
             <button id="seating-flip-btn" onclick="toggleSeatingFlip()" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-200 transition"><i class="fa-solid fa-arrows-rotate mr-1"></i> 뒤집기</button>
+            <button onclick="shuffleSeating()" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-100 transition"><i class="fa-solid fa-shuffle mr-1"></i> 자리바꾸기</button>
+            <button id="seating-undo-btn" onclick="undoShuffleSeating()" disabled class="bg-gray-100 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-bold cursor-not-allowed" title="이전 자리로 되돌리기"><i class="fa-solid fa-rotate-left mr-1"></i> 되돌리기</button>
             <button onclick="saveSeatingToServer()" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm"><i class="fa-solid fa-save mr-1"></i> 저장하기</button>
             <button onclick="resetSeating()" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-200 transition"><i class="fa-solid fa-rotate-left mr-1"></i> 비우기</button>
         </div>
@@ -2887,6 +2956,8 @@ function switchLayout(id) {
     localStorage.setItem('nsn_seat_current', id);
     var ld = localStorage.getItem('nsn_seat_data_' + id);
     seatingData = ld ? (JSON.parse(ld)||{}) : {};
+    _seatingUndoStack = [];
+    _updateShuffleUndoBtn();
     renderSeatingGrid();
     renderLayoutSelector();
     closeLayoutManager();
@@ -3123,7 +3194,90 @@ function resetSeating() {
     seatingData = {};
     saveCurrentSeatingData();
     renderSeatingGrid();
+    _seatingUndoStack = [];
+    _updateShuffleUndoBtn();
     showToast('자리 배치가 초기화되었습니다.');
+}
+
+// ─── 자리바꾸기 (랜덤 셔플 + 되돌리기) ─────────────────────
+var _seatingUndoStack = [];
+
+function _fisherYates(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+}
+
+function shuffleSeating() {
+    var layout = getCurrentLayout();
+    if (!layout) { showToast('자리 세팅을 선택해주세요.'); return; }
+
+    var disabled = layout.disabled || {};
+
+    // 현재 배치된 책상 ID 수집 (레이아웃 순서대로)
+    var occupiedDesks = [];
+    layout.sections.forEach(function(sec, si) {
+        for (var r = 1; r <= sec.rows; r++) {
+            for (var c = 1; c <= sec.cols; c++) {
+                var deskId = (si + 1) + '-' + r + '-' + c;
+                if (!disabled[deskId] && seatingData[deskId] !== undefined) {
+                    occupiedDesks.push(deskId);
+                }
+            }
+        }
+    });
+
+    if (occupiedDesks.length < 2) {
+        showToast('자리를 바꾸려면 최소 2명 이상 배치되어 있어야 합니다.');
+        return;
+    }
+
+    // 현재 상태를 undo 스택에 저장
+    _seatingUndoStack.push(JSON.parse(JSON.stringify(seatingData)));
+
+    var prevArrangement = _seatingUndoStack[_seatingUndoStack.length - 1];
+    var studentNums = occupiedDesks.map(function(d) { return seatingData[d]; });
+
+    // 이전 자리와 겹치지 않도록 최대 200회 시도 (derangement 근사)
+    var newNums = null;
+    for (var attempt = 0; attempt < 200; attempt++) {
+        var shuffled = _fisherYates(studentNums.slice());
+        var conflict = false;
+        for (var i = 0; i < occupiedDesks.length; i++) {
+            if (prevArrangement[occupiedDesks[i]] === shuffled[i]) { conflict = true; break; }
+        }
+        if (!conflict) { newNums = shuffled; break; }
+    }
+    if (!newNums) newNums = _fisherYates(studentNums.slice()); // 불가능 시 최선
+
+    occupiedDesks.forEach(function(deskId, i) { seatingData[deskId] = newNums[i]; });
+
+    saveCurrentSeatingData();
+    renderSeatingGrid();
+    _updateShuffleUndoBtn();
+    showToast('자리가 새롭게 배치되었습니다!');
+}
+
+function undoShuffleSeating() {
+    if (!_seatingUndoStack.length) { showToast('되돌릴 이전 자리가 없습니다.'); return; }
+    seatingData = _seatingUndoStack.pop();
+    saveCurrentSeatingData();
+    renderSeatingGrid();
+    _updateShuffleUndoBtn();
+    showToast('이전 자리로 되돌렸습니다.');
+}
+
+function _updateShuffleUndoBtn() {
+    var btn = document.getElementById('seating-undo-btn');
+    if (!btn) return;
+    var has = _seatingUndoStack.length > 0;
+    btn.disabled = !has;
+    btn.className = has
+        ? 'bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-100 transition'
+        : 'bg-gray-100 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-bold cursor-not-allowed';
+    btn.title = has ? ('이전 자리로 되돌리기 (' + _seatingUndoStack.length + '단계 가능)') : '되돌릴 이전 자리 없음';
 }
 
 function saveSeatingToServer() {
