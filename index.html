@@ -264,6 +264,75 @@
             .schedule-card { padding: 8px 10px; gap: 8px; }
             .schedule-date { min-width: 40px; padding: 4px 6px; }
         }
+
+        /* ── 제출확인 ── */
+        #assignment-shelf {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+        .submit-card {
+            background: rgba(255,255,255,0.92);
+            border-radius: 1rem;
+            padding: 1rem 1.1rem 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            border: 1px solid rgba(255,255,255,0.65);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .submit-card-header {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+        }
+        .submit-card-title {
+            font-weight: 700; font-size: 1rem; color: #1e293b;
+            flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .submit-card-stats { display: flex; gap: 5px; flex-wrap: wrap; }
+        .subm-badge {
+            display: inline-block; padding: 3px 10px; border-radius: 20px;
+            font-size: 0.72rem; font-weight: 700;
+        }
+        .subm-badge-pending { background: #fee2e2; color: #dc2626; }
+        .subm-badge-done    { background: #dcfce7; color: #16a34a; }
+        .subm-badge-total   { background: #e0e7ef; color: #4b6080; }
+        .subm-grid {
+            display: grid; grid-template-columns: repeat(4,1fr); gap: 5px;
+        }
+        .subm-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 1px;
+            background: white; border: 1.5px solid #cbd5e1; border-radius: 8px;
+            padding: 7px 3px; cursor: pointer; transition: all 0.13s; width: 100%;
+        }
+        .subm-btn:hover  { border-color: var(--accent-color); background: #f0f5ff; }
+        .subm-btn:active { transform: scale(0.91); }
+        .subm-num  { font-size: 0.6rem; color: #9ca3af; font-weight: 700; }
+        .subm-name { font-size: 0.82rem; font-weight: 700; color: #1f2937; }
+        .subm-delete-btn {
+            background: none; border: none; cursor: pointer;
+            color: #d1d5db; padding: 4px; transition: color 0.18s; font-size: 0.85rem;
+        }
+        .subm-delete-btn:hover { color: #ef4444; }
+        .subm-all-done {
+            text-align: center; padding: 0.85rem 0.5rem;
+            color: #16a34a; font-weight: 700; font-size: 0.88rem;
+            background: #f0fdf4; border-radius: 8px;
+        }
+        .subm-done-section { margin-top: 2px; }
+        .subm-done-summary {
+            font-size: 0.73rem; color: #9ca3af; cursor: pointer;
+            padding: 4px 2px; font-weight: 600; user-select: none; list-style: none;
+            transition: color 0.15s;
+        }
+        .subm-done-summary:hover { color: var(--accent-color); }
+        .subm-done-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+        .subm-restore-btn {
+            display: flex; align-items: center; gap: 4px;
+            background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 6px;
+            padding: 4px 8px; cursor: pointer; font-size: 0.74rem; font-weight: 600;
+            color: #6b7280; transition: all 0.13s;
+        }
+        .subm-restore-btn:hover { background: #fef3c7; border-color: #fbbf24; color: #d97706; }
+        .subm-restore-icon { font-size: 0.62rem; opacity: 0.65; }
+        #assignment-empty { display: none; text-align: center; padding: 3rem 1rem; color: #9ca3af; }
     </style>
 </head>
 <body>
@@ -290,6 +359,7 @@
         <a href="#"          onclick="showPage('page-counsel',this)"                class="menu-item"><i class="fa-solid fa-comments w-7 text-center"></i> 상담기록</a>
         <a href="#"          onclick="showPage('page-tools',this)"                  class="menu-item"><i class="fa-solid fa-toolbox w-7 text-center"></i> 디지털도구</a>
         <a href="#"          onclick="showPage('page-seating',this)"                class="menu-item"><i class="fa-solid fa-border-all w-7 text-center"></i> 자리배치</a>
+        <a href="#"          onclick="showPage('page-submit',this)"                 class="menu-item"><i class="fa-solid fa-clipboard-check w-7 text-center"></i> 제출확인</a>
     </nav>
 
     <div class="px-3 pb-4 border-t border-white border-opacity-25 pt-3">
@@ -385,6 +455,10 @@
         <div class="feature-btn" onclick="showPage('page-seating', null)">
             <i class="fa-solid fa-border-all text-3xl mb-2" style="color:var(--accent-color)"></i>
             <p class="font-bold text-sm">자리배치</p>
+        </div>
+        <div class="feature-btn" onclick="showPage('page-submit', null)">
+            <i class="fa-solid fa-clipboard-check text-3xl mb-2" style="color:var(--accent-color)"></i>
+            <p class="font-bold text-sm">제출확인</p>
         </div>
     </div>
 </section>
@@ -730,7 +804,36 @@
     </div>
 </section>
 
+<section id="page-submit" class="page-section glass-panel p-6 rounded-2xl">
+    <div class="flex justify-between items-center mb-5 border-b pb-3 flex-wrap gap-2">
+        <h2 class="text-xl font-bold"><i class="fa-solid fa-clipboard-check mr-2"></i> 제출 확인</h2>
+        <button onclick="openCreateAssignment()" class="btn-primary px-4 py-2 rounded-xl text-sm font-bold shadow-sm flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> 새 과제 만들기
+        </button>
+    </div>
+    <div id="assignment-shelf"></div>
+    <div id="assignment-empty">
+        <i class="fa-solid fa-clipboard text-4xl mb-3 block opacity-30"></i>
+        <p class="text-sm font-semibold opacity-50">아직 생성된 과제가 없습니다.</p>
+        <p class="text-xs opacity-40 mt-1">"새 과제 만들기"를 눌러 시작하세요.</p>
+    </div>
+</section>
+
     </div></div></div></div><div id="toast"></div>
+
+<!-- 과제 생성 모달 -->
+<div id="create-assignment-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
+        <h3 class="text-lg font-bold mb-4"><i class="fa-solid fa-plus mr-2" style="color:var(--accent-color)"></i>새 과제 만들기</h3>
+        <input id="new-assignment-name" type="text" placeholder="과제명 입력 (예: 아침활동, 독서록 등)"
+            class="w-full p-3 rounded-xl border text-sm focus:outline-none focus:border-blue-400 mb-4"
+            onkeydown="if(event.key==='Enter') confirmCreateAssignment()">
+        <div class="flex gap-2 justify-end">
+            <button onclick="closeCreateAssignment()" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-200 transition">취소</button>
+            <button onclick="confirmCreateAssignment()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold shadow-sm">만들기</button>
+        </div>
+    </div>
+</div>
 
 <div id="loading-overlay" class="hidden fixed inset-0 bg-white bg-opacity-70 z-50 flex flex-col justify-center items-center">
     <i class="fa-solid fa-spinner fa-spin text-5xl mb-4" style="color:var(--accent-color)"></i>
@@ -1220,7 +1323,7 @@ function showPage(pageId, element) {
     var titles = {
         'page-home':'홈','page-schedule':'일정','page-students':'학생정보',
         'page-attendance':'출결기록','page-class':'수업기록','page-daily':'일상기록',
-        'page-student-record':'학생기록','page-counsel':'상담기록','page-tools':'디지털도구','page-seating':'자리배치'
+        'page-student-record':'학생기록','page-counsel':'상담기록','page-tools':'디지털도구','page-seating':'자리배치','page-submit':'제출확인'
     };
     document.getElementById('current-page-title').innerText = titles[pageId] || '';
     // 하단 내비 동기화
@@ -1236,6 +1339,7 @@ function showPage(pageId, element) {
     if (pageId === 'page-student-record' && !pagesLoaded.sr) { loadStudentRecordList(); pagesLoaded.sr = true; }
     if (pageId === 'page-counsel'  && !pagesLoaded.cns)  { loadCounselList();       pagesLoaded.cns = true; }
     if (pageId === 'page-tools'    && !pagesLoaded.tools) { loadToolList();          pagesLoaded.tools = true; }
+    if (pageId === 'page-submit') { loadAssignments(); renderAssignmentShelf(); }
     
     // 자리배치 화면 진입 시 레이아웃 및 데이터 로드
     if (pageId === 'page-seating' && !pagesLoaded.seating) {
@@ -2745,6 +2849,135 @@ function escHtml(str) {
 }
 function escAttr(str) {
     return String(str||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+}
+
+/* ───────────────────────────────────────────────
+   제출확인 기능
+   저장소: localStorage 'nsn_submissions'
+   구조: { assignments: [{id, name, submitted:[], createdAt}] }
+─────────────────────────────────────────────── */
+var SUBMIT_KEY = 'nsn_submissions';
+var assignments = [];
+
+function loadAssignments() {
+    try {
+        var raw = localStorage.getItem(SUBMIT_KEY);
+        assignments = raw ? JSON.parse(raw) : [];
+    } catch(e) { assignments = []; }
+}
+
+function saveAssignments() {
+    localStorage.setItem(SUBMIT_KEY, JSON.stringify(assignments));
+}
+
+function renderAssignmentShelf() {
+    var shelf = document.getElementById('assignment-shelf');
+    var empty = document.getElementById('assignment-empty');
+    if (!shelf) return;
+    if (!assignments.length) {
+        shelf.innerHTML = '';
+        if (empty) empty.style.display = '';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    shelf.innerHTML = assignments.map(function(a) { return buildAssignmentCard(a); }).join('');
+}
+
+function buildAssignmentCard(a) {
+    var unsubmitted = students.filter(function(s) { return a.submitted.indexOf(s.num) === -1; });
+    var submitted   = students.filter(function(s) { return a.submitted.indexOf(s.num) !== -1; });
+    var total = students.length;
+
+    var unsubBtns = unsubmitted.map(function(s) {
+        return '<button class="subm-btn" onclick="markSubmitted(\'' + escAttr(a.id) + '\',' + s.num + ')">'
+            + '<span class="subm-num">' + s.num + '</span>'
+            + '<span class="subm-name">' + escHtml(s.name) + '</span>'
+            + '</button>';
+    }).join('');
+
+    var doneBtns = submitted.map(function(s) {
+        return '<button class="subm-restore-btn" onclick="restoreSubmission(\'' + escAttr(a.id) + '\',' + s.num + ')" title="제출 취소 (되살리기)">'
+            + escHtml(s.name)
+            + ' <i class="fa-solid fa-rotate-left subm-restore-icon"></i>'
+            + '</button>';
+    }).join('');
+
+    var doneSection = submitted.length > 0
+        ? '<details class="subm-done-section">'
+            + '<summary class="subm-done-summary">제출완료 ' + submitted.length + '명 — 이름 클릭 시 되살리기</summary>'
+            + '<div class="subm-done-grid">' + doneBtns + '</div>'
+            + '</details>'
+        : '';
+
+    var bodyHtml = unsubmitted.length === 0
+        ? '<div class="subm-all-done"><i class="fa-solid fa-circle-check mr-1"></i> 모두 제출 완료!</div>'
+        : '<div class="subm-grid">' + unsubBtns + '</div>';
+
+    return '<div class="submit-card" id="card-' + escAttr(a.id) + '">'
+        + '<div class="submit-card-header">'
+        +   '<span class="submit-card-title">' + escHtml(a.name) + '</span>'
+        +   '<button class="subm-delete-btn" onclick="deleteAssignment(\'' + escAttr(a.id) + '\')" title="과제 삭제"><i class="fa-solid fa-trash-can"></i></button>'
+        + '</div>'
+        + '<div class="submit-card-stats">'
+        +   '<span class="subm-badge subm-badge-pending">미제출 ' + unsubmitted.length + '명</span>'
+        +   '<span class="subm-badge subm-badge-done">제출 ' + submitted.length + '명</span>'
+        +   '<span class="subm-badge subm-badge-total">전체 ' + total + '명</span>'
+        + '</div>'
+        + bodyHtml
+        + doneSection
+        + '</div>';
+}
+
+function markSubmitted(assignId, studentNum) {
+    var a = assignments.find(function(x) { return x.id === assignId; });
+    if (!a || a.submitted.indexOf(studentNum) !== -1) return;
+    a.submitted.push(studentNum);
+    saveAssignments();
+    var cardEl = document.getElementById('card-' + assignId);
+    if (cardEl) cardEl.outerHTML = buildAssignmentCard(a);
+    var s = students.find(function(x) { return x.num === studentNum; });
+    showToast((s ? s.name : '') + ' 제출 완료 처리');
+}
+
+function restoreSubmission(assignId, studentNum) {
+    var a = assignments.find(function(x) { return x.id === assignId; });
+    if (!a) return;
+    a.submitted = a.submitted.filter(function(n) { return n !== studentNum; });
+    saveAssignments();
+    var cardEl = document.getElementById('card-' + assignId);
+    if (cardEl) cardEl.outerHTML = buildAssignmentCard(a);
+    var s = students.find(function(x) { return x.num === studentNum; });
+    showToast((s ? s.name : '') + ' 되살리기 완료');
+}
+
+function deleteAssignment(assignId) {
+    var a = assignments.find(function(x) { return x.id === assignId; });
+    var name = a ? a.name : '';
+    assignments = assignments.filter(function(x) { return x.id !== assignId; });
+    saveAssignments();
+    renderAssignmentShelf();
+    showToast('"' + name + '" 과제가 삭제되었습니다');
+}
+
+function openCreateAssignment() {
+    document.getElementById('new-assignment-name').value = '';
+    document.getElementById('create-assignment-modal').classList.remove('hidden');
+    setTimeout(function() { document.getElementById('new-assignment-name').focus(); }, 80);
+}
+
+function closeCreateAssignment() {
+    document.getElementById('create-assignment-modal').classList.add('hidden');
+}
+
+function confirmCreateAssignment() {
+    var name = document.getElementById('new-assignment-name').value.trim();
+    if (!name) { showToast('과제명을 입력해주세요'); return; }
+    var id = 'a' + Date.now();
+    assignments.push({ id: id, name: name, submitted: [], createdAt: new Date().toISOString() });
+    saveAssignments();
+    renderAssignmentShelf();
+    closeCreateAssignment();
+    showToast('"' + name + '" 과제가 생성되었습니다');
 }
 </script>
 
