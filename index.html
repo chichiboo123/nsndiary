@@ -130,9 +130,28 @@
         .cls-icons { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 
         /* 파일 업로드 영역 */
-        .file-drop-area { border: 2px dashed #d1d5db; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
-        .file-drop-area:hover { border-color: var(--accent-color); }
+        .file-drop-area { border: 2px dashed #d1d5db; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+        .file-drop-area:hover, .file-drop-area.drag-over { border-color: var(--accent-color); background: rgba(99,102,241,0.04); }
         .file-drop-area input[type=file] { display: none; }
+
+        /* 첨부 파일 갤러리 */
+        .gallery-wrap { background: #111; border-radius: 10px; overflow: hidden; position: relative; }
+        .gallery-img-item { display: none; width: 100%; max-height: 320px; object-fit: contain; }
+        .gallery-img-item.active { display: block; }
+        .gallery-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.75); border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .gallery-nav-btn:hover { background: rgba(255,255,255,0.95); }
+        .gallery-prev { left: 8px; }
+        .gallery-next { right: 8px; }
+        .gallery-counter { text-align: center; font-size: 11px; color: #9ca3af; margin-top: 4px; }
+        .pdf-embed-wrap { border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
+        .pdf-embed-wrap iframe { display: block; }
+        .file-pill { display: inline-flex; align-items: center; gap: 5px; background: #eef2ff; color: #4f46e5; border-radius: 20px; padding: 3px 10px; font-size: 11px; text-decoration: none; }
+        .file-pill:hover { background: #e0e7ff; }
+
+        /* 업로드 대기 파일 목록 */
+        .pending-file-chip { display: inline-flex; align-items: center; gap: 5px; background: #f3f4f6; border-radius: 6px; padding: 3px 8px; font-size: 11px; max-width: 160px; }
+        .pending-file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pending-file-chip button { background: none; border: none; color: #ef4444; cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0; }
 
         .schedule-card { background: white; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
         .schedule-date { flex-shrink: 0; text-align: center; background: var(--accent-color); color: var(--text-sidebar); border-radius: 8px; padding: 6px 10px; min-width: 56px; }
@@ -631,12 +650,13 @@
         <div class="bg-white bg-opacity-70 p-3 rounded-xl space-y-2 border border-gray-200">
             <h4 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-paperclip mr-1"></i> 자료 첨부</h4>
             <input type="url" id="class-link" placeholder="참고 웹사이트 URL" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
-            <label class="file-drop-area block" onclick="document.getElementById('class-file-input').click()">
-                <input type="file" id="class-file-input" accept="image/*,.pdf,.docx,.hwp,.xlsx,.pptx">
+            <div id="class-drop-zone" class="file-drop-area" onclick="document.getElementById('class-file-input').click()">
+                <input type="file" id="class-file-input" accept="image/*,.pdf,.docx,.hwp,.xlsx,.pptx" multiple style="display:none">
                 <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1 block" style="color:var(--accent-color)"></i>
-                <p class="text-xs text-gray-500">클릭하여 파일 첨부 (이미지·PDF·문서 등, 최대 5MB)</p>
-                <p id="class-file-name" class="text-xs font-bold mt-1" style="color:var(--accent-color)"></p>
-            </label>
+                <p class="text-xs text-gray-500">클릭 또는 드래그하여 파일 첨부 (이미지·PDF·문서 등, 최대 20MB)</p>
+                <p class="text-xs text-gray-400 mt-0.5">여러 파일 동시 선택 또는 드래그 가능</p>
+            </div>
+            <div id="class-pending-files" class="flex flex-wrap gap-1.5 mt-2 empty:hidden"></div>
         </div>
         <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">기록 남기기</button>
     </form>
@@ -667,12 +687,13 @@
         <div class="bg-white bg-opacity-70 p-3 rounded-xl space-y-2 border border-gray-200">
             <h4 class="font-bold text-sm text-gray-700"><i class="fa-solid fa-paperclip mr-1"></i> 자료 첨부</h4>
             <input type="url" id="daily-link" placeholder="관련 URL 링크 (공문 링크 등)" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
-            <label class="file-drop-area block" onclick="document.getElementById('daily-file-input').click()">
-                <input type="file" id="daily-file-input" accept="image/*,.pdf,.docx,.hwp,.xlsx,.pptx">
+            <div id="daily-drop-zone" class="file-drop-area" onclick="document.getElementById('daily-file-input').click()">
+                <input type="file" id="daily-file-input" accept="image/*,.pdf,.docx,.hwp,.xlsx,.pptx" multiple style="display:none">
                 <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1 block" style="color:var(--accent-color)"></i>
-                <p class="text-xs text-gray-500">클릭하여 파일 첨부 (이미지·PDF·문서 등, 최대 5MB)</p>
-                <p id="daily-file-name" class="text-xs font-bold mt-1" style="color:var(--accent-color)"></p>
-            </label>
+                <p class="text-xs text-gray-500">클릭 또는 드래그하여 파일 첨부 (이미지·PDF·문서 등, 최대 20MB)</p>
+                <p class="text-xs text-gray-400 mt-0.5">여러 파일 동시 선택 또는 드래그 가능</p>
+            </div>
+            <div id="daily-pending-files" class="flex flex-wrap gap-1.5 mt-2 empty:hidden"></div>
         </div>
         <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">일기장 덮기 (저장)</button>
     </form>
@@ -885,7 +906,11 @@
                 <p class="text-xs font-bold text-gray-400 mb-1">수업 성찰</p>
                 <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed" id="cls-modal-reflection"></p>
             </div>
-            <div class="flex flex-wrap gap-4 pt-1" id="cls-modal-links"></div>
+            <div class="flex flex-wrap gap-3 pt-1" id="cls-modal-links"></div>
+            <div id="cls-modal-files-wrap" class="hidden">
+                <p class="text-xs font-bold text-gray-400 mb-2">첨부 파일</p>
+                <div id="cls-modal-files"></div>
+            </div>
         </div>
         <!-- 수정 모드 -->
         <div id="cls-edit-body" class="hidden px-6 py-4 space-y-3 overflow-y-auto flex-1">
@@ -1812,47 +1837,164 @@ function gasCall(fnName, payload, successMsg, onSuccess) {
     }
 }
 
-// ─── 파일 업로드 ─────────────────────────────────────────
+// ─── 파일 업로드 (멀티파일 + 드래그앤드롭) ───────────────
+var MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+var classPendingFiles = [];
+var dailyPendingFiles = [];
+
 function setupFileInputs() {
-    var inputs = [
-        {inputId:'class-file-input', nameId:'class-file-name'},
-        {inputId:'daily-file-input', nameId:'daily-file-name'}
-    ];
-    inputs.forEach(function(cfg) {
-        var inp = document.getElementById(cfg.inputId);
-        if (!inp) return;
-        inp.addEventListener('change', function() {
-            var nm = document.getElementById(cfg.nameId);
-            nm.textContent = inp.files.length > 0 ? inp.files[0].name : '';
-        });
+    setupFileDrop('class');
+    setupFileDrop('daily');
+}
+
+function setupFileDrop(prefix) {
+    var zone = document.getElementById(prefix + '-drop-zone');
+    var inp  = document.getElementById(prefix + '-file-input');
+    if (!zone || !inp) return;
+    zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', function() { zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', function(e) {
+        e.preventDefault(); zone.classList.remove('drag-over');
+        addFilesToPending(prefix, e.dataTransfer.files);
+    });
+    inp.addEventListener('change', function() {
+        addFilesToPending(prefix, inp.files);
+        inp.value = '';
     });
 }
 
-function uploadFile(file, callback) {
-    if (file.size > 5 * 1024 * 1024) { showToast('파일 크기는 5MB 이하여야 합니다.'); callback('', ''); return; }
-    if (typeof google === 'undefined' || !google.script) {
-        showToast('파일 업로드는 GAS 웹앱에서만 지원됩니다. (테스트 모드)');
-        callback('', ''); return;
-    }
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        var base64 = e.target.result.split(',')[1];
-        showLoading();
-        google.script.run
-            .withSuccessHandler(function(res) { hideLoading(); showToast('파일 업로드 완료: ' + res.name); callback(res.url, res.name); })
-            .withFailureHandler(function(err) { hideLoading(); showToast('파일 업로드 실패: ' + err.message); callback('', ''); })
-            .uploadFileToDrive(base64, file.name, file.type || 'application/octet-stream');
-    };
-    reader.readAsDataURL(file);
+function addFilesToPending(prefix, fileList) {
+    var pending = prefix === 'class' ? classPendingFiles : dailyPendingFiles;
+    Array.from(fileList).forEach(function(f) {
+        if (f.size > MAX_FILE_SIZE) { showToast('"' + f.name + '" 파일이 20MB를 초과합니다.'); return; }
+        pending.push(f);
+    });
+    renderPendingFileList(prefix);
 }
 
-function withOptionalUpload(fileInputId, callback) {
-    var inp = document.getElementById(fileInputId);
-    if (inp && inp.files && inp.files.length > 0) {
-        uploadFile(inp.files[0], callback);
-    } else {
-        callback('', '');
+function removePendingFile(prefix, idx) {
+    var pending = prefix === 'class' ? classPendingFiles : dailyPendingFiles;
+    pending.splice(idx, 1);
+    renderPendingFileList(prefix);
+}
+
+function renderPendingFileList(prefix) {
+    var pending = prefix === 'class' ? classPendingFiles : dailyPendingFiles;
+    var el = document.getElementById(prefix + '-pending-files');
+    if (!el) return;
+    if (!pending.length) { el.innerHTML = ''; return; }
+    el.innerHTML = pending.map(function(f, i) {
+        var icon = f.type.indexOf('image/') === 0 ? 'fa-image' : f.type.indexOf('pdf') >= 0 ? 'fa-file-pdf' : 'fa-file';
+        return '<span class="pending-file-chip">' +
+            '<i class="fa-solid ' + icon + ' text-gray-400"></i>' +
+            '<span>' + escHtml(f.name) + '</span>' +
+            '<button type="button" onclick="removePendingFile(\'' + prefix + '\',' + i + ')" title="제거">&times;</button>' +
+            '</span>';
+    }).join('');
+}
+
+function clearPendingFiles(prefix) {
+    if (prefix === 'class') classPendingFiles = [];
+    else dailyPendingFiles = [];
+    renderPendingFileList(prefix);
+}
+
+function uploadAllPendingFiles(prefix, callback) {
+    var pending = (prefix === 'class' ? classPendingFiles : dailyPendingFiles).slice();
+    if (!pending.length) { callback(''); return; }
+    if (typeof google === 'undefined' || !google.script) {
+        showToast('파일 업로드는 GAS 웹앱에서만 지원됩니다. (테스트 모드)');
+        callback(''); return;
     }
+    showLoading();
+    var results = [];
+    var idx = 0;
+    function next() {
+        if (idx >= pending.length) { hideLoading(); callback(JSON.stringify(results)); return; }
+        var file = pending[idx];
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            var base64 = ev.target.result.split(',')[1];
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    results.push({ url: res.url, name: res.name, mimeType: file.type || '' });
+                    showToast('업로드 ' + (idx + 1) + '/' + pending.length + ': ' + res.name);
+                    idx++; next();
+                })
+                .withFailureHandler(function(err) {
+                    hideLoading();
+                    showToast('업로드 실패: ' + err.message);
+                    callback('');
+                })
+                .uploadFileToDrive(base64, file.name, file.type || 'application/octet-stream');
+        };
+        reader.readAsDataURL(file);
+    }
+    next();
+}
+
+// ─── 파일 갤러리 렌더링 헬퍼 ─────────────────────────────
+var _gallerySeq = 0;
+
+function parseFiles(filesStr) {
+    if (!filesStr) return [];
+    var s = String(filesStr).trim();
+    if (s.charAt(0) === '[') {
+        try { var arr = JSON.parse(s); if (Array.isArray(arr)) return arr; } catch(e) {}
+    }
+    if (s.indexOf('http') === 0) return [{ url: s, name: '첨부파일', mimeType: '' }];
+    return [];
+}
+
+function renderFileGallery(filesStr) {
+    var files = parseFiles(filesStr);
+    if (!files.length) return '';
+    var imgs   = files.filter(function(f) { return f.mimeType && f.mimeType.indexOf('image/') === 0; });
+    var pdfs   = files.filter(function(f) { return f.mimeType && f.mimeType.indexOf('pdf') >= 0; });
+    var others = files.filter(function(f) {
+        return !f.mimeType || (f.mimeType.indexOf('image/') !== 0 && f.mimeType.indexOf('pdf') === -1);
+    });
+    var html = '';
+    if (imgs.length) {
+        var gid = 'gal-' + (++_gallerySeq);
+        html += '<div class="gallery-wrap mb-2" id="' + gid + '">';
+        imgs.forEach(function(f, i) {
+            html += '<img src="' + escAttr(f.url) + '" class="gallery-img-item' + (i === 0 ? ' active' : '') + '" alt="' + escAttr(f.name) + '">';
+        });
+        if (imgs.length > 1) {
+            html += '<button class="gallery-nav-btn gallery-prev" onclick="galleryNav(\'' + gid + '\',-1)"><i class="fa-solid fa-chevron-left"></i></button>';
+            html += '<button class="gallery-nav-btn gallery-next" onclick="galleryNav(\'' + gid + '\',1)"><i class="fa-solid fa-chevron-right"></i></button>';
+        }
+        html += '</div>';
+        if (imgs.length > 1) html += '<p class="gallery-counter mb-2" id="' + gid + '-cnt">1 / ' + imgs.length + '</p>';
+    }
+    pdfs.forEach(function(f) {
+        html += '<div class="pdf-embed-wrap mb-2">' +
+            '<iframe src="' + escAttr(f.url) + '" width="100%" height="380" frameborder="0" loading="lazy"></iframe>' +
+            '<div class="text-center text-xs py-1 bg-gray-50"><a href="' + escAttr(f.url) + '" target="_blank" class="file-pill"><i class="fa-solid fa-file-pdf mr-1"></i>' + escHtml(f.name) + '</a></div>' +
+            '</div>';
+    });
+    if (others.length) {
+        html += '<div class="flex flex-wrap gap-1.5">';
+        others.forEach(function(f) {
+            html += '<a href="' + escAttr(f.url) + '" target="_blank" class="file-pill"><i class="fa-solid fa-file mr-1"></i>' + escHtml(f.name) + '</a>';
+        });
+        html += '</div>';
+    }
+    return html;
+}
+
+function galleryNav(gid, dir) {
+    var c = document.getElementById(gid);
+    if (!c) return;
+    var imgs = c.querySelectorAll('.gallery-img-item');
+    var cur = -1;
+    imgs.forEach(function(img, i) { if (img.classList.contains('active')) cur = i; });
+    imgs[cur].classList.remove('active');
+    var nxt = (cur + dir + imgs.length) % imgs.length;
+    imgs[nxt].classList.add('active');
+    var cnt = document.getElementById(gid + '-cnt');
+    if (cnt) cnt.textContent = (nxt + 1) + ' / ' + imgs.length;
 }
 
 // ─── 삭제 헬퍼 ───────────────────────────────────────────
@@ -1942,7 +2084,7 @@ function resetAttendanceFilter() {
 // ─── 수업기록 ────────────────────────────────────────────
 function saveClass(event) {
     event.preventDefault();
-    withOptionalUpload('class-file-input', function(fileUrl, fileName) {
+    uploadAllPendingFiles('class', function(filesJson) {
         gasCall('saveClassRecord', {
             date: document.getElementById('class-date').value, unit: '',
             periods: selectedClassPeriods.slice(), subjects: selectedClassSubjects.slice(),
@@ -1950,13 +2092,13 @@ function saveClass(event) {
             content:    document.getElementById('class-content').value,
             reflection: document.getElementById('class-reflection').value,
             link:       document.getElementById('class-link').value,
-            files:      fileUrl
+            files:      filesJson
         }, '수업 기록이 저장되었습니다.', function() {
             document.getElementById('class-topic').value = '';
             document.getElementById('class-content').value = '';
             document.getElementById('class-reflection').value = '';
             document.getElementById('class-link').value = '';
-            document.getElementById('class-file-name').textContent = '';
+            clearPendingFiles('class');
             selectedClassPeriods = []; selectedClassSubjects = [];
             renderClassTags('period'); renderClassTags('subject');
             pagesLoaded.cls = false; loadClassList(); pagesLoaded.cls = true;
@@ -2018,9 +2160,18 @@ function openClassCard(idx) {
     document.getElementById('cls-modal-reflection').textContent = r.reflection || '';
     rWrap.style.display = r.reflection ? '' : 'none';
     var links = '';
-    if (r.link)  links += '<a href="' + escAttr(r.link)  + '" target="_blank" class="text-xs text-blue-500 hover:underline"><i class="fa-solid fa-link mr-1"></i>링크</a>';
-    if (r.files) links += '<a href="' + escAttr(r.files) + '" target="_blank" class="text-xs text-indigo-500 hover:underline"><i class="fa-solid fa-file mr-1"></i>첨부파일</a>';
+    if (r.link) links += '<a href="' + escAttr(r.link) + '" target="_blank" class="text-xs text-blue-500 hover:underline"><i class="fa-solid fa-link mr-1"></i>링크</a>';
     document.getElementById('cls-modal-links').innerHTML = links;
+    var filesWrap = document.getElementById('cls-modal-files-wrap');
+    var filesEl   = document.getElementById('cls-modal-files');
+    var gallery = renderFileGallery(r.files);
+    if (gallery) {
+        filesEl.innerHTML = gallery;
+        filesWrap.classList.remove('hidden');
+    } else {
+        filesEl.innerHTML = '';
+        filesWrap.classList.add('hidden');
+    }
     document.getElementById('cls-modal-del').onclick = function() {
         if (!confirm('이 수업 기록을 삭제할까요?')) return;
         deleteRec('수업기록', r.id, function() { closeClassCard(); reloadClassList(); });
@@ -2099,18 +2250,18 @@ function resetClassFilter() {
 // ─── 일상기록 ────────────────────────────────────────────
 function saveDaily(event) {
     event.preventDefault();
-    withOptionalUpload('daily-file-input', function(fileUrl) {
+    uploadAllPendingFiles('daily', function(filesJson) {
         gasCall('saveDailyRecord', {
             date:    document.getElementById('daily-date').value,
             keyword: document.getElementById('daily-keyword').value,
             content: document.getElementById('daily-content').value,
             link:    document.getElementById('daily-link').value,
-            files:   fileUrl
+            files:   filesJson
         }, '일상 기록이 저장되었습니다.', function() {
             document.getElementById('daily-keyword').value = '';
             document.getElementById('daily-content').value = '';
             document.getElementById('daily-link').value = '';
-            document.getElementById('daily-file-name').textContent = '';
+            clearPendingFiles('daily');
             pagesLoaded.daily = false; loadDailyList(); pagesLoaded.daily = true;
         });
     });
@@ -2135,17 +2286,17 @@ function renderDailyList(records) {
     if (!records || records.length === 0) { el.innerHTML = emptyMsg('일상 기록이 없습니다.'); return; }
     var sorted = records.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
     el.innerHTML = sorted.map(function(r) {
+        var gallery = renderFileGallery(r.files);
         return '<div class="rec-card">' +
             '<div class="flex justify-between items-start gap-2">' +
             '<div><span class="meta mr-2">' + r.date + '</span>' +
             '<span class="badge bg-yellow-100 text-yellow-700">' + escHtml(r.keyword) + '</span></div>' +
             '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'일상기록\',\'' + escAttr(r.id) + '\',reloadDailyList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
             '</div>' +
-            '<p class="text-sm text-gray-700 mt-1 mb-1">' + escHtml(r.content) + '</p>' +
-            '<div class="flex gap-3">' +
-            (r.link  ? '<a href="' + escAttr(r.link)  + '" target="_blank" class="text-xs text-blue-500 hover:underline"><i class="fa-solid fa-link mr-0.5"></i>링크</a>' : '') +
-            (r.files ? '<a href="' + escAttr(r.files) + '" target="_blank" class="text-xs text-indigo-500 hover:underline"><i class="fa-solid fa-file mr-0.5"></i>첨부파일</a>' : '') +
-            '</div></div>';
+            '<p class="text-sm text-gray-700 mt-1 mb-2">' + escHtml(r.content) + '</p>' +
+            (gallery ? '<div class="mt-1">' + gallery + '</div>' : '') +
+            (r.link ? '<div class="mt-2"><a href="' + escAttr(r.link) + '" target="_blank" class="text-xs text-blue-500 hover:underline"><i class="fa-solid fa-link mr-0.5"></i>링크</a></div>' : '') +
+            '</div>';
     }).join('');
 }
 function reloadDailyList() { pagesLoaded.daily=false; loadDailyList(); pagesLoaded.daily=true; }
