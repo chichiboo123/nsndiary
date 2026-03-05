@@ -141,9 +141,11 @@ function updateClassRecord(data) {
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (String(rows[i][0]) === String(data.id)) {
-      sheet.getRange(i + 1, 2, 1, 8).setValues([[
+      // data.files 가 undefined면 기존 값(rows[i][9]) 유지
+      var filesVal = (data.files !== undefined && data.files !== null) ? data.files : (rows[i][9] || '');
+      sheet.getRange(i + 1, 2, 1, 9).setValues([[
         data.date, data.periods || '', data.subjects || '', rows[i][4],
-        data.topic || '', data.content || '', data.reflection || '', data.link || ''
+        data.topic || '', data.content || '', data.reflection || '', data.link || '', filesVal
       ]]);
       return '수업 기록이 수정되었습니다.';
     }
@@ -392,7 +394,12 @@ function uploadFileToDrive(base64Data, fileName, mimeType) {
   }
   var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return { url: file.getUrl(), name: fileName };
+  var fileId = file.getId();
+  // 이미지는 uc?export=view, PDF/기타는 /preview URL을 반환해야 임베드 가능
+  var embedUrl = (mimeType && mimeType.indexOf('image/') === 0)
+    ? 'https://drive.google.com/uc?export=view&id=' + fileId
+    : 'https://drive.google.com/file/d/' + fileId + '/preview';
+  return { url: embedUrl, name: fileName };
 }
 
 // ==========================================
