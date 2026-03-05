@@ -490,3 +490,21 @@ function saveSubmissionData(dataString) {
 function getSubmissionData() {
   return PropertiesService.getScriptProperties().getProperty('SUBMISSION_DATA') || '[]';
 }
+
+// ==========================================
+// 15. 주간학습안내 이미지 저장 및 불러오기
+// ==========================================
+function saveWeeklyNotice(dataObj) {
+  // dataObj: { url: string, name: string }
+  PropertiesService.getScriptProperties().setProperty('WEEKLY_NOTICE', JSON.stringify(dataObj));
+  return '주간학습안내가 저장되었습니다.';
+}
+
+function getWeeklyNotice() {
+  return PropertiesService.getScriptProperties().getProperty('WEEKLY_NOTICE') || '';
+}
+
+function clearWeeklyNotice() {
+  PropertiesService.getScriptProperties().deleteProperty('WEEKLY_NOTICE');
+  return '주간학습안내가 삭제되었습니다.';
+}
