@@ -944,6 +944,18 @@
                 <label class="block text-xs font-bold text-gray-500 mb-1">링크</label>
                 <input type="url" id="cls-edit-link" placeholder="https://..." class="w-full p-2 rounded-lg border text-sm focus:outline-none">
             </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2">첨부 파일</label>
+                <!-- 기존 파일 목록 (×로 삭제 가능) -->
+                <div id="cls-edit-existing-files" class="flex flex-wrap gap-1.5 mb-2 empty:hidden"></div>
+                <!-- 새 파일 추가 드롭존 -->
+                <div id="cls-edit-drop-zone" class="file-drop-area py-3" onclick="document.getElementById('cls-edit-file-input').click()">
+                    <input type="file" id="cls-edit-file-input" accept="image/*,.pdf,.docx,.hwp,.xlsx,.pptx" multiple style="display:none">
+                    <i class="fa-solid fa-plus text-lg block mb-0.5" style="color:var(--accent-color)"></i>
+                    <p class="text-xs text-gray-500">클릭 또는 드래그하여 파일 추가</p>
+                </div>
+                <div id="cls-edit-new-files" class="flex flex-wrap gap-1.5 mt-2 empty:hidden"></div>
+            </div>
         </div>
         <!-- 보기 모드 푸터 -->
         <div id="cls-view-footer" class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
@@ -1946,6 +1958,18 @@ function parseFiles(filesStr) {
     return [];
 }
 
+// 구 형식(drive.google.com/file/d/ID/view)을 임베드 가능한 URL로 변환
+function driveEmbedUrl(url, forPdf) {
+    if (!url) return url;
+    // 이미 변환된 URL은 그대로 반환
+    if (url.indexOf('uc?export=view') >= 0 || url.indexOf('/preview') >= 0) return url;
+    var m = url.match(/\/file\/d\/([^\/\?]+)/);
+    if (!m) return url;
+    return forPdf
+        ? 'https://drive.google.com/file/d/' + m[1] + '/preview'
+        : 'https://drive.google.com/uc?export=view&id=' + m[1];
+}
+
 function renderFileGallery(filesStr) {
     var files = parseFiles(filesStr);
     if (!files.length) return '';
@@ -1959,7 +1983,8 @@ function renderFileGallery(filesStr) {
         var gid = 'gal-' + (++_gallerySeq);
         html += '<div class="gallery-wrap mb-2" id="' + gid + '">';
         imgs.forEach(function(f, i) {
-            html += '<img src="' + escAttr(f.url) + '" class="gallery-img-item' + (i === 0 ? ' active' : '') + '" alt="' + escAttr(f.name) + '">';
+            var src = driveEmbedUrl(f.url, false);
+            html += '<img src="' + escAttr(src) + '" class="gallery-img-item' + (i === 0 ? ' active' : '') + '" alt="' + escAttr(f.name) + '">';
         });
         if (imgs.length > 1) {
             html += '<button class="gallery-nav-btn gallery-prev" onclick="galleryNav(\'' + gid + '\',-1)"><i class="fa-solid fa-chevron-left"></i></button>';
@@ -1969,9 +1994,10 @@ function renderFileGallery(filesStr) {
         if (imgs.length > 1) html += '<p class="gallery-counter mb-2" id="' + gid + '-cnt">1 / ' + imgs.length + '</p>';
     }
     pdfs.forEach(function(f) {
+        var src = driveEmbedUrl(f.url, true);
         html += '<div class="pdf-embed-wrap mb-2">' +
-            '<iframe src="' + escAttr(f.url) + '" width="100%" height="380" frameborder="0" loading="lazy"></iframe>' +
-            '<div class="text-center text-xs py-1 bg-gray-50"><a href="' + escAttr(f.url) + '" target="_blank" class="file-pill"><i class="fa-solid fa-file-pdf mr-1"></i>' + escHtml(f.name) + '</a></div>' +
+            '<iframe src="' + escAttr(src) + '" width="100%" height="380" frameborder="0" loading="lazy"></iframe>' +
+            '<div class="text-center text-xs py-1 bg-gray-50"><a href="' + escAttr(src) + '" target="_blank" class="file-pill"><i class="fa-solid fa-file-pdf mr-1"></i>' + escHtml(f.name) + '</a></div>' +
             '</div>';
     });
     if (others.length) {
@@ -2187,6 +2213,10 @@ function closeClassCard() {
     document.getElementById('class-card-modal').classList.add('hidden');
     currentClassCardIdx = -1;
 }
+// 수업기록 수정 모달 - 파일 관련 상태
+var editExistingFiles = []; // 기존 파일 배열 (삭제 가능)
+var editNewFiles = [];      // 추가로 업로드할 파일 배열
+
 function startClassEdit() {
     var r = currentClassCardList[currentClassCardIdx];
     if (!r) return;
@@ -2197,21 +2227,93 @@ function startClassEdit() {
     document.getElementById('cls-edit-content').value    = r.content || '';
     document.getElementById('cls-edit-reflection').value = r.reflection || '';
     document.getElementById('cls-edit-link').value       = r.link || '';
+    // 파일 상태 초기화
+    editExistingFiles = parseFiles(r.files);
+    editNewFiles = [];
+    renderEditExistingFiles();
+    renderEditNewFiles();
+    // 수정 모달 드롭존 이벤트 설정 (매번 재등록 방지)
+    setupEditFileDrop();
     document.getElementById('cls-view-body').classList.add('hidden');
     document.getElementById('cls-edit-body').classList.remove('hidden');
     document.getElementById('cls-view-footer').classList.add('hidden');
     document.getElementById('cls-edit-footer').classList.remove('hidden');
 }
+
+var _editDropSetup = false;
+function setupEditFileDrop() {
+    if (_editDropSetup) return;
+    _editDropSetup = true;
+    var zone = document.getElementById('cls-edit-drop-zone');
+    var inp  = document.getElementById('cls-edit-file-input');
+    if (!zone || !inp) return;
+    zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', function() { zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', function(e) {
+        e.preventDefault(); zone.classList.remove('drag-over');
+        addEditNewFiles(e.dataTransfer.files);
+    });
+    inp.addEventListener('change', function() { addEditNewFiles(inp.files); inp.value = ''; });
+}
+
+function addEditNewFiles(fileList) {
+    Array.from(fileList).forEach(function(f) {
+        if (f.size > MAX_FILE_SIZE) { showToast('"' + f.name + '" 파일이 20MB를 초과합니다.'); return; }
+        editNewFiles.push(f);
+    });
+    renderEditNewFiles();
+}
+
+function renderEditExistingFiles() {
+    var el = document.getElementById('cls-edit-existing-files');
+    if (!el) return;
+    if (!editExistingFiles.length) { el.innerHTML = ''; return; }
+    el.innerHTML = editExistingFiles.map(function(f, i) {
+        var icon = (f.mimeType && f.mimeType.indexOf('image/') === 0) ? 'fa-image'
+                 : (f.mimeType && f.mimeType.indexOf('pdf') >= 0) ? 'fa-file-pdf' : 'fa-file';
+        return '<span class="pending-file-chip">' +
+            '<i class="fa-solid ' + icon + ' text-gray-400"></i>' +
+            '<span>' + escHtml(f.name) + '</span>' +
+            '<button type="button" onclick="removeEditExistingFile(' + i + ')" title="삭제">&times;</button>' +
+            '</span>';
+    }).join('');
+}
+
+function renderEditNewFiles() {
+    var el = document.getElementById('cls-edit-new-files');
+    if (!el) return;
+    if (!editNewFiles.length) { el.innerHTML = ''; return; }
+    el.innerHTML = editNewFiles.map(function(f, i) {
+        var icon = f.type.indexOf('image/') === 0 ? 'fa-image' : f.type.indexOf('pdf') >= 0 ? 'fa-file-pdf' : 'fa-file';
+        return '<span class="pending-file-chip" style="background:#e0e7ff">' +
+            '<i class="fa-solid ' + icon + ' text-indigo-400"></i>' +
+            '<span>' + escHtml(f.name) + '</span>' +
+            '<button type="button" onclick="removeEditNewFile(' + i + ')" title="제거">&times;</button>' +
+            '</span>';
+    }).join('');
+}
+
+function removeEditExistingFile(idx) {
+    editExistingFiles.splice(idx, 1);
+    renderEditExistingFiles();
+}
+function removeEditNewFile(idx) {
+    editNewFiles.splice(idx, 1);
+    renderEditNewFiles();
+}
+
 function cancelClassEdit() {
+    editExistingFiles = []; editNewFiles = [];
     document.getElementById('cls-view-body').classList.remove('hidden');
     document.getElementById('cls-edit-body').classList.add('hidden');
     document.getElementById('cls-view-footer').classList.remove('hidden');
     document.getElementById('cls-edit-footer').classList.add('hidden');
 }
+
 function saveClassEdit() {
     var r = currentClassCardList[currentClassCardIdx];
     if (!r) return;
-    var data = {
+    var baseData = {
         id:         r.id,
         date:       document.getElementById('cls-edit-date').value,
         periods:    document.getElementById('cls-edit-periods').value,
@@ -2221,11 +2323,49 @@ function saveClassEdit() {
         reflection: document.getElementById('cls-edit-reflection').value,
         link:       document.getElementById('cls-edit-link').value
     };
-    if (!data.topic.trim()) { showToast('배움 주제를 입력하세요.'); return; }
-    gasCall('updateClassRecord', data, '수업 기록이 수정되었습니다.', function() {
-        closeClassCard();
-        reloadClassList();
-    });
+    if (!baseData.topic.trim()) { showToast('배움 주제를 입력하세요.'); return; }
+
+    // 새 파일이 있으면 업로드 후 기존 파일과 합산
+    function doSave(newFilesJson) {
+        var merged = editExistingFiles.slice();
+        if (newFilesJson) {
+            try { merged = merged.concat(JSON.parse(newFilesJson)); } catch(e) {}
+        }
+        baseData.files = merged.length ? JSON.stringify(merged) : '';
+        gasCall('updateClassRecord', baseData, '수업 기록이 수정되었습니다.', function() {
+            editExistingFiles = []; editNewFiles = [];
+            closeClassCard();
+            reloadClassList();
+        });
+    }
+
+    if (editNewFiles.length) {
+        // 임시로 editNewFiles를 pendingFiles처럼 순차 업로드
+        if (typeof google === 'undefined' || !google.script) {
+            showToast('파일 업로드는 GAS 웹앱에서만 지원됩니다.'); doSave(''); return;
+        }
+        showLoading();
+        var results = []; var idx = 0;
+        function next() {
+            if (idx >= editNewFiles.length) { hideLoading(); doSave(JSON.stringify(results)); return; }
+            var file = editNewFiles[idx];
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var base64 = ev.target.result.split(',')[1];
+                google.script.run
+                    .withSuccessHandler(function(res) {
+                        results.push({ url: res.url, name: res.name, mimeType: file.type || '' });
+                        idx++; next();
+                    })
+                    .withFailureHandler(function(err) { hideLoading(); showToast('업로드 실패: ' + err.message); })
+                    .uploadFileToDrive(base64, file.name, file.type || 'application/octet-stream');
+            };
+            reader.readAsDataURL(file);
+        }
+        next();
+    } else {
+        doSave('');
+    }
 }
 
 function filterClassList() {
