@@ -474,3 +474,15 @@ function getSeatingData() {
   // 저장된 데이터를 불러옵니다. 없으면 빈 객체를 반환합니다.
   return PropertiesService.getScriptProperties().getProperty('SEATING_DATA') || '{}';
 }
+
+// ==========================================
+// 14. 제출확인 데이터 저장 및 불러오기
+// ==========================================
+function saveSubmissionData(dataString) {
+  PropertiesService.getScriptProperties().setProperty('SUBMISSION_DATA', dataString);
+  return '제출 데이터가 저장되었습니다.';
+}
+
+function getSubmissionData() {
+  return PropertiesService.getScriptProperties().getProperty('SUBMISSION_DATA') || '[]';
+}

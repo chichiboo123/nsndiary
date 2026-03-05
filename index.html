@@ -1339,7 +1339,7 @@ function showPage(pageId, element) {
     if (pageId === 'page-student-record' && !pagesLoaded.sr) { loadStudentRecordList(); pagesLoaded.sr = true; }
     if (pageId === 'page-counsel'  && !pagesLoaded.cns)  { loadCounselList();       pagesLoaded.cns = true; }
     if (pageId === 'page-tools'    && !pagesLoaded.tools) { loadToolList();          pagesLoaded.tools = true; }
-    if (pageId === 'page-submit') { loadAssignments(); renderAssignmentShelf(); }
+    if (pageId === 'page-submit') { loadAssignments(); }
     
     // 자리배치 화면 진입 시 레이아웃 및 데이터 로드
     if (pageId === 'page-seating' && !pagesLoaded.seating) {
@@ -2860,14 +2860,39 @@ var SUBMIT_KEY = 'nsn_submissions';
 var assignments = [];
 
 function loadAssignments() {
+    // localStorage로 즉시 표시 (오프라인 캐시)
     try {
         var raw = localStorage.getItem(SUBMIT_KEY);
         assignments = raw ? JSON.parse(raw) : [];
     } catch(e) { assignments = []; }
+    renderAssignmentShelf();
+
+    // GAS 서버에서 최신 데이터로 동기화
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(function(res) {
+                try {
+                    var serverData = JSON.parse(res);
+                    if (Array.isArray(serverData)) {
+                        assignments = serverData;
+                        localStorage.setItem(SUBMIT_KEY, res);
+                        renderAssignmentShelf();
+                    }
+                } catch(e) {}
+            })
+            .withFailureHandler(function() {})
+            .getSubmissionData();
+    }
 }
 
 function saveAssignments() {
-    localStorage.setItem(SUBMIT_KEY, JSON.stringify(assignments));
+    var json = JSON.stringify(assignments);
+    localStorage.setItem(SUBMIT_KEY, json);
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withFailureHandler(function() { showToast('서버 동기화 실패. 로컬에만 저장됩니다.'); })
+            .saveSubmissionData(json);
+    }
 }
 
 function renderAssignmentShelf() {
