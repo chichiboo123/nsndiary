@@ -395,11 +395,8 @@ function uploadFileToDrive(base64Data, fileName, mimeType) {
   var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   var fileId = file.getId();
-  // 이미지는 uc?export=view, PDF/기타는 /preview URL을 반환해야 임베드 가능
-  var embedUrl = (mimeType && mimeType.indexOf('image/') === 0)
-    ? 'https://drive.google.com/uc?export=view&id=' + fileId
-    : 'https://drive.google.com/file/d/' + fileId + '/preview';
-  return { url: embedUrl, name: fileName };
+  // 파일 ID 추출이 쉽도록 일관된 URL 형식으로 반환
+  return { url: 'https://drive.google.com/file/d/' + fileId + '/view', name: fileName };
 }
 
 // ==========================================

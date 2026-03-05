@@ -1958,16 +1958,27 @@ function parseFiles(filesStr) {
     return [];
 }
 
-// 구 형식(drive.google.com/file/d/ID/view)을 임베드 가능한 URL로 변환
+// Drive URL에서 파일 ID를 추출해 임베드 가능한 URL로 변환
+function getDriveFileId(url) {
+    if (!url) return null;
+    // ?id=FILE_ID 형식 (uc?export=view&id=...)
+    var m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m) return m[1];
+    // /file/d/FILE_ID/ 형식
+    m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (m) return m[1];
+    return null;
+}
+
 function driveEmbedUrl(url, forPdf) {
     if (!url) return url;
-    // 이미 변환된 URL은 그대로 반환
-    if (url.indexOf('uc?export=view') >= 0 || url.indexOf('/preview') >= 0) return url;
-    var m = url.match(/\/file\/d\/([^\/\?]+)/);
-    if (!m) return url;
+    var id = getDriveFileId(url);
+    if (!id) return url;
+    // 이미지: thumbnail URL이 <img src> 임베드에 가장 안정적
+    // PDF/기타: /preview는 Drive 내장 뷰어로 iframe에서 동작
     return forPdf
-        ? 'https://drive.google.com/file/d/' + m[1] + '/preview'
-        : 'https://drive.google.com/uc?export=view&id=' + m[1];
+        ? 'https://drive.google.com/file/d/' + id + '/preview'
+        : 'https://drive.google.com/thumbnail?sz=w800&id=' + id;
 }
 
 function renderFileGallery(filesStr) {
