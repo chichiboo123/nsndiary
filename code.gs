@@ -213,18 +213,16 @@ function saveStudentRecord(data) {
   return '학생 기록이 저장되었습니다.';
 }
 
-// 상담기록: A=ID, B=상담일시, C=번호, D=이름, E=상담대상, F=방법, G=내용, H=추후계획
+// 상담기록: A=ID, B=상담일시, C=번호(쉼표구분), D=이름(쉼표구분), E=상담대상, F=방법, G=내용, H=추후계획
 function saveCounselRecord(data) {
   const sheet = getSheet('상담기록');
   const ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
-  data.studentTags.forEach(function(studentStr) {
-    const numMatch = studentStr.match(/^(\d+)번/);
-    const studentNum  = numMatch ? numMatch[1] : '';
-    const studentName = studentStr.replace(/^\d+번\s*/, '');
-    const id = 'CNS-' + new Date().getTime() + '-' + studentNum;
-    sheet.appendRow([id, ts, studentNum, studentName, data.targetType, data.method, data.content, '']);
-  });
-  return data.studentTags.length + '건의 상담 기록이 저장되었습니다.';
+  const id = 'CNS-' + new Date().getTime();
+  // 여러 학생을 쉼표로 묶어 한 행으로 저장
+  const nums  = data.studentTags.map(function(s){ var m=s.match(/^(\d+)번/); return m?m[1]:''; });
+  const names = data.studentTags.map(function(s){ return s.replace(/^\d+번\s*/, ''); });
+  sheet.appendRow([id, ts, nums.join(', '), names.join(', '), data.targetType, data.method, data.content, '']);
+  return '상담 기록이 저장되었습니다.';
 }
 
 // ==========================================
@@ -324,9 +322,16 @@ function getCounselList() {
   var result = [];
   for (var i = 1; i < data.length; i++) {
     if (!data[i][0]) continue;
+    // C열(번호), D열(이름)은 단일 또는 쉼표구분 다중값 모두 지원
+    var numsRaw  = String(data[i][2] || '');
+    var namesRaw = String(data[i][3] || '');
+    var nums  = numsRaw.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    var names = namesRaw.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    var students = nums.map(function(n, idx){ return { num: n, name: names[idx] || '' }; });
     result.push({
       id: String(data[i][0]), timestamp: _fmtDt(data[i][1], tz),
-      studentNum: data[i][2], studentName: String(data[i][3] || ''),
+      studentNum: nums[0] || '', studentName: names[0] || '',
+      students: students,
       targetType: String(data[i][4] || ''), method: String(data[i][5] || ''),
       content: String(data[i][6] || '')
     });
@@ -369,7 +374,9 @@ function getStudentAllRecords(studentNum) {
     var d3 = cnslSheet.getDataRange().getValues();
     for (var k = 1; k < d3.length; k++) {
       if (!d3[k][0]) continue;
-      if (matchNum(d3[k][2])) {
+      // 쉼표구분 다중 학생번호 처리
+      var cnslNums = String(d3[k][2]).split(',').map(function(n){ return parseInt(n.trim(), 10); });
+      if (cnslNums.indexOf(numInt) !== -1) {
         result.counsel.push({ timestamp: _fmtDt(d3[k][1], tz), targetType: d3[k][4], method: d3[k][5], content: d3[k][6]||'' });
       }
     }

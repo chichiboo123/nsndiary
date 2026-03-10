@@ -2748,13 +2748,17 @@ function renderCounselList(records) {
     if (!records || records.length === 0) { el.innerHTML = emptyMsg('상담 기록이 없습니다.'); return; }
     var sorted = records.slice().sort(function(a,b){ return b.timestamp.localeCompare(a.timestamp); });
     el.innerHTML = sorted.map(function(r) {
+        var stuArr = (r.students && r.students.length) ? r.students : [{num: r.studentNum, name: r.studentName}];
+        var stuTags = stuArr.map(function(s){
+            return '<span class="font-bold text-gray-800 text-sm">' + escHtml(s.num) + '번 ' + escHtml(s.name) + '</span>';
+        }).join('');
         return '<div class="rec-card">' +
             '<div class="flex justify-between items-start gap-2">' +
             '<div class="flex flex-wrap items-center gap-1.5 mb-1">' +
             '<span class="meta">' + r.timestamp + '</span>' +
-            '<span class="font-bold text-gray-800 text-sm">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
+            stuTags +
             '<span class="badge bg-green-100 text-green-700">' + escHtml(r.targetType) + '</span>' +
-            '<span class="badge bg-blue-100 text-blue-700">'        + escHtml(r.method)     + '</span>' +
+            '<span class="badge bg-blue-100 text-blue-700">'   + escHtml(r.method)     + '</span>' +
             '</div>' +
             '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'상담기록\',\'' + escAttr(r.id) + '\',reloadCounselList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
             '</div>' +
@@ -2773,7 +2777,10 @@ function filterCounselList() {
         if (start && r.timestamp.substring(0,10) < start) return false;
         if (end   && r.timestamp.substring(0,10) > end)   return false;
         if (method && r.method !== method) return false;
-        if (name && String(r.studentName).indexOf(name) === -1) return false;
+        if (name) {
+            var stuArr = (r.students && r.students.length) ? r.students : [{num: r.studentNum, name: r.studentName}];
+            if (!stuArr.some(function(s){ return String(s.name).indexOf(name) !== -1 || String(s.num).indexOf(name) !== -1; })) return false;
+        }
         return true;
     }));
 }
