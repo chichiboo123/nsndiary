@@ -1375,6 +1375,7 @@ let allScheduleRecords = [];
 let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
 let activeMonthFilter = null;
 let clockTimer = null;
+let _scheduleView = 'list'; // 현재 일정 뷰 상태 ('list' | 'cal')
 const pagesLoaded = {};
 
 // 자리배치를 위한 변수
@@ -1648,6 +1649,7 @@ function loadScheduleList() {
 }
 
 function setScheduleView(view) {
+    _scheduleView = view;
     var listView = document.getElementById('schedule-list-view');
     var calView  = document.getElementById('schedule-cal-view');
     var clock    = document.getElementById('schedule-clock');
@@ -1705,20 +1707,20 @@ function renderMonthNav(records) {
 
 function filterByMonth(ym) {
     activeMonthFilter = ym;
-    // 달력 뷰가 활성화된 경우 달력 월 이동
-    var calView = document.getElementById('schedule-cal-view');
-    if (calView && !calView.classList.contains('hidden') && ym) {
+    if (ym) {
         var parts = ym.split('-');
         calYear  = parseInt(parts[0], 10);
         calMonth = parseInt(parts[1], 10) - 1;
-        renderCalendarView();
-        renderMonthNav(allScheduleRecords); // 선택 상태 갱신
-        return;
     }
-    var filtered = ym ? allScheduleRecords.filter(function(r) {
-        return r.date && r.date.substring(0,7) === ym;
-    }) : allScheduleRecords;
-    renderScheduleList(filtered);
+    if (_scheduleView === 'cal') {
+        renderCalendarView();
+        renderMonthNav(allScheduleRecords);
+    } else {
+        var filtered = ym ? allScheduleRecords.filter(function(r) {
+            return r.date && r.date.substring(0,7) === ym;
+        }) : allScheduleRecords;
+        renderScheduleList(filtered);
+    }
 }
 
 function renderScheduleList(records) {
