@@ -1707,20 +1707,19 @@ function renderMonthNav(records) {
 
 function filterByMonth(ym) {
     activeMonthFilter = ym;
+    // calYear/calMonth 항상 업데이트 (달력·목록 뷰 모두 동기화)
     if (ym) {
         var parts = ym.split('-');
         calYear  = parseInt(parts[0], 10);
         calMonth = parseInt(parts[1], 10) - 1;
     }
-    if (_scheduleView === 'cal') {
-        renderCalendarView();
-        renderMonthNav(allScheduleRecords);
-    } else {
-        var filtered = ym ? allScheduleRecords.filter(function(r) {
-            return r.date && r.date.substring(0,7) === ym;
-        }) : allScheduleRecords;
-        renderScheduleList(filtered);
-    }
+    // 달력 뷰 업데이트 (숨겨져 있어도 해도 무방)
+    renderCalendarView();
+    // 목록 뷰 업데이트 (renderMonthNav도 내부에서 호출됨)
+    var filtered = ym ? allScheduleRecords.filter(function(r) {
+        return r.date && r.date.substring(0,7) === ym;
+    }) : allScheduleRecords;
+    renderScheduleList(filtered);
 }
 
 function renderScheduleList(records) {
