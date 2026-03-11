@@ -1705,6 +1705,16 @@ function renderMonthNav(records) {
 
 function filterByMonth(ym) {
     activeMonthFilter = ym;
+    // 달력 뷰가 활성화된 경우 달력 월 이동
+    var calView = document.getElementById('schedule-cal-view');
+    if (calView && !calView.classList.contains('hidden') && ym) {
+        var parts = ym.split('-');
+        calYear  = parseInt(parts[0], 10);
+        calMonth = parseInt(parts[1], 10) - 1;
+        renderCalendarView();
+        renderMonthNav(allScheduleRecords); // 선택 상태 갱신
+        return;
+    }
     var filtered = ym ? allScheduleRecords.filter(function(r) {
         return r.date && r.date.substring(0,7) === ym;
     }) : allScheduleRecords;
