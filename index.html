@@ -1712,6 +1712,11 @@ function filterByMonth(ym) {
         var parts = ym.split('-');
         calYear  = parseInt(parts[0], 10);
         calMonth = parseInt(parts[1], 10) - 1;
+    } else {
+        // 전체 선택 시 오늘의 연·월로 복귀
+        var today = new Date();
+        calYear  = today.getFullYear();
+        calMonth = today.getMonth();
     }
     // 달력 뷰 업데이트 (숨겨져 있어도 해도 무방)
     renderCalendarView();
