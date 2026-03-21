@@ -44,10 +44,16 @@ function resetSetup() {
 // ==========================================
 // 3. 스프레드시트 공통 헬퍼
 // ==========================================
+
+// 실행 내 스프레드시트 캐시 (동일 google.script.run 호출 내 openByUrl 중복 방지)
+var _cachedSS = null;
+
 function getSpreadsheet() {
+  if (_cachedSS) return _cachedSS;
   const url = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_URL');
   if (!url) throw new Error('스프레드시트가 설정되지 않았습니다. 초기 설정을 진행해주세요.');
-  return SpreadsheetApp.openByUrl(url);
+  _cachedSS = SpreadsheetApp.openByUrl(url);
+  return _cachedSS;
 }
 
 function getSheet(sheetName) {
@@ -69,6 +75,12 @@ function _fmtDt(v, tz) {
 // ==========================================
 // 학생정보 시트: A=번호, B=이름, C=(비움), D=학생연락처, E=보호자1, F=보호자2, G=특이사항
 function getStudentList() {
+  // CacheService로 5분 캐싱 (학생 정보는 자주 바뀌지 않음)
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get('STUDENT_LIST');
+  if (cached) {
+    try { return JSON.parse(cached); } catch(e) {}
+  }
   const sheet = getSheet('학생정보');
   const data = sheet.getDataRange().getValues();
   const students = [];
@@ -80,7 +92,19 @@ function getStudentList() {
       parentPhone2: data[i][5] || '', note: data[i][6] || ''
     });
   }
+  try { cache.put('STUDENT_LIST', JSON.stringify(students), 300); } catch(e) {}
   return students;
+}
+
+// ==========================================
+// 4-1. 초기 데이터 일괄 조회 (학생 + 일정 한 번에)
+// ==========================================
+// 프론트에서 loadAppData() 시 google.script.run 1회로 두 데이터 수신
+function getInitialData() {
+  return {
+    students: getStudentList(),
+    schedules: getScheduleList()
+  };
 }
 
 // ==========================================
@@ -170,6 +194,8 @@ function updateStudent(data) {
       sheet.getRange(i + 1, 1, 1, 7).setValues([[
         data.studentNum, data.name, '', data.phone || '', data.parentPhone1 || '', data.parentPhone2 || '', data.note || ''
       ]]);
+      // 학생 목록 캐시 무효화
+      CacheService.getScriptCache().remove('STUDENT_LIST');
       return '학생 정보가 수정되었습니다.';
     }
   }

@@ -1443,9 +1443,16 @@ window.onload = function() {
 };
 
 function loadAppData() {
+    // getInitialData()로 학생 목록 + 일정을 한 번의 GAS 호출로 수신
     google.script.run
         .withSuccessHandler(function(data) {
-            students = data; renderStudents(); populateStudentSelects(); hideLoading();
+            students = data.students;
+            // 일정 데이터 선행 로드 → 일정 탭 진입 시 즉시 렌더링
+            if (data.schedules && data.schedules.length > 0) {
+                allScheduleRecords = data.schedules;
+                pagesLoaded.schedule = true;
+            }
+            renderStudents(); populateStudentSelects(); hideLoading();
         })
         .withFailureHandler(function(e) {
             hideLoading();
@@ -1456,7 +1463,7 @@ function loadAppData() {
                 showToast('데이터 로드 실패: ' + e.message);
             }
         })
-        .getStudentList();
+        .getInitialData();
 }
 
 // ─── 초기 설정 ───────────────────────────────────────────
@@ -1520,13 +1527,13 @@ function showPage(pageId, element) {
     closeMobileMenu();
 
     if (pageId === 'page-schedule' && !pagesLoaded.schedule) { loadScheduleList(); pagesLoaded.schedule = true; }
-    if (pageId === 'page-attendance') loadAttendanceList();
+    if (pageId === 'page-attendance' && !pagesLoaded.att)   { loadAttendanceList(); pagesLoaded.att = true; }
     if (pageId === 'page-class'    && !pagesLoaded.cls)   { loadClassList();         pagesLoaded.cls = true; }
     if (pageId === 'page-daily'    && !pagesLoaded.daily) { loadDailyList();         pagesLoaded.daily = true; }
     if (pageId === 'page-student-record' && !pagesLoaded.sr) { loadStudentRecordList(); pagesLoaded.sr = true; }
     if (pageId === 'page-counsel'  && !pagesLoaded.cns)  { loadCounselList();       pagesLoaded.cns = true; }
     if (pageId === 'page-tools'    && !pagesLoaded.tools) { loadToolList();          pagesLoaded.tools = true; }
-    if (pageId === 'page-submit') { loadAssignments(); _applySubmitZoom(); }
+    if (pageId === 'page-submit') { if (!pagesLoaded.submit) { loadAssignments(); pagesLoaded.submit = true; } _applySubmitZoom(); }
     
     // 자리배치 화면 진입 시 레이아웃 및 데이터 로드
     if (pageId === 'page-seating' && !pagesLoaded.seating) {
