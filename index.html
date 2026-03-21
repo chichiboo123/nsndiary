@@ -1544,7 +1544,16 @@ function showPage(pageId, element) {
     if (bnMap[pageId]) { var bel=document.getElementById(bnMap[pageId]); if(bel) bel.classList.add('active'); }
     closeMobileMenu();
 
-    if (pageId === 'page-schedule' && !pagesLoaded.schedule) { loadScheduleList(); pagesLoaded.schedule = true; }
+    if (pageId === 'page-schedule') {
+        startScheduleClock();
+        if (!pagesLoaded.schedule) {
+            loadScheduleList();
+            pagesLoaded.schedule = true;
+        } else {
+            // 데이터가 이미 있으면 GAS 호출 없이 즉시 렌더링
+            renderScheduleList(allScheduleRecords);
+        }
+    }
     if (pageId === 'page-attendance' && !pagesLoaded.att)   { loadAttendanceList(); pagesLoaded.att = true; }
     if (pageId === 'page-class'    && !pagesLoaded.cls)   { loadClassList();         pagesLoaded.cls = true; }
     if (pageId === 'page-daily'    && !pagesLoaded.daily) { loadDailyList();         pagesLoaded.daily = true; }
