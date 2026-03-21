@@ -107,6 +107,45 @@ function getInitialData() {
   };
 }
 
+// 캐시를 무시하고 스프레드시트에서 직접 최신 학생 목록 반환 (새로고침용)
+function refreshStudentList() {
+  CacheService.getScriptCache().remove('STUDENT_LIST');
+  return getStudentList();
+}
+
+// ==========================================
+// 4-2. 학생 추가 / 삭제
+// ==========================================
+function addStudent(data) {
+  var sheet = getSheet('학생정보');
+  var rows = sheet.getDataRange().getValues();
+  var num = parseInt(String(data.studentNum), 10);
+  if (!num || num < 1) throw new Error('올바른 번호를 입력해주세요.');
+  // 중복 번호 확인
+  for (var i = 1; i < rows.length; i++) {
+    if (parseInt(String(rows[i][0]), 10) === num) {
+      throw new Error('이미 같은 번호의 학생이 있습니다. (' + num + '번)');
+    }
+  }
+  sheet.appendRow([data.studentNum, data.name, '', data.phone || '', data.parentPhone1 || '', data.parentPhone2 || '', data.note || '']);
+  CacheService.getScriptCache().remove('STUDENT_LIST');
+  return '학생이 추가되었습니다.';
+}
+
+function deleteStudent(studentNum) {
+  var sheet = getSheet('학생정보');
+  var rows = sheet.getDataRange().getValues();
+  var num = parseInt(String(studentNum), 10);
+  for (var i = 1; i < rows.length; i++) {
+    if (parseInt(String(rows[i][0]), 10) === num) {
+      sheet.deleteRow(i + 1);
+      CacheService.getScriptCache().remove('STUDENT_LIST');
+      return '학생이 삭제되었습니다.';
+    }
+  }
+  throw new Error('학생을 찾을 수 없습니다. (번호: ' + studentNum + ')');
+}
+
 // ==========================================
 // 5. 일정 조회
 // ==========================================
