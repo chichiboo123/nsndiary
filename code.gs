@@ -252,6 +252,31 @@ function saveAttendanceRecord(data) {
   return '출결 기록이 저장되었습니다.';
 }
 
+function updateAttendanceRecord(data) {
+  var sheet = getSheet('출결기록');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      sheet.getRange(i + 1, 2, 1, 6).setValues([[
+        data.date, data.studentNum, data.studentName, data.status, data.reason || '', data.proof || 'X'
+      ]]);
+      return '출결 기록이 수정되었습니다.';
+    }
+  }
+  throw new Error('출결 기록을 찾을 수 없습니다. (ID: ' + data.id + ')');
+}
+
+function saveBulkAttendanceRecords(records) {
+  var sheet = getSheet('출결기록');
+  var ts = new Date().getTime();
+  for (var i = 0; i < records.length; i++) {
+    var data = records[i];
+    var id = 'ATT-' + (ts + i);
+    sheet.appendRow([id, data.date, data.studentNum, data.studentName, data.status, data.reason, data.proof]);
+  }
+  return records.length + '건의 출결 기록이 저장되었습니다.';
+}
+
 // 수업기록: A=ID, B=날짜, C=교시, D=과목, E=단원/차시, F=배움주제, G=수업내용, H=성찰, I=링크, J=파일URL
 function saveClassRecord(data) {
   const sheet = getSheet('수업기록');
