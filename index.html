@@ -642,10 +642,21 @@
 <section id="page-attendance" class="page-section glass-panel p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-5 border-b pb-3"><i class="fa-solid fa-check-to-slot mr-2"></i> 출결 기록</h2>
     <form onsubmit="saveAttendance(event)" class="space-y-4 bg-white bg-opacity-50 p-4 rounded-xl border border-white mb-8">
+        <div class="flex items-center justify-end gap-2">
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="att-range-toggle" onchange="toggleAttRangeMode()" class="rounded accent-blue-500 w-4 h-4">
+                <span class="text-xs font-bold text-gray-600"><i class="fa-solid fa-calendar-days mr-1"></i>기간 연속 입력</span>
+            </label>
+        </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="col-span-2 md:col-span-1">
-                <label class="block mb-1 font-bold text-sm text-gray-700">날짜</label>
+                <label class="block mb-1 font-bold text-sm text-gray-700" id="att-date-label">날짜</label>
                 <input type="date" id="att-date" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none" required>
+                <div id="att-date-end-wrap" style="display:none" class="mt-2">
+                    <label class="block mb-1 font-bold text-sm text-gray-700">종료일</label>
+                    <input type="date" id="att-date-end" class="w-full p-2.5 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <p id="att-range-count" class="text-xs text-blue-600 mt-1 font-bold" style="display:none"></p>
             </div>
             <div class="col-span-2 md:col-span-1">
                 <label class="block mb-1 font-bold text-sm text-gray-700">대상 학생</label>
@@ -1126,6 +1137,80 @@
         <div id="cls-edit-footer" class="hidden px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
             <button onclick="cancelClassEdit()" class="text-gray-500 hover:text-gray-700 text-sm font-bold transition"><i class="fa-solid fa-xmark mr-1"></i>취소</button>
             <button onclick="saveClassEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- 출결기록 상세/수정 모달 -->
+<div id="att-card-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeAttCard()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col">
+        <div class="px-6 pt-5 pb-3 border-b flex justify-between items-start flex-shrink-0">
+            <div>
+                <span class="text-xs text-gray-400" id="att-modal-date-label"></span>
+                <h3 class="font-bold text-gray-800 mt-0.5 text-base" id="att-modal-student-label"></h3>
+            </div>
+            <button onclick="closeAttCard()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
+        </div>
+        <!-- 보기 모드 -->
+        <div id="att-view-body" class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-gray-400 w-16 flex-shrink-0">출결 상태</span>
+                <span id="att-modal-status" class="badge bg-red-100 text-red-700"></span>
+            </div>
+            <div id="att-modal-reason-wrap">
+                <p class="text-xs font-bold text-gray-400 mb-1">상세 사유</p>
+                <p class="text-sm text-gray-700" id="att-modal-reason"></p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-gray-400 w-16 flex-shrink-0">증빙 자료</span>
+                <span id="att-modal-proof" class="text-sm text-gray-700"></span>
+            </div>
+        </div>
+        <!-- 수정 모드 -->
+        <div id="att-edit-body" class="hidden px-6 py-4 space-y-3 overflow-y-auto flex-1">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">날짜</label>
+                    <input type="date" id="att-edit-date" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">대상 학생</label>
+                    <select id="att-edit-student" class="w-full p-2 rounded-lg border text-sm focus:outline-none"></select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">출결 상태</label>
+                <select id="att-edit-status" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                    <option>질병결석</option><option>체험학습</option>
+                    <option>미인정결석</option><option>질병조퇴</option>
+                    <option>질병지각</option><option>미인정지각</option>
+                    <option>미인정조퇴</option><option>기타결석</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">증빙 자료</label>
+                <select id="att-edit-proof" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                    <option value="X">X (미제출)</option>
+                    <option value="O">O (제출 완료)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">상세 사유</label>
+                <input type="text" id="att-edit-reason" placeholder="예: 심한 감기로 인한 병원 진료" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+        </div>
+        <!-- 보기 모드 푸터 -->
+        <div id="att-view-footer" class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+            <button id="att-modal-del" class="text-red-400 hover:text-red-600 text-sm font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
+            <div class="flex gap-2">
+                <button onclick="startAttEdit()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition"><i class="fa-solid fa-pen mr-1"></i>수정</button>
+                <button onclick="closeAttCard()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold">닫기</button>
+            </div>
+        </div>
+        <!-- 수정 모드 푸터 -->
+        <div id="att-edit-footer" class="hidden px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+            <button onclick="cancelAttEdit()" class="text-gray-500 hover:text-gray-700 text-sm font-bold transition"><i class="fa-solid fa-xmark mr-1"></i>취소</button>
+            <button onclick="saveAttEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
         </div>
     </div>
 </div>
@@ -2371,16 +2456,34 @@ function saveAttendance(event) {
     var num = sel.value;
     if (!num) { showToast('학생을 선택하세요.'); return; }
     var s = students.find(function(x) { return x.num == num; });
-    gasCall('saveAttendanceRecord', {
-        date: document.getElementById('att-date').value, studentNum: num,
-        studentName: s ? s.name : '',
-        status: document.getElementById('att-status').value,
-        reason: document.getElementById('att-reason').value,
-        proof:  document.getElementById('att-proof').value
-    }, '출결 기록이 저장되었습니다.', function() {
-        document.getElementById('att-reason').value = ''; sel.value = '';
-        loadAttendanceList();
-    });
+    var isRange = document.getElementById('att-range-toggle').checked;
+    var clearForm = function() { document.getElementById('att-reason').value = ''; sel.value = ''; loadAttendanceList(); };
+    if (isRange) {
+        var startDate = document.getElementById('att-date').value;
+        var endDate   = document.getElementById('att-date-end').value;
+        if (!endDate || endDate < startDate) { showToast('종료일을 올바르게 선택하세요.'); return; }
+        var records = [];
+        var cur = new Date(startDate + 'T00:00:00');
+        var end = new Date(endDate   + 'T00:00:00');
+        while (cur <= end) {
+            var d = cur.getFullYear() + '-' + String(cur.getMonth()+1).padStart(2,'0') + '-' + String(cur.getDate()).padStart(2,'0');
+            records.push({ date: d, studentNum: num, studentName: s ? s.name : '',
+                status: document.getElementById('att-status').value,
+                reason: document.getElementById('att-reason').value,
+                proof:  document.getElementById('att-proof').value });
+            cur.setDate(cur.getDate() + 1);
+        }
+        if (records.length > 31) { showToast('기간은 최대 31일까지 선택 가능합니다.'); return; }
+        gasCall('saveBulkAttendanceRecords', records, records.length + '건의 출결 기록이 저장되었습니다.', clearForm);
+    } else {
+        gasCall('saveAttendanceRecord', {
+            date: document.getElementById('att-date').value, studentNum: num,
+            studentName: s ? s.name : '',
+            status: document.getElementById('att-status').value,
+            reason: document.getElementById('att-reason').value,
+            proof:  document.getElementById('att-proof').value
+        }, '출결 기록이 저장되었습니다.', clearForm);
+    }
 }
 
 function loadAttendanceList() {
@@ -2398,18 +2501,20 @@ function loadAttendanceList() {
     }
 }
 
+var currentAttCardList = [];
+
 function renderAttendanceList(records) {
     var el = document.getElementById('attendance-list');
-    if (!records || records.length === 0) { el.innerHTML = emptyMsg('출결 기록이 없습니다.'); return; }
-    var sorted = records.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
-    el.innerHTML = sorted.map(function(r) {
-        return '<div class="rec-card flex justify-between items-start gap-2">' +
+    if (!records || records.length === 0) { el.innerHTML = emptyMsg('출결 기록이 없습니다.'); currentAttCardList = []; return; }
+    currentAttCardList = records.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    el.innerHTML = currentAttCardList.map(function(r, idx) {
+        return '<div class="rec-card flex justify-between items-start gap-2 cursor-pointer hover:opacity-80 transition" onclick="openAttCard(' + idx + ')">' +
             '<div><span class="meta mr-2">' + r.date + '</span>' +
             '<span class="font-bold text-gray-800 text-sm mr-2">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
             '<span class="badge bg-red-100 text-red-700 mr-1">' + escHtml(r.status) + '</span>' +
             (r.reason ? '<span class="text-xs text-gray-500">' + escHtml(r.reason) + '</span>' : '') +
             '<span class="text-xs text-gray-400 ml-2">증빙: ' + (r.proof||'-') + '</span></div>' +
-            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'출결기록\',\'' + escAttr(r.id) + '\',loadAttendanceList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '<button class="del-btn flex-shrink-0" onclick="event.stopPropagation();deleteRec(\'출결기록\',\'' + escAttr(r.id) + '\',loadAttendanceList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
             '</div>';
     }).join('');
 }
@@ -2431,6 +2536,110 @@ function resetAttendanceFilter() {
     ['att-filter-start','att-filter-end','att-filter-name'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('att-filter-status').value = '';
     renderAttendanceList(allAttendanceRecords);
+}
+
+// ─── 출결기록 상세/수정 모달 ──────────────────────────────
+var currentAttCardIdx = -1;
+
+function openAttCard(idx) {
+    currentAttCardIdx = idx;
+    var r = currentAttCardList[idx];
+    if (!r) return;
+    document.getElementById('att-modal-date-label').textContent = r.date;
+    document.getElementById('att-modal-student-label').textContent = r.studentNum + '번 ' + r.studentName;
+    document.getElementById('att-modal-status').textContent = r.status;
+    var reasonWrap = document.getElementById('att-modal-reason-wrap');
+    document.getElementById('att-modal-reason').textContent = r.reason || '';
+    reasonWrap.style.display = r.reason ? '' : 'none';
+    document.getElementById('att-modal-proof').textContent = r.proof === 'O' ? 'O (제출 완료)' : 'X (미제출)';
+    document.getElementById('att-modal-del').onclick = function() {
+        if (!confirm('이 출결 기록을 삭제할까요?')) return;
+        deleteRec('출결기록', r.id, function() { closeAttCard(); loadAttendanceList(); });
+    };
+    document.getElementById('att-view-body').classList.remove('hidden');
+    document.getElementById('att-edit-body').classList.add('hidden');
+    document.getElementById('att-view-footer').classList.remove('hidden');
+    document.getElementById('att-edit-footer').classList.add('hidden');
+    document.getElementById('att-card-modal').classList.remove('hidden');
+}
+
+function closeAttCard() {
+    document.getElementById('att-card-modal').classList.add('hidden');
+    currentAttCardIdx = -1;
+}
+
+function startAttEdit() {
+    var r = currentAttCardList[currentAttCardIdx];
+    if (!r) return;
+    document.getElementById('att-edit-date').value = r.date || '';
+    var sel = document.getElementById('att-edit-student');
+    sel.innerHTML = students.map(function(s) {
+        return '<option value="' + s.num + '"' + (String(s.num) === String(r.studentNum) ? ' selected' : '') + '>' + s.num + '번 ' + escHtml(s.name) + '</option>';
+    }).join('');
+    sel.value = r.studentNum;
+    document.getElementById('att-edit-status').value = r.status || '질병결석';
+    document.getElementById('att-edit-proof').value = r.proof || 'X';
+    document.getElementById('att-edit-reason').value = r.reason || '';
+    document.getElementById('att-view-body').classList.add('hidden');
+    document.getElementById('att-edit-body').classList.remove('hidden');
+    document.getElementById('att-view-footer').classList.add('hidden');
+    document.getElementById('att-edit-footer').classList.remove('hidden');
+}
+
+function cancelAttEdit() {
+    document.getElementById('att-view-body').classList.remove('hidden');
+    document.getElementById('att-edit-body').classList.add('hidden');
+    document.getElementById('att-view-footer').classList.remove('hidden');
+    document.getElementById('att-edit-footer').classList.add('hidden');
+}
+
+function saveAttEdit() {
+    var r = currentAttCardList[currentAttCardIdx];
+    if (!r) return;
+    var num = document.getElementById('att-edit-student').value;
+    var s = students.find(function(x) { return String(x.num) === String(num); });
+    gasCall('updateAttendanceRecord', {
+        id: r.id,
+        date: document.getElementById('att-edit-date').value,
+        studentNum: num,
+        studentName: s ? s.name : r.studentName,
+        status: document.getElementById('att-edit-status').value,
+        reason: document.getElementById('att-edit-reason').value,
+        proof: document.getElementById('att-edit-proof').value
+    }, '출결 기록이 수정되었습니다.', function() {
+        closeAttCard();
+        loadAttendanceList();
+    });
+}
+
+// ─── 출결 기간 연속 입력 토글 ─────────────────────────────
+function toggleAttRangeMode() {
+    var isRange = document.getElementById('att-range-toggle').checked;
+    var endWrap = document.getElementById('att-date-end-wrap');
+    var dateLabel = document.getElementById('att-date-label');
+    var rangeCount = document.getElementById('att-range-count');
+    endWrap.style.display = isRange ? '' : 'none';
+    rangeCount.style.display = isRange ? '' : 'none';
+    dateLabel.textContent = isRange ? '시작일' : '날짜';
+    if (isRange) {
+        var startVal = document.getElementById('att-date').value;
+        if (startVal && !document.getElementById('att-date-end').value) {
+            document.getElementById('att-date-end').value = startVal;
+        }
+        updateAttRangeCount();
+        document.getElementById('att-date').addEventListener('change', updateAttRangeCount);
+        document.getElementById('att-date-end').addEventListener('change', updateAttRangeCount);
+    }
+}
+
+function updateAttRangeCount() {
+    var start = document.getElementById('att-date').value;
+    var end = document.getElementById('att-date-end').value;
+    var el = document.getElementById('att-range-count');
+    if (!start || !end || end < start) { el.textContent = ''; return; }
+    var ms = new Date(end + 'T00:00:00') - new Date(start + 'T00:00:00');
+    var days = Math.round(ms / 86400000) + 1;
+    el.textContent = days + '일 선택됨';
 }
 
 // ─── 수업기록 ────────────────────────────────────────────
