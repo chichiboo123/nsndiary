@@ -1158,7 +1158,7 @@
         <div id="att-view-body" class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
             <div class="flex items-center gap-2">
                 <span class="text-xs font-bold text-gray-400 w-16 flex-shrink-0">출결 상태</span>
-                <span id="att-modal-status" class="badge bg-red-100 text-red-700"></span>
+                <span id="att-modal-status" class="badge"></span>
             </div>
             <div id="att-modal-reason-wrap">
                 <p class="text-xs font-bold text-gray-400 mb-1">상세 사유</p>
@@ -2531,7 +2531,7 @@ function renderAttendanceList(records) {
         return '<div class="rec-card flex justify-between items-start gap-2 cursor-pointer hover:opacity-80 transition" onclick="openAttCard(' + idx + ')">' +
             '<div><span class="meta mr-2">' + r.date + '</span>' +
             '<span class="font-bold text-gray-800 text-sm mr-2">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
-            '<span class="badge bg-red-100 text-red-700 mr-1">' + escHtml(r.status) + '</span>' +
+            '<span class="badge ' + attStatusClass(r.status) + ' mr-1">' + escHtml(r.status) + '</span>' +
             (r.reason ? '<span class="text-xs text-gray-500">' + escHtml(r.reason) + '</span>' : '') +
             '<span class="text-xs text-gray-400 ml-2">증빙: ' + (r.proof||'-') + '</span></div>' +
             '<button class="del-btn flex-shrink-0" onclick="event.stopPropagation();deleteRec(\'출결기록\',\'' + escAttr(r.id) + '\',loadAttendanceList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
@@ -2567,7 +2567,9 @@ function openAttCard(idx) {
     if (!r) return;
     document.getElementById('att-modal-date-label').textContent = r.date;
     document.getElementById('att-modal-student-label').textContent = r.studentNum + '번 ' + r.studentName;
-    document.getElementById('att-modal-status').textContent = r.status;
+    var statusEl = document.getElementById('att-modal-status');
+    statusEl.textContent = r.status;
+    statusEl.className = 'badge ' + attStatusClass(r.status);
     var reasonWrap = document.getElementById('att-modal-reason-wrap');
     document.getElementById('att-modal-reason').textContent = r.reason || '';
     reasonWrap.style.display = r.reason ? '' : 'none';
@@ -2660,6 +2662,21 @@ function updateAttRangeCount() {
     var ms = new Date(end + 'T00:00:00') - new Date(start + 'T00:00:00');
     var days = Math.round(ms / 86400000) + 1;
     el.textContent = days + '일 선택됨';
+}
+
+// ─── 출결 상태 뱃지 색상 ───────────────────────────────────
+function attStatusClass(status) {
+    var map = {
+        '질병결석':   'bg-red-100 text-red-700',
+        '체험학습':   'bg-green-100 text-green-700',
+        '미인정결석': 'bg-orange-100 text-orange-700',
+        '질병조퇴':   'bg-pink-100 text-pink-700',
+        '질병지각':   'bg-rose-100 text-rose-700',
+        '미인정지각': 'bg-amber-100 text-amber-700',
+        '미인정조퇴': 'bg-yellow-100 text-yellow-700',
+        '기타결석':   'bg-purple-100 text-purple-700'
+    };
+    return map[status] || 'bg-gray-100 text-gray-700';
 }
 
 // ─── 체험학습 현황 모달 ───────────────────────────────────
@@ -3371,7 +3388,7 @@ function renderStudentDashboard(data) {
         data.attendance.map(function(a) {
             return '<div class="bg-gray-50 rounded-lg p-2.5 text-sm flex justify-between">' +
                 '<div><span class="font-bold text-gray-700 mr-2">' + a.date + '</span>' +
-                '<span class="badge bg-red-100 text-red-700">' + escHtml(a.status) + '</span>' +
+                '<span class="badge ' + attStatusClass(a.status) + '">' + escHtml(a.status) + '</span>' +
                 (a.reason ? '<span class="ml-1 text-gray-500">' + escHtml(a.reason) + '</span>' : '') + '</div>' +
                 '<span class="text-xs text-gray-400">증빙: ' + (a.proof||'-') + '</span></div>';
         }).join('');
