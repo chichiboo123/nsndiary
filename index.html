@@ -1154,33 +1154,8 @@
             </div>
             <button onclick="closeAttCard()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
         </div>
-        <!-- 보기 모드 -->
-        <div id="att-view-body" class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-gray-400 w-16 flex-shrink-0">출결 상태</span>
-                <span id="att-modal-status" class="badge"></span>
-            </div>
-            <div id="att-modal-reason-wrap">
-                <p class="text-xs font-bold text-gray-400 mb-1">상세 사유</p>
-                <p class="text-sm text-gray-700" id="att-modal-reason"></p>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-gray-400 w-16 flex-shrink-0">증빙 자료</span>
-                <span id="att-modal-proof" class="text-sm text-gray-700"></span>
-            </div>
-        </div>
-        <!-- 수정 모드 -->
-        <div id="att-edit-body" class="hidden px-6 py-4 space-y-3 overflow-y-auto flex-1">
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">날짜</label>
-                    <input type="date" id="att-edit-date" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">대상 학생</label>
-                    <select id="att-edit-student" class="w-full p-2 rounded-lg border text-sm focus:outline-none"></select>
-                </div>
-            </div>
+        <!-- 직접 수정 가능한 폼 -->
+        <div class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
             <div>
                 <label class="block text-xs font-bold text-gray-500 mb-1">출결 상태</label>
                 <select id="att-edit-status" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
@@ -1191,29 +1166,24 @@
                 </select>
             </div>
             <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">상세 사유</label>
+                <input type="text" id="att-edit-reason" placeholder="예: 심한 감기로 인한 병원 진료" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+            <div>
                 <label class="block text-xs font-bold text-gray-500 mb-1">증빙 자료</label>
                 <select id="att-edit-proof" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
                     <option value="X">X (미제출)</option>
                     <option value="O">O (제출 완료)</option>
                 </select>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-500 mb-1">상세 사유</label>
-                <input type="text" id="att-edit-reason" placeholder="예: 심한 감기로 인한 병원 진료" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
-            </div>
         </div>
-        <!-- 보기 모드 푸터 -->
-        <div id="att-view-footer" class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+        <!-- 푸터 -->
+        <div class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
             <button id="att-modal-del" class="text-red-400 hover:text-red-600 text-sm font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
             <div class="flex gap-2">
-                <button onclick="startAttEdit()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition"><i class="fa-solid fa-pen mr-1"></i>수정</button>
-                <button onclick="closeAttCard()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold">닫기</button>
+                <button onclick="saveAttEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
+                <button onclick="closeAttCard()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition">닫기</button>
             </div>
-        </div>
-        <!-- 수정 모드 푸터 -->
-        <div id="att-edit-footer" class="hidden px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
-            <button onclick="cancelAttEdit()" class="text-gray-500 hover:text-gray-700 text-sm font-bold transition"><i class="fa-solid fa-xmark mr-1"></i>취소</button>
-            <button onclick="saveAttEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
         </div>
     </div>
 </div>
@@ -1326,9 +1296,12 @@
                 <label class="block mb-1 font-bold text-sm text-gray-700">내용 (선택)</label>
                 <textarea id="schedule-edit-content" rows="3" class="w-full p-2.5 rounded-lg border text-sm resize-none focus:outline-none" placeholder="장소, 시간 등 상세 내용"></textarea>
             </div>
-            <div class="flex gap-2 pt-1">
-                <button onclick="saveScheduleEdit()" class="btn-primary flex-1 p-3 rounded-xl font-bold text-sm shadow-sm">저장하기</button>
-                <button onclick="document.getElementById('schedule-edit-modal').classList.add('hidden')" class="flex-1 p-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition">취소</button>
+            <div class="flex items-center justify-between pt-1">
+                <button id="schedule-delete-btn" onclick="deleteScheduleItem()" class="hidden text-red-400 hover:text-red-600 text-sm font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
+                <div class="flex gap-2 ml-auto">
+                    <button onclick="saveScheduleEdit()" class="btn-primary px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm">저장하기</button>
+                    <button onclick="document.getElementById('schedule-edit-modal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition">취소</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2056,6 +2029,7 @@ function openScheduleAdd() {
     document.getElementById('schedule-edit-text').value = '';
     document.getElementById('schedule-edit-category').value = '1교시';
     document.getElementById('schedule-edit-content').value = '';
+    document.getElementById('schedule-delete-btn').classList.add('hidden');
     document.getElementById('schedule-edit-modal').classList.remove('hidden');
 }
 
@@ -2066,7 +2040,27 @@ function openScheduleEdit(rowIndex, date, title, category, content) {
     document.getElementById('schedule-edit-text').value = title;
     document.getElementById('schedule-edit-category').value = category;
     document.getElementById('schedule-edit-content').value = content;
+    document.getElementById('schedule-delete-btn').classList.remove('hidden');
     document.getElementById('schedule-edit-modal').classList.remove('hidden');
+}
+
+function deleteScheduleItem() {
+    var rowIndex = document.getElementById('schedule-edit-row').value;
+    if (!rowIndex) return;
+    if (!confirm('이 일정을 삭제할까요?\n삭제 후 복구할 수 없습니다.')) return;
+    document.getElementById('schedule-edit-modal').classList.add('hidden');
+    if (typeof google !== 'undefined' && google.script) {
+        showLoading();
+        google.script.run
+            .withSuccessHandler(function(msg) {
+                hideLoading(); showToast(msg);
+                pagesLoaded.schedule = false; loadScheduleList(); pagesLoaded.schedule = true;
+            })
+            .withFailureHandler(function(e) { hideLoading(); showToast('삭제 실패: ' + e.message); })
+            .deleteScheduleItem(parseInt(rowIndex, 10));
+    } else {
+        showToast('삭제되었습니다. (테스트 모드)');
+    }
 }
 
 function saveScheduleEdit() {
@@ -2567,21 +2561,13 @@ function openAttCard(idx) {
     if (!r) return;
     document.getElementById('att-modal-date-label').textContent = r.date;
     document.getElementById('att-modal-student-label').textContent = r.studentNum + '번 ' + r.studentName;
-    var statusEl = document.getElementById('att-modal-status');
-    statusEl.textContent = r.status;
-    statusEl.className = 'badge ' + attStatusClass(r.status);
-    var reasonWrap = document.getElementById('att-modal-reason-wrap');
-    document.getElementById('att-modal-reason').textContent = r.reason || '';
-    reasonWrap.style.display = r.reason ? '' : 'none';
-    document.getElementById('att-modal-proof').textContent = r.proof === 'O' ? 'O (제출 완료)' : 'X (미제출)';
+    document.getElementById('att-edit-status').value = r.status || '질병결석';
+    document.getElementById('att-edit-reason').value = r.reason || '';
+    document.getElementById('att-edit-proof').value = r.proof || 'X';
     document.getElementById('att-modal-del').onclick = function() {
         if (!confirm('이 출결 기록을 삭제할까요?')) return;
         deleteRec('출결기록', r.id, function() { closeAttCard(); loadAttendanceList(); });
     };
-    document.getElementById('att-view-body').classList.remove('hidden');
-    document.getElementById('att-edit-body').classList.add('hidden');
-    document.getElementById('att-view-footer').classList.remove('hidden');
-    document.getElementById('att-edit-footer').classList.add('hidden');
     document.getElementById('att-card-modal').classList.remove('hidden');
 }
 
@@ -2590,41 +2576,14 @@ function closeAttCard() {
     currentAttCardIdx = -1;
 }
 
-function startAttEdit() {
-    var r = currentAttCardList[currentAttCardIdx];
-    if (!r) return;
-    document.getElementById('att-edit-date').value = r.date || '';
-    var sel = document.getElementById('att-edit-student');
-    sel.innerHTML = students.map(function(s) {
-        return '<option value="' + s.num + '"' + (String(s.num) === String(r.studentNum) ? ' selected' : '') + '>' + s.num + '번 ' + escHtml(s.name) + '</option>';
-    }).join('');
-    sel.value = r.studentNum;
-    document.getElementById('att-edit-status').value = r.status || '질병결석';
-    document.getElementById('att-edit-proof').value = r.proof || 'X';
-    document.getElementById('att-edit-reason').value = r.reason || '';
-    document.getElementById('att-view-body').classList.add('hidden');
-    document.getElementById('att-edit-body').classList.remove('hidden');
-    document.getElementById('att-view-footer').classList.add('hidden');
-    document.getElementById('att-edit-footer').classList.remove('hidden');
-}
-
-function cancelAttEdit() {
-    document.getElementById('att-view-body').classList.remove('hidden');
-    document.getElementById('att-edit-body').classList.add('hidden');
-    document.getElementById('att-view-footer').classList.remove('hidden');
-    document.getElementById('att-edit-footer').classList.add('hidden');
-}
-
 function saveAttEdit() {
     var r = currentAttCardList[currentAttCardIdx];
     if (!r) return;
-    var num = document.getElementById('att-edit-student').value;
-    var s = students.find(function(x) { return String(x.num) === String(num); });
     gasCall('updateAttendanceRecord', {
         id: r.id,
-        date: document.getElementById('att-edit-date').value,
-        studentNum: num,
-        studentName: s ? s.name : r.studentName,
+        date: r.date,
+        studentNum: r.studentNum,
+        studentName: r.studentName,
         status: document.getElementById('att-edit-status').value,
         reason: document.getElementById('att-edit-reason').value,
         proof: document.getElementById('att-edit-proof').value
