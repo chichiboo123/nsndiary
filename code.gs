@@ -224,6 +224,14 @@ function updateScheduleItem(data) {
   return '일정이 수정되었습니다.';
 }
 
+function deleteScheduleItem(rowIndex) {
+  var sheet = getSheet('일정');
+  var row = parseInt(rowIndex, 10);
+  if (!row || row < 2) throw new Error('올바른 행 번호가 아닙니다.');
+  sheet.deleteRow(row);
+  return '일정이 삭제되었습니다.';
+}
+
 function updateStudent(data) {
   var sheet = getSheet('학생정보');
   var rows = sheet.getDataRange().getValues();
