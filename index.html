@@ -1157,6 +1157,10 @@
         <!-- 직접 수정 가능한 폼 -->
         <div class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
             <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">날짜</label>
+                <input type="date" id="att-edit-date" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+            <div>
                 <label class="block text-xs font-bold text-gray-500 mb-1">출결 상태</label>
                 <select id="att-edit-status" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
                     <option>질병결석</option><option>체험학습</option>
@@ -2561,6 +2565,7 @@ function openAttCard(idx) {
     if (!r) return;
     document.getElementById('att-modal-date-label').textContent = r.date;
     document.getElementById('att-modal-student-label').textContent = r.studentNum + '번 ' + r.studentName;
+    document.getElementById('att-edit-date').value = r.date || '';
     document.getElementById('att-edit-status').value = r.status || '질병결석';
     document.getElementById('att-edit-reason').value = r.reason || '';
     document.getElementById('att-edit-proof').value = r.proof || 'X';
@@ -2581,7 +2586,7 @@ function saveAttEdit() {
     if (!r) return;
     gasCall('updateAttendanceRecord', {
         id: r.id,
-        date: r.date,
+        date: document.getElementById('att-edit-date').value,
         studentNum: r.studentNum,
         studentName: r.studentName,
         status: document.getElementById('att-edit-status').value,
