@@ -323,6 +323,18 @@ function saveCounselRecord(data) {
   return '상담 기록이 저장되었습니다.';
 }
 
+function updateCounselRecord(data) {
+  var sheet = getSheet('상담기록');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      sheet.getRange(i + 1, 5, 1, 3).setValues([[data.targetType, data.method, data.content]]);
+      return '상담 기록이 수정되었습니다.';
+    }
+  }
+  throw new Error('상담 기록을 찾을 수 없습니다. (ID: ' + data.id + ')');
+}
+
 // ==========================================
 // 8. 기록 삭제 (ID로 행 삭제)
 // ==========================================
