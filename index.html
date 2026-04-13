@@ -1192,6 +1192,46 @@
     </div>
 </div>
 
+<!-- 상담기록 상세/수정 모달 -->
+<div id="counsel-card-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeCounselCard()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+        <div class="px-6 pt-5 pb-3 border-b flex justify-between items-start flex-shrink-0">
+            <div>
+                <span class="text-xs text-gray-400" id="counsel-modal-timestamp"></span>
+                <h3 class="font-bold text-gray-800 mt-0.5 text-base" id="counsel-modal-students"></h3>
+            </div>
+            <button onclick="closeCounselCard()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
+        </div>
+        <div class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">상담 대상자 구분</label>
+                    <select id="counsel-edit-target" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                        <option>학생 본인</option><option>보호자</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">상담 방법</label>
+                    <select id="counsel-edit-method" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                        <option>대면</option><option>전화</option><option>온라인/메시지</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">상담 내용</label>
+                <textarea id="counsel-edit-content" rows="9" class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+            <button id="counsel-modal-del" class="text-red-400 hover:text-red-600 text-sm font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
+            <div class="flex gap-2">
+                <button onclick="saveCounselEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
+                <button onclick="closeCounselCard()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 체험학습 현황 모달 -->
 <div id="field-trip-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeFieldTripModal()">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
@@ -3216,7 +3256,9 @@ function renderCounselList(records) {
         var stuTags = stuArr.map(function(s){
             return '<span class="font-bold text-gray-800 text-sm">' + escHtml(s.num) + '번 ' + escHtml(s.name) + '</span>';
         }).join('');
-        return '<div class="rec-card">' +
+        var isLong = r.content.length > 60;
+        var preview = isLong ? escHtml(r.content.substring(0, 60)) + '…' : escHtml(r.content);
+        return '<div class="rec-card cursor-pointer hover:shadow-md transition-shadow" onclick="openCounselCard(\'' + escAttr(r.id) + '\')">' +
             '<div class="flex justify-between items-start gap-2">' +
             '<div class="flex flex-wrap items-center gap-1.5 mb-1">' +
             '<span class="meta">' + r.timestamp + '</span>' +
@@ -3224,13 +3266,53 @@ function renderCounselList(records) {
             '<span class="badge bg-green-100 text-green-700">' + escHtml(r.targetType) + '</span>' +
             '<span class="badge bg-blue-100 text-blue-700">'   + escHtml(r.method)     + '</span>' +
             '</div>' +
-            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'상담기록\',\'' + escAttr(r.id) + '\',reloadCounselList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '<button class="del-btn flex-shrink-0" onclick="event.stopPropagation();deleteRec(\'상담기록\',\'' + escAttr(r.id) + '\',reloadCounselList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
             '</div>' +
-            '<p class="text-sm text-gray-700">' + escHtml(r.content) + '</p>' +
+            '<p class="text-sm text-gray-700">' + preview + '</p>' +
+            (isLong ? '<p class="text-xs text-blue-500 mt-1 font-bold">전체 내용 보기 →</p>' : '') +
             '</div>';
     }).join('');
 }
 function reloadCounselList() { pagesLoaded.cns=false; loadCounselList(); pagesLoaded.cns=true; }
+
+// ─── 상담기록 상세/수정 모달 ──────────────────────────────
+var currentCounselRecord = null;
+
+function openCounselCard(id) {
+    var r = allCounselRecords.find(function(x){ return x.id === id; });
+    if (!r) return;
+    currentCounselRecord = r;
+    var stuArr = (r.students && r.students.length) ? r.students : [{num: r.studentNum, name: r.studentName}];
+    var stuLabel = stuArr.map(function(s){ return s.num + '번 ' + s.name; }).join(', ');
+    document.getElementById('counsel-modal-timestamp').textContent = r.timestamp;
+    document.getElementById('counsel-modal-students').textContent = stuLabel;
+    document.getElementById('counsel-edit-target').value = r.targetType || '학생 본인';
+    document.getElementById('counsel-edit-method').value = r.method || '대면';
+    document.getElementById('counsel-edit-content').value = r.content || '';
+    document.getElementById('counsel-modal-del').onclick = function() {
+        if (!confirm('이 상담 기록을 삭제할까요?')) return;
+        deleteRec('상담기록', r.id, function() { closeCounselCard(); reloadCounselList(); });
+    };
+    document.getElementById('counsel-card-modal').classList.remove('hidden');
+}
+
+function closeCounselCard() {
+    document.getElementById('counsel-card-modal').classList.add('hidden');
+    currentCounselRecord = null;
+}
+
+function saveCounselEdit() {
+    if (!currentCounselRecord) return;
+    gasCall('updateCounselRecord', {
+        id: currentCounselRecord.id,
+        targetType: document.getElementById('counsel-edit-target').value,
+        method:     document.getElementById('counsel-edit-method').value,
+        content:    document.getElementById('counsel-edit-content').value.trim()
+    }, '상담 기록이 수정되었습니다.', function() {
+        closeCounselCard();
+        reloadCounselList();
+    });
+}
 
 function filterCounselList() {
     var start  = document.getElementById('cns-filter-start').value;
