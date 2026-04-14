@@ -295,11 +295,24 @@ function saveClassRecord(data) {
 }
 
 // 일상기록: A=ID, B=날짜, C=키워드, D=내용, E=링크, F=파일URL
+// 일상기록: A=ID, B=날짜, C=키워드, D=내용, E=링크, F=파일URL
 function saveDailyRecord(data) {
   const sheet = getSheet('일상기록');
   const id = 'DLY-' + new Date().getTime();
   sheet.appendRow([id, data.date, data.keyword, data.content, data.link, data.files]);
   return '일상 기록이 저장되었습니다.';
+}
+
+function updateDailyRecord(data) {
+  var sheet = getSheet('일상기록');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      sheet.getRange(i + 1, 2, 1, 4).setValues([[data.date, data.keyword, data.content, data.link]]);
+      return '일상 기록이 수정되었습니다.';
+    }
+  }
+  throw new Error('일상 기록을 찾을 수 없습니다. (ID: ' + data.id + ')');
 }
 
 // 학생기록: A=ID, B=기록일시, C=번호, D=이름, E=분류, F=내용, G=지도내용
@@ -309,6 +322,19 @@ function saveStudentRecord(data) {
   const ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
   sheet.appendRow([id, ts, data.studentNum, data.studentName, data.category, data.content, '']);
   return '학생 기록이 저장되었습니다.';
+}
+
+function updateStudentRecord(data) {
+  var sheet = getSheet('학생기록');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      sheet.getRange(i + 1, 2, 1, 1).setValues([[data.date]]);
+      sheet.getRange(i + 1, 5, 1, 2).setValues([[data.category, data.content]]);
+      return '학생 기록이 수정되었습니다.';
+    }
+  }
+  throw new Error('학생 기록을 찾을 수 없습니다. (ID: ' + data.id + ')');
 }
 
 // 상담기록: A=ID, B=상담일시, C=번호(쉼표구분), D=이름(쉼표구분), E=상담대상, F=방법, G=내용, H=추후계획

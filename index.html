@@ -1032,23 +1032,75 @@
     <p class="font-bold text-gray-600">처리 중입니다...</p>
 </div>
 
-<!-- 학생기록 상세 팝업 -->
+<!-- 학생기록 상세/수정 팝업 -->
 <div id="student-rec-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeStudentRecModal()">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col">
         <div class="px-5 pt-5 pb-3 border-b flex justify-between items-center flex-shrink-0">
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="font-bold text-gray-800" id="srm-name"></span>
-                <span class="badge bg-purple-100 text-purple-700" id="srm-category"></span>
-            </div>
+            <h3 class="font-bold text-gray-800 text-base" id="srm-name"></h3>
             <button onclick="closeStudentRecModal()" class="text-gray-400 hover:text-gray-700 text-xl ml-3 flex-shrink-0 leading-none">&times;</button>
         </div>
-        <div class="px-5 py-4 flex-1 overflow-y-auto">
-            <p class="text-xs text-gray-400 mb-2" id="srm-timestamp"></p>
-            <p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed" id="srm-content"></p>
+        <div class="px-5 py-4 space-y-3 flex-1 overflow-y-auto">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">날짜</label>
+                    <input type="date" id="srm-date" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">분류</label>
+                    <select id="srm-category" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                        <option>학습 태도</option><option>생활 태도</option>
+                        <option>교우 관계</option><option>기타</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">관찰 내용</label>
+                <textarea id="srm-content" rows="8" class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+            </div>
         </div>
         <div class="px-5 py-3 border-t flex justify-between items-center flex-shrink-0">
             <button id="srm-del" class="text-red-400 hover:text-red-600 text-sm font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
-            <button onclick="closeStudentRecModal()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold">닫기</button>
+            <div class="flex gap-2">
+                <button onclick="saveStudentRecEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
+                <button onclick="closeStudentRecModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 일상기록 상세/수정 팝업 -->
+<div id="daily-card-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeDailyCard()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+        <div class="px-6 pt-5 pb-3 border-b flex justify-between items-start flex-shrink-0">
+            <h3 class="font-bold text-gray-800 text-base"><i class="fa-solid fa-mug-hot mr-2 text-yellow-500"></i>일상 기록</h3>
+            <button onclick="closeDailyCard()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
+        </div>
+        <div class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">날짜</label>
+                    <input type="date" id="dly-edit-date" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">핵심 키워드</label>
+                    <input type="text" id="dly-edit-keyword" placeholder="예: 학부모 총회" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">내용</label>
+                <textarea id="dly-edit-content" rows="8" class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">링크 (선택)</label>
+                <input type="url" id="dly-edit-link" placeholder="https://..." class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+            <button id="dly-modal-del" class="text-red-400 hover:text-red-600 text-sm font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
+            <div class="flex gap-2">
+                <button onclick="saveDailyEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
+                <button onclick="closeDailyCard()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition">닫기</button>
+            </div>
         </div>
     </div>
 </div>
@@ -3091,19 +3143,57 @@ function renderDailyList(records) {
     var sorted = records.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
     el.innerHTML = sorted.map(function(r) {
         var gallery = renderFileGallery(r.files);
-        return '<div class="rec-card">' +
+        var isLong = (r.content || '').length > 60;
+        var preview = isLong ? escHtml(r.content.substring(0, 60)) + '…' : escHtml(r.content);
+        return '<div class="rec-card cursor-pointer hover:shadow-md transition-shadow" onclick="openDailyCard(\'' + escAttr(r.id) + '\')">' +
             '<div class="flex justify-between items-start gap-2">' +
             '<div><span class="meta mr-2">' + r.date + '</span>' +
             '<span class="badge bg-yellow-100 text-yellow-700">' + escHtml(r.keyword) + '</span></div>' +
-            '<button class="del-btn flex-shrink-0" onclick="deleteRec(\'일상기록\',\'' + escAttr(r.id) + '\',reloadDailyList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '<button class="del-btn flex-shrink-0" onclick="event.stopPropagation();deleteRec(\'일상기록\',\'' + escAttr(r.id) + '\',reloadDailyList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
             '</div>' +
-            '<p class="text-sm text-gray-700 mt-1 mb-2">' + escHtml(r.content) + '</p>' +
-            (gallery ? '<div class="mt-1">' + gallery + '</div>' : '') +
-            (r.link ? '<div class="mt-2"><a href="' + escAttr(r.link) + '" target="_blank" class="text-xs text-blue-500 hover:underline"><i class="fa-solid fa-link mr-0.5"></i>링크</a></div>' : '') +
+            '<p class="text-sm text-gray-700 mt-1">' + preview + '</p>' +
+            (isLong ? '<p class="text-xs text-blue-500 mt-1 font-bold">전체 내용 보기 →</p>' : '') +
+            (gallery ? '<div class="mt-2" onclick="event.stopPropagation()">' + gallery + '</div>' : '') +
+            (r.link ? '<div class="mt-2"><a href="' + escAttr(r.link) + '" target="_blank" onclick="event.stopPropagation()" class="text-xs text-blue-500 hover:underline"><i class="fa-solid fa-link mr-0.5"></i>링크</a></div>' : '') +
             '</div>';
     }).join('');
 }
 function reloadDailyList() { pagesLoaded.daily=false; loadDailyList(); pagesLoaded.daily=true; }
+
+// ─── 일상기록 상세/수정 모달 ──────────────────────────────
+var currentDailyRecord = null;
+
+function openDailyCard(id) {
+    var r = allDailyRecords.find(function(x){ return x.id === id; });
+    if (!r) return;
+    currentDailyRecord = r;
+    document.getElementById('dly-edit-date').value = r.date || '';
+    document.getElementById('dly-edit-keyword').value = r.keyword || '';
+    document.getElementById('dly-edit-content').value = r.content || '';
+    document.getElementById('dly-edit-link').value = r.link || '';
+    document.getElementById('dly-modal-del').onclick = function() {
+        if (!confirm('이 일상 기록을 삭제할까요?')) return;
+        deleteRec('일상기록', r.id, function() { closeDailyCard(); reloadDailyList(); });
+    };
+    document.getElementById('daily-card-modal').classList.remove('hidden');
+}
+function closeDailyCard() {
+    document.getElementById('daily-card-modal').classList.add('hidden');
+    currentDailyRecord = null;
+}
+function saveDailyEdit() {
+    if (!currentDailyRecord) return;
+    gasCall('updateDailyRecord', {
+        id:      currentDailyRecord.id,
+        date:    document.getElementById('dly-edit-date').value,
+        keyword: document.getElementById('dly-edit-keyword').value.trim(),
+        content: document.getElementById('dly-edit-content').value.trim(),
+        link:    document.getElementById('dly-edit-link').value.trim()
+    }, '일상 기록이 수정되었습니다.', function() {
+        closeDailyCard();
+        reloadDailyList();
+    });
+}
 
 function filterDailyList() {
     var start = document.getElementById('dly-filter-start').value;
@@ -3174,13 +3264,16 @@ function renderStudentRecordList(records) {
 }
 function reloadStudentRecordList() { pagesLoaded.sr=false; loadStudentRecordList(); pagesLoaded.sr=true; }
 
+var currentStudentRec = null;
+
 function openStudentRecModal(idx) {
     var r = currentStudentRecList[idx];
     if (!r) return;
+    currentStudentRec = r;
     document.getElementById('srm-name').textContent = r.studentNum + '번 ' + (r.studentName || '');
-    document.getElementById('srm-category').textContent = r.category || '';
-    document.getElementById('srm-timestamp').textContent = r.timestamp || '';
-    document.getElementById('srm-content').textContent = r.content || '';
+    document.getElementById('srm-date').value = (r.timestamp || '').substring(0, 10);
+    document.getElementById('srm-category').value = r.category || '학습 태도';
+    document.getElementById('srm-content').value = r.content || '';
     document.getElementById('srm-del').onclick = function() {
         if (!confirm('이 기록을 삭제할까요?')) return;
         deleteRec('학생기록', r.id, function() { closeStudentRecModal(); reloadStudentRecordList(); });
@@ -3189,6 +3282,19 @@ function openStudentRecModal(idx) {
 }
 function closeStudentRecModal() {
     document.getElementById('student-rec-modal').classList.add('hidden');
+    currentStudentRec = null;
+}
+function saveStudentRecEdit() {
+    if (!currentStudentRec) return;
+    gasCall('updateStudentRecord', {
+        id:       currentStudentRec.id,
+        date:     document.getElementById('srm-date').value,
+        category: document.getElementById('srm-category').value,
+        content:  document.getElementById('srm-content').value.trim()
+    }, '학생 기록이 수정되었습니다.', function() {
+        closeStudentRecModal();
+        reloadStudentRecordList();
+    });
 }
 
 function filterStudentRecordList() {
