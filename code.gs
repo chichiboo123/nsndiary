@@ -319,7 +319,7 @@ function updateDailyRecord(data) {
 function saveStudentRecord(data) {
   const sheet = getSheet('학생기록');
   const id = 'STU-' + new Date().getTime();
-  const ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  const ts = data.date || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
   sheet.appendRow([id, ts, data.studentNum, data.studentName, data.category, data.content, '']);
   return '학생 기록이 저장되었습니다.';
 }
