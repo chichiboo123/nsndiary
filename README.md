@@ -144,13 +144,11 @@ Chrome, Edge, Safari, Firefox 최신 버전 권장
 
 | 항목 | 내용 |
 |------|------|
-| 개발 | chichiboo123 |
+| 개발 | 교육뮤지컬 꿈꾸는 치수쌤 |
 | 문의 | chichiboo@kakao.com |
-| 저장소 | [github.com/chichiboo123/nsndiary](https://github.com/chichiboo123/nsndiary) |
 
 ---
 
 ## 라이선스
 
-이 프로젝트는 개인·교육 목적으로 자유롭게 사용할 수 있습니다.  
-상업적 이용 및 무단 배포는 금지합니다.
+상업적 이용 및 무단 배포를 금지합니다.
