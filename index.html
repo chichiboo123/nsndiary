@@ -2564,6 +2564,56 @@ function deleteRec(sheetName, id, reloadFn) {
     }
 }
 
+// ─── 공휴일 / 수업일 판별 ──────────────────────────────────
+var KOREAN_HOLIDAYS = (function() {
+    var h = {};
+    [
+        // 2025
+        '2025-01-01',
+        '2025-01-28','2025-01-29','2025-01-30',         // 설날 연휴
+        '2025-03-01','2025-03-03',                       // 삼일절 + 대체공휴일
+        '2025-05-05','2025-05-06',                       // 어린이날 + 대체(부처님오신날 겹침)
+        '2025-06-06',                                    // 현충일
+        '2025-08-15',                                    // 광복절
+        '2025-10-03',                                    // 개천절
+        '2025-10-05','2025-10-06','2025-10-07','2025-10-08', // 추석 연휴 + 대체
+        '2025-10-09',                                    // 한글날
+        '2025-12-25',                                    // 성탄절
+        // 2026
+        '2026-01-01',
+        '2026-01-27','2026-01-28','2026-01-29',          // 설날 연휴
+        '2026-03-01','2026-03-02',                       // 삼일절 + 대체공휴일(일요일)
+        '2026-05-05',                                    // 어린이날
+        '2026-05-24',                                    // 부처님오신날
+        '2026-06-06',                                    // 현충일
+        '2026-08-15',                                    // 광복절
+        '2026-09-23','2026-09-24','2026-09-25',          // 추석 연휴
+        '2026-10-03',                                    // 개천절
+        '2026-10-09',                                    // 한글날
+        '2026-12-25',                                    // 성탄절
+        // 2027
+        '2027-01-01',
+        '2027-01-15','2027-01-16','2027-01-17',          // 설날 연휴
+        '2027-03-01',                                    // 삼일절
+        '2027-05-05',                                    // 어린이날
+        '2027-05-13',                                    // 부처님오신날
+        '2027-06-06',                                    // 현충일
+        '2027-08-15',                                    // 광복절
+        '2027-10-03',                                    // 개천절
+        '2027-10-04','2027-10-05','2027-10-06',          // 추석 연휴
+        '2027-10-09',                                    // 한글날
+        '2027-12-25'                                     // 성탄절
+    ].forEach(function(d) { h[d] = true; });
+    return h;
+})();
+
+function isWorkingDay(dateStr) {
+    var dow = new Date(dateStr + 'T00:00:00').getDay(); // 0=일, 6=토
+    if (dow === 0 || dow === 6) return false;
+    if (KOREAN_HOLIDAYS[dateStr]) return false;
+    return true;
+}
+
 // ─── 출결기록 ────────────────────────────────────────────
 function saveAttendance(event) {
     event.preventDefault();
@@ -2582,14 +2632,17 @@ function saveAttendance(event) {
         var end = new Date(endDate   + 'T00:00:00');
         while (cur <= end) {
             var d = cur.getFullYear() + '-' + String(cur.getMonth()+1).padStart(2,'0') + '-' + String(cur.getDate()).padStart(2,'0');
-            records.push({ date: d, studentNum: num, studentName: s ? s.name : '',
-                status: document.getElementById('att-status').value,
-                reason: document.getElementById('att-reason').value,
-                proof:  document.getElementById('att-proof').value });
+            if (isWorkingDay(d)) {
+                records.push({ date: d, studentNum: num, studentName: s ? s.name : '',
+                    status: document.getElementById('att-status').value,
+                    reason: document.getElementById('att-reason').value,
+                    proof:  document.getElementById('att-proof').value });
+            }
             cur.setDate(cur.getDate() + 1);
         }
-        if (records.length > 31) { showToast('기간은 최대 31일까지 선택 가능합니다.'); return; }
-        gasCall('saveBulkAttendanceRecords', records, records.length + '건의 출결 기록이 저장되었습니다.', clearForm);
+        if (records.length === 0) { showToast('선택한 기간에 수업일(평일·공휴일 제외)이 없습니다.'); return; }
+        if (records.length > 31) { showToast('수업일 기준 최대 31일까지 입력 가능합니다.'); return; }
+        gasCall('saveBulkAttendanceRecords', records, records.length + '건의 출결 기록이 저장되었습니다. (주말·공휴일 자동 제외)', clearForm);
     } else {
         gasCall('saveAttendanceRecord', {
             date: document.getElementById('att-date').value, studentNum: num,
@@ -2717,12 +2770,18 @@ function toggleAttRangeMode() {
 
 function updateAttRangeCount() {
     var start = document.getElementById('att-date').value;
-    var end = document.getElementById('att-date-end').value;
-    var el = document.getElementById('att-range-count');
+    var end   = document.getElementById('att-date-end').value;
+    var el    = document.getElementById('att-range-count');
     if (!start || !end || end < start) { el.textContent = ''; return; }
-    var ms = new Date(end + 'T00:00:00') - new Date(start + 'T00:00:00');
-    var days = Math.round(ms / 86400000) + 1;
-    el.textContent = days + '일 선택됨';
+    var workDays = 0;
+    var cur = new Date(start + 'T00:00:00');
+    var endD = new Date(end + 'T00:00:00');
+    while (cur <= endD) {
+        var d = cur.getFullYear() + '-' + String(cur.getMonth()+1).padStart(2,'0') + '-' + String(cur.getDate()).padStart(2,'0');
+        if (isWorkingDay(d)) workDays++;
+        cur.setDate(cur.getDate() + 1);
+    }
+    el.textContent = workDays + '일 선택됨 (주말·공휴일 제외)';
 }
 
 // ─── 출결 상태 뱃지 색상 ───────────────────────────────────
