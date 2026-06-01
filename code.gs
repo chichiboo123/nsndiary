@@ -658,11 +658,12 @@ function clearWeeklyNotice() {
 // ※ 기존 시트는 절대 변경하지 않고, 전용 시트가 없을 때만 새로 생성합니다.
 // 수행평가계획 시트(업로드 양식과 동일 구성):
 //   A=ID, B=구분, C=교과/활동영역, D=단원/주제명, E=성취기준, F=평가요소, G=평가영역,
-//   H=평가방법, I=수업·평가 연계 주안점, J=평가시기, K=매우잘함, L=잘함, M=보통, N=노력요함
+//   H=평가방법, I=수업·평가 연계 주안점, J=평가시기, K=매우잘함, L=잘함, M=보통, N=노력요함, O=학기
+//   ※ '학기'(O열)는 학기별 아카이빙용. 기존 시트에는 _ensureAssessPlanSheet()가 자동으로 추가합니다.
 // 수행평가결과 시트: A=ID, B=계획ID, C=번호, D=이름, E=평가결과, F=기타내용, G=수정일시
 var _ASSESS_PLAN_SHEET = '수행평가계획';
 var _ASSESS_RESULT_SHEET = '수행평가결과';
-var _ASSESS_PLAN_HEADERS = ['ID','구분','교과/활동영역','단원/주제명','성취기준','평가요소','평가영역','평가방법','수업·평가 연계 주안점','평가시기','매우잘함','잘함','보통','노력요함'];
+var _ASSESS_PLAN_HEADERS = ['ID','구분','교과/활동영역','단원/주제명','성취기준','평가요소','평가영역','평가방법','수업·평가 연계 주안점','평가시기','매우잘함','잘함','보통','노력요함','학기'];
 var _ASSESS_RESULT_HEADERS = ['ID','계획ID','번호','이름','평가결과','기타내용','수정일시'];
 
 // 시트가 없으면 헤더와 함께 새로 만들고, 있으면 그대로 반환 (데이터 보존)
@@ -680,12 +681,23 @@ function _getOrCreateSheet(name, headers) {
   return sheet;
 }
 
+// 수행평가계획 시트를 가져오되, 기존 시트에 '학기'(O열) 헤더가 없으면 추가 (데이터 보존)
+function _ensureAssessPlanSheet() {
+  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var width = Math.max(sheet.getLastColumn(), _ASSESS_PLAN_HEADERS.length);
+  var hdr = sheet.getRange(1, 1, 1, width).getValues()[0];
+  if (hdr.indexOf('학기') < 0) {
+    sheet.getRange(1, _ASSESS_PLAN_HEADERS.length, 1, 1).setValue('학기').setFontWeight('bold');
+  }
+  return sheet;
+}
+
 // ── 수행평가 시트 수동 생성 ─────────────────────────────
 // ※ 편집기 상단 함수 선택 → 이 함수를 직접 [실행]하면 즉시 두 시트가 만들어집니다.
 //   (doGet/웹앱 화면 표시만으로는 시트가 만들어지지 않습니다. 수행평가 탭에 처음
 //    들어가거나, 아래 함수를 실행할 때 생성됩니다.)
 function setupAssessmentSheets() {
-  var p = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var p = _ensureAssessPlanSheet();
   var r = _getOrCreateSheet(_ASSESS_RESULT_SHEET, _ASSESS_RESULT_HEADERS);
   var msg = '"' + _ASSESS_PLAN_SHEET + '"(' + p.getLastColumn() + '열), "'
           + _ASSESS_RESULT_SHEET + '"(' + r.getLastColumn() + '열) 시트를 확인/생성했습니다.';
@@ -694,7 +706,7 @@ function setupAssessmentSheets() {
 }
 
 function getAssessmentData() {
-  var planSheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var planSheet = _ensureAssessPlanSheet();
   var resultSheet = _getOrCreateSheet(_ASSESS_RESULT_SHEET, _ASSESS_RESULT_HEADERS);
   var plans = [];
   if (planSheet.getLastRow() > 1) {
@@ -706,6 +718,7 @@ function getAssessmentData() {
         unit: String(pd[i][3] || ''), standard: String(pd[i][4] || ''), element: String(pd[i][5] || ''),
         area: String(pd[i][6] || ''), method: String(pd[i][7] || ''), focus: String(pd[i][8] || ''),
         timing: String(pd[i][9] || ''),
+        semester: (String(pd[i][14] || '').indexOf('2') >= 0) ? '2학기' : '1학기',
         criteria: {
           '매우잘함': String(pd[i][10] || ''), '잘함': String(pd[i][11] || ''),
           '보통': String(pd[i][12] || ''), '노력요함': String(pd[i][13] || '')
@@ -729,26 +742,27 @@ function getAssessmentData() {
 
 function _assessPlanRow(data) {
   var c = data.criteria || {};
+  var sem = (String(data.semester || '').indexOf('2') >= 0) ? '2학기' : '1학기';
   return [
     data.division || '', data.subject || '', data.unit || '', data.standard || '', data.element || '',
     data.area || '', data.method || '', data.focus || '', data.timing || '',
-    c['매우잘함'] || '', c['잘함'] || '', c['보통'] || '', c['노력요함'] || ''
+    c['매우잘함'] || '', c['잘함'] || '', c['보통'] || '', c['노력요함'] || '', sem
   ];
 }
 
 function saveAssessmentPlan(data) {
-  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var sheet = _ensureAssessPlanSheet();
   var id = 'PLAN-' + new Date().getTime();
   sheet.appendRow([id].concat(_assessPlanRow(data)));
   return '수행평가 계획이 추가되었습니다.';
 }
 
 function updateAssessmentPlan(data) {
-  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var sheet = _ensureAssessPlanSheet();
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (String(rows[i][0]) === String(data.id)) {
-      sheet.getRange(i + 1, 2, 1, 13).setValues([_assessPlanRow(data)]);
+      sheet.getRange(i + 1, 2, 1, 14).setValues([_assessPlanRow(data)]);
       return '수행평가 계획이 수정되었습니다.';
     }
   }
@@ -759,17 +773,18 @@ function updateAssessmentPlan(data) {
 // 동일 (단원 + 성취기준 + 평가요소) 항목은 중복 방지를 위해 건너뜀
 function saveAssessmentPlansBulk(plans) {
   if (!plans || !plans.length) return '저장할 평가 계획이 없습니다.';
-  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
-  function keyOf(unit, standard, element) {
-    return [String(unit||''), String(standard||''), String(element||'')].join('||').replace(/\s+/g, '');
+  var sheet = _ensureAssessPlanSheet();
+  function normSem(v) { return (String(v || '').indexOf('2') >= 0) ? '2학기' : '1학기'; }
+  function keyOf(unit, standard, element, semester) {
+    return [normSem(semester), String(unit||''), String(standard||''), String(element||'')].join('||').replace(/\s+/g, '');
   }
-  // 기존 항목 키 집합 (D=단원, E=성취기준, F=평가요소)
+  // 기존 항목 키 집합 (O=학기, D=단원, E=성취기준, F=평가요소) — 학기가 다르면 별개 항목으로 취급
   var existing = {};
   if (sheet.getLastRow() > 1) {
     var rows = sheet.getDataRange().getValues();
     for (var i = 1; i < rows.length; i++) {
       if (!rows[i][0]) continue;
-      existing[keyOf(rows[i][3], rows[i][4], rows[i][5])] = true;
+      existing[keyOf(rows[i][3], rows[i][4], rows[i][5], rows[i][14])] = true;
     }
   }
   var newRows = [];
@@ -778,7 +793,7 @@ function saveAssessmentPlansBulk(plans) {
   for (var j = 0; j < plans.length; j++) {
     var p = plans[j];
     if (!p.unit && !p.standard && !p.element) { skipped++; continue; }
-    var k = keyOf(p.unit, p.standard, p.element);
+    var k = keyOf(p.unit, p.standard, p.element, p.semester);
     if (existing[k]) { skipped++; continue; }
     existing[k] = true;
     var id = 'PLAN-' + (ts + j);
@@ -791,7 +806,7 @@ function saveAssessmentPlansBulk(plans) {
 }
 
 function deleteAssessmentPlan(id) {
-  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var sheet = _ensureAssessPlanSheet();
   var rows = sheet.getDataRange().getValues();
   var found = false;
   for (var i = rows.length - 1; i >= 1; i--) {
