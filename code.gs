@@ -680,6 +680,19 @@ function _getOrCreateSheet(name, headers) {
   return sheet;
 }
 
+// ── 수행평가 시트 수동 생성 ─────────────────────────────
+// ※ 편집기 상단 함수 선택 → 이 함수를 직접 [실행]하면 즉시 두 시트가 만들어집니다.
+//   (doGet/웹앱 화면 표시만으로는 시트가 만들어지지 않습니다. 수행평가 탭에 처음
+//    들어가거나, 아래 함수를 실행할 때 생성됩니다.)
+function setupAssessmentSheets() {
+  var p = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var r = _getOrCreateSheet(_ASSESS_RESULT_SHEET, _ASSESS_RESULT_HEADERS);
+  var msg = '"' + _ASSESS_PLAN_SHEET + '"(' + p.getLastColumn() + '열), "'
+          + _ASSESS_RESULT_SHEET + '"(' + r.getLastColumn() + '열) 시트를 확인/생성했습니다.';
+  Logger.log(msg);
+  return msg;
+}
+
 function getAssessmentData() {
   var planSheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
   var resultSheet = _getOrCreateSheet(_ASSESS_RESULT_SHEET, _ASSESS_RESULT_HEADERS);
