@@ -6,6 +6,7 @@
     <title>나세나반 다이어리</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📔</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -953,13 +954,22 @@
 <section id="page-assess" class="page-section glass-panel p-6 rounded-2xl">
     <div class="flex justify-between items-center mb-5 border-b pb-3 flex-wrap gap-2">
         <h2 class="text-xl font-bold"><i class="fa-solid fa-clipboard-list mr-2"></i> 수행평가</h2>
-        <button onclick="openAssessPlanModal()" class="btn-primary px-3 py-2 rounded-xl text-sm font-bold shadow-sm">
-            <i class="fa-solid fa-plus mr-1"></i>평가 계획 추가
-        </button>
+        <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="downloadAssessTemplate()" class="btn-accent-soft px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1">
+                <i class="fa-solid fa-file-arrow-down"></i> 양식 받기
+            </button>
+            <input type="file" id="assess-xlsx-input" accept=".xlsx,.xls" style="display:none" onchange="handleAssessXlsx(this)">
+            <button onclick="document.getElementById('assess-xlsx-input').click()" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1 transition">
+                <i class="fa-solid fa-file-excel"></i> 엑셀 업로드
+            </button>
+            <button onclick="openAssessPlanModal()" class="btn-primary px-3 py-2 rounded-xl text-sm font-bold shadow-sm">
+                <i class="fa-solid fa-plus mr-1"></i>평가 계획 추가
+            </button>
+        </div>
     </div>
     <p class="text-xs text-gray-500 mb-4 bg-white bg-opacity-50 rounded-lg p-3 border border-white">
         <i class="fa-solid fa-circle-info mr-1 text-gray-400"></i>
-        단원·성취기준·평가요소·평가기준·평가영역·주안점·평가시기로 평가 계획을 등록하고, 각 계획 카드를 눌러 학생별 평가 결과(매우잘함·잘함·보통·노력요함·기타)를 입력하세요.
+        평가 계획은 직접 추가하거나 <b>엑셀 업로드</b>로 한 번에 등록할 수 있습니다. (양식: 구분·교과/활동영역·단원/주제명·성취기준·평가요소·평가영역·평가방법·수업·평가 연계 주안점·평가시기·매우잘함·잘함·보통·노력요함) 계획 카드를 눌러 학생별 결과(매우잘함·잘함·보통·노력요함·기타)를 입력하세요. 업로드한 데이터는 연동된 스프레드시트의 <b>수행평가계획</b> 시트에 저장됩니다.
     </p>
     <div id="assess-plan-list" class="space-y-3">
         <p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p>
@@ -1364,31 +1374,45 @@
         </div>
         <div class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
             <input type="hidden" id="assess-plan-id">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">구분</label>
+                    <input type="text" id="assess-plan-division" placeholder="예: 교과" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">교과/활동영역</label>
+                    <input type="text" id="assess-plan-subject" placeholder="예: 국어" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">평가시기</label>
+                    <input type="text" id="assess-plan-timing" placeholder="예: 4월" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+            </div>
             <div>
-                <label class="block text-xs font-bold text-gray-500 mb-1">단원 <span class="text-red-400">*</span></label>
+                <label class="block text-xs font-bold text-gray-500 mb-1">단원/주제명 <span class="text-red-400">*</span></label>
                 <input type="text" id="assess-plan-unit" placeholder="예: 2. 체험한 일을 글로 써요" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-500 mb-1">성취기준</label>
                 <textarea id="assess-plan-standard" rows="2" placeholder="예: [6국03-03] 체험한 일에 대한 감상을 나타내는 글을 쓴다." class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
             </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">평가요소</label>
+                <input type="text" id="assess-plan-element" placeholder="예: 여정·견문·감상이 드러나게 기행문 쓰기" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">평가요소</label>
-                    <input type="text" id="assess-plan-element" placeholder="예: 여정·견문·감상이 드러나게 기행문 쓰기" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
-                </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">평가영역</label>
                     <input type="text" id="assess-plan-area" placeholder="예: 쓰기" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">수업·평가 주안점</label>
-                    <input type="text" id="assess-plan-focus" placeholder="예: (논술형평가) 세 가지 구성 요소가 드러나게 씀" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                    <label class="block text-xs font-bold text-gray-500 mb-1">평가방법</label>
+                    <input type="text" id="assess-plan-method" placeholder="예: 논술형평가" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">평가시기</label>
-                    <input type="text" id="assess-plan-timing" placeholder="예: 4월" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
-                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">수업·평가 연계 주안점</label>
+                <textarea id="assess-plan-focus" rows="2" placeholder="예: 여정, 견문, 감상 세 가지의 기행문 구성 요소가 드러나게 씀." class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
             </div>
             <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-2">
                 <h4 class="font-bold text-xs text-gray-600"><i class="fa-solid fa-list-ol mr-1"></i> 평가기준 (수준별 도달 내용)</h4>
@@ -3883,8 +3907,10 @@ function renderAssessPlans() {
             '<div class="flex justify-between items-start gap-2">' +
             '<div class="min-w-0">' +
                 '<div class="flex items-center gap-2 flex-wrap mb-1">' +
+                    (p.subject ? '<span class="badge bg-sky-100 text-sky-700">' + escHtml(p.subject) + '</span>' : '') +
                     '<span class="font-bold text-gray-800 text-sm">' + escHtml(p.unit || '(단원 미입력)') + '</span>' +
                     (p.area ? '<span class="badge bg-indigo-100 text-indigo-700">' + escHtml(p.area) + '</span>' : '') +
+                    (p.method ? '<span class="badge bg-teal-100 text-teal-700">' + escHtml(p.method) + '</span>' : '') +
                     (p.timing ? '<span class="badge bg-purple-100 text-purple-700">' + escHtml(p.timing) + '</span>' : '') +
                 '</div>' +
                 (p.standard ? '<p class="text-xs text-gray-600 mb-0.5"><b>성취기준</b> ' + escHtml(p.standard) + '</p>' : '') +
@@ -3904,10 +3930,13 @@ function openAssessPlanModal(planId) {
     var delBtn  = document.getElementById('assess-plan-del');
     var p = planId ? assessPlans.filter(function(x){ return x.id === planId; })[0] : null;
     document.getElementById('assess-plan-id').value = p ? p.id : '';
+    document.getElementById('assess-plan-division').value = p ? (p.division||'') : '';
+    document.getElementById('assess-plan-subject').value  = p ? (p.subject||'') : '';
     document.getElementById('assess-plan-unit').value     = p ? (p.unit||'') : '';
     document.getElementById('assess-plan-standard').value = p ? (p.standard||'') : '';
     document.getElementById('assess-plan-element').value  = p ? (p.element||'') : '';
     document.getElementById('assess-plan-area').value     = p ? (p.area||'') : '';
+    document.getElementById('assess-plan-method').value   = p ? (p.method||'') : '';
     document.getElementById('assess-plan-focus').value    = p ? (p.focus||'') : '';
     document.getElementById('assess-plan-timing').value   = p ? (p.timing||'') : '';
     var c = (p && p.criteria) || {};
@@ -3928,10 +3957,13 @@ function saveAssessPlan() {
     var id = document.getElementById('assess-plan-id').value;
     var payload = {
         id: id,
+        division: document.getElementById('assess-plan-division').value.trim(),
+        subject:  document.getElementById('assess-plan-subject').value.trim(),
         unit: unit,
         standard: document.getElementById('assess-plan-standard').value.trim(),
         element:  document.getElementById('assess-plan-element').value.trim(),
         area:     document.getElementById('assess-plan-area').value.trim(),
+        method:   document.getElementById('assess-plan-method').value.trim(),
         focus:    document.getElementById('assess-plan-focus').value.trim(),
         timing:   document.getElementById('assess-plan-timing').value.trim(),
         criteria: {
@@ -3963,7 +3995,7 @@ function openAssessDetail(planId) {
     var p = assessPlans.filter(function(x){ return x.id === planId; })[0];
     if (!p) return;
     currentAssessPlanId = planId;
-    document.getElementById('assess-detail-area').textContent = (p.area ? p.area + ' · ' : '') + (p.timing || '');
+    document.getElementById('assess-detail-area').textContent = [p.subject, p.area, p.method, p.timing].filter(Boolean).join(' · ');
     document.getElementById('assess-detail-unit').textContent = p.unit || '(단원 미입력)';
 
     var info = '';
@@ -4028,6 +4060,93 @@ function saveAssessResults() {
         closeAssessDetail();
         loadAssessment();
     });
+}
+
+// ─── 수행평가 계획 엑셀 업로드 ───────────────────────────
+// 업로드 양식 헤더(공백 제거 후) → 내부 필드 매핑
+var ASSESS_XLSX_HEADER_MAP = {
+    '구분': 'division',
+    '교과/활동영역': 'subject', '교과활동영역': 'subject', '교과': 'subject', '활동영역': 'subject', '교과명': 'subject',
+    '단원/주제명': 'unit', '단원주제명': 'unit', '단원': 'unit', '주제명': 'unit', '단원명': 'unit',
+    '성취기준': 'standard',
+    '평가요소': 'element',
+    '평가영역': 'area',
+    '평가방법': 'method',
+    '수업·평가연계주안점': 'focus', '수업평가연계주안점': 'focus', '주안점': 'focus', '연계주안점': 'focus',
+    '평가시기': 'timing', '시기': 'timing',
+    '매우잘함': 'c1', '잘함': 'c2', '보통': 'c3', '노력요함': 'c4'
+};
+function _normHeader(s) { return String(s == null ? '' : s).replace(/\s+/g, '').trim(); }
+
+function handleAssessXlsx(input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리를 불러오지 못했습니다. 네트워크를 확인해주세요.'); input.value = ''; return; }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            var ws = wb.Sheets[wb.SheetNames[0]];
+            var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
+            var plans = parseAssessAoa(aoa);
+            if (!plans.length) { showToast('엑셀에서 평가 계획을 찾지 못했습니다. 양식을 확인해주세요.'); input.value = ''; return; }
+            if (!confirm(plans.length + '개의 수행평가 계획을 불러왔습니다.\n연동된 스프레드시트에 저장할까요?\n(이미 등록된 동일 항목은 자동으로 건너뜁니다.)')) { input.value = ''; return; }
+            gasCall('saveAssessmentPlansBulk', plans, plans.length + '개의 수행평가 계획을 저장했습니다.', function() {
+                loadAssessment();
+            });
+        } catch (err) {
+            showToast('엑셀 처리 중 오류가 발생했습니다: ' + err.message);
+        }
+        input.value = '';
+    };
+    reader.onerror = function() { showToast('파일을 읽을 수 없습니다.'); input.value = ''; };
+    reader.readAsArrayBuffer(file);
+}
+
+// 2차원 배열(aoa)에서 헤더 행을 찾아 평가 계획 객체 배열로 변환
+function parseAssessAoa(aoa) {
+    if (!aoa || !aoa.length) return [];
+    // 헤더 행 탐색: '단원' 또는 '성취기준'을 포함하는 행
+    var headerIdx = -1, colMap = null;
+    for (var r = 0; r < Math.min(aoa.length, 10); r++) {
+        var row = aoa[r] || [];
+        var map = {};
+        for (var c = 0; c < row.length; c++) {
+            var key = ASSESS_XLSX_HEADER_MAP[_normHeader(row[c])];
+            if (key && map[key] === undefined) map[key] = c;
+        }
+        if (map.unit !== undefined || map.standard !== undefined) { headerIdx = r; colMap = map; break; }
+    }
+    if (headerIdx === -1) return [];
+    var plans = [];
+    for (var i = headerIdx + 1; i < aoa.length; i++) {
+        var line = aoa[i] || [];
+        function val(field) { var idx = colMap[field]; return idx === undefined ? '' : String(line[idx] == null ? '' : line[idx]).trim(); }
+        var unit = val('unit');
+        var standard = val('standard');
+        var element = val('element');
+        // 단원·성취기준·평가요소가 모두 비어있으면 빈 행으로 간주
+        if (!unit && !standard && !element) continue;
+        plans.push({
+            id: '',
+            division: val('division'), subject: val('subject'), unit: unit,
+            standard: standard, element: element, area: val('area'),
+            method: val('method'), focus: val('focus'), timing: val('timing'),
+            criteria: { '매우잘함': val('c1'), '잘함': val('c2'), '보통': val('c3'), '노력요함': val('c4') }
+        });
+    }
+    return plans;
+}
+
+// 업로드 양식과 동일한 빈 엑셀 양식 다운로드
+function downloadAssessTemplate() {
+    if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리를 불러오지 못했습니다.'); return; }
+    var headers = ['연번','구분','교과/활동영역','단원/주제명','성취기준','평가요소','평가영역','평가방법','수업·평가 연계 주안점','평가시기','매우 잘함','잘함','보통','노력 요함'];
+    var example = ['1','교과','국어','2. 체험한 일을 글로 써요','[6국03-03] 체험한 일에 대한 감상을 나타내는 글을 쓴다.','여정, 견문, 감상이 드러나게 기행문 쓰기','쓰기','논술형평가','여정, 견문, 감상 세 가지의 기행문 구성 요소가 드러나게 씀.','4월','체험한 일에 대한 여정, 견문, 감상이 풍부하고 효과적으로 드러나게 기행문을 짜임새있게 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 풍부하게 기행문을 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 드러나게 기행문을 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 일부 드러나게 기행문을 쓸 수 있다.'];
+    var ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '수행평가계획');
+    XLSX.writeFile(wb, '수행평가계획_업로드양식.xlsx');
 }
 
 // ─── 상담 학생 태그 ──────────────────────────────────────

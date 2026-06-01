@@ -656,12 +656,13 @@ function clearWeeklyNotice() {
 // 16. 수행평가 (Performance Assessment)
 // ==========================================
 // ※ 기존 시트는 절대 변경하지 않고, 전용 시트가 없을 때만 새로 생성합니다.
-// 수행평가계획 시트: A=ID, B=단원, C=성취기준, D=평가요소, E=평가영역, F=주안점, G=평가시기,
-//                    H=매우잘함, I=잘함, J=보통, K=노력요함
+// 수행평가계획 시트(업로드 양식과 동일 구성):
+//   A=ID, B=구분, C=교과/활동영역, D=단원/주제명, E=성취기준, F=평가요소, G=평가영역,
+//   H=평가방법, I=수업·평가 연계 주안점, J=평가시기, K=매우잘함, L=잘함, M=보통, N=노력요함
 // 수행평가결과 시트: A=ID, B=계획ID, C=번호, D=이름, E=평가결과, F=기타내용, G=수정일시
 var _ASSESS_PLAN_SHEET = '수행평가계획';
 var _ASSESS_RESULT_SHEET = '수행평가결과';
-var _ASSESS_PLAN_HEADERS = ['ID','단원','성취기준','평가요소','평가영역','주안점','평가시기','매우잘함','잘함','보통','노력요함'];
+var _ASSESS_PLAN_HEADERS = ['ID','구분','교과/활동영역','단원/주제명','성취기준','평가요소','평가영역','평가방법','수업·평가 연계 주안점','평가시기','매우잘함','잘함','보통','노력요함'];
 var _ASSESS_RESULT_HEADERS = ['ID','계획ID','번호','이름','평가결과','기타내용','수정일시'];
 
 // 시트가 없으면 헤더와 함께 새로 만들고, 있으면 그대로 반환 (데이터 보존)
@@ -688,12 +689,13 @@ function getAssessmentData() {
     for (var i = 1; i < pd.length; i++) {
       if (!pd[i][0]) continue;
       plans.push({
-        id: String(pd[i][0]), unit: String(pd[i][1] || ''), standard: String(pd[i][2] || ''),
-        element: String(pd[i][3] || ''), area: String(pd[i][4] || ''), focus: String(pd[i][5] || ''),
-        timing: String(pd[i][6] || ''),
+        id: String(pd[i][0]), division: String(pd[i][1] || ''), subject: String(pd[i][2] || ''),
+        unit: String(pd[i][3] || ''), standard: String(pd[i][4] || ''), element: String(pd[i][5] || ''),
+        area: String(pd[i][6] || ''), method: String(pd[i][7] || ''), focus: String(pd[i][8] || ''),
+        timing: String(pd[i][9] || ''),
         criteria: {
-          '매우잘함': String(pd[i][7] || ''), '잘함': String(pd[i][8] || ''),
-          '보통': String(pd[i][9] || ''), '노력요함': String(pd[i][10] || '')
+          '매우잘함': String(pd[i][10] || ''), '잘함': String(pd[i][11] || ''),
+          '보통': String(pd[i][12] || ''), '노력요함': String(pd[i][13] || '')
         }
       });
     }
@@ -715,7 +717,8 @@ function getAssessmentData() {
 function _assessPlanRow(data) {
   var c = data.criteria || {};
   return [
-    data.unit || '', data.standard || '', data.element || '', data.area || '', data.focus || '', data.timing || '',
+    data.division || '', data.subject || '', data.unit || '', data.standard || '', data.element || '',
+    data.area || '', data.method || '', data.focus || '', data.timing || '',
     c['매우잘함'] || '', c['잘함'] || '', c['보통'] || '', c['노력요함'] || ''
   ];
 }
@@ -732,11 +735,46 @@ function updateAssessmentPlan(data) {
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (String(rows[i][0]) === String(data.id)) {
-      sheet.getRange(i + 1, 2, 1, 10).setValues([_assessPlanRow(data)]);
+      sheet.getRange(i + 1, 2, 1, 13).setValues([_assessPlanRow(data)]);
       return '수행평가 계획이 수정되었습니다.';
     }
   }
   throw new Error('수행평가 계획을 찾을 수 없습니다. (ID: ' + data.id + ')');
+}
+
+// 엑셀 업로드 등으로 여러 평가 계획을 한 번에 저장
+// 동일 (단원 + 성취기준 + 평가요소) 항목은 중복 방지를 위해 건너뜀
+function saveAssessmentPlansBulk(plans) {
+  if (!plans || !plans.length) return '저장할 평가 계획이 없습니다.';
+  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  function keyOf(unit, standard, element) {
+    return [String(unit||''), String(standard||''), String(element||'')].join('||').replace(/\s+/g, '');
+  }
+  // 기존 항목 키 집합 (D=단원, E=성취기준, F=평가요소)
+  var existing = {};
+  if (sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (!rows[i][0]) continue;
+      existing[keyOf(rows[i][3], rows[i][4], rows[i][5])] = true;
+    }
+  }
+  var newRows = [];
+  var ts = new Date().getTime();
+  var skipped = 0;
+  for (var j = 0; j < plans.length; j++) {
+    var p = plans[j];
+    if (!p.unit && !p.standard && !p.element) { skipped++; continue; }
+    var k = keyOf(p.unit, p.standard, p.element);
+    if (existing[k]) { skipped++; continue; }
+    existing[k] = true;
+    var id = 'PLAN-' + (ts + j);
+    newRows.push([id].concat(_assessPlanRow(p)));
+  }
+  if (newRows.length) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, _ASSESS_PLAN_HEADERS.length).setValues(newRows);
+  }
+  return newRows.length + '개의 수행평가 계획을 저장했습니다.' + (skipped ? ' (중복·빈 항목 ' + skipped + '개 제외)' : '');
 }
 
 function deleteAssessmentPlan(id) {
