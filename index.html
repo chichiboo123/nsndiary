@@ -6,6 +6,7 @@
     <title>나세나반 다이어리</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📔</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -190,6 +191,28 @@
         .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-color); margin-top: 3px; }
         .cal-nav-btn { padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.7); border: 1px solid #e5e7eb; cursor: pointer; transition: background 0.2s; }
         .cal-nav-btn:hover { background: white; }
+
+        /* 출결 기록 보관함: 결과를 2열 그리드로 압축 표시 */
+        .att-list-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .att-list-grid .rec-card { margin-bottom: 0; }
+        @media (min-width: 1024px) { .att-list-grid { grid-template-columns: 1fr 1fr; } }
+
+        /* 출결 달력형 보기 (토스 '내 소비' 스타일) */
+        .att-cal-summary-box { background: white; border: 1px solid #eef0f3; border-radius: 14px; padding: 12px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        .att-cal-summary-total { font-size: 0.9rem; font-weight: 800; color: #1f2937; }
+        .att-cal-chip { font-size: 0.7rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+        .att-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #eef0f3; border-radius: 14px; overflow: hidden; border: 1px solid #eef0f3; }
+        .att-cal-head { text-align: center; padding: 9px 2px; font-size: 0.7rem; font-weight: 700; background: #fafbfc; }
+        .att-cal-cell { min-height: 66px; background: white; padding: 5px 4px 4px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; transition: background 0.15s; overflow: hidden; }
+        .att-cal-cell:hover { background: #f5f7fa; }
+        .att-cal-cell.empty { background: #fafafa; cursor: default; pointer-events: none; }
+        .att-cal-cell.sel { box-shadow: inset 0 0 0 2px var(--accent-color); }
+        .att-cal-num { font-size: 0.72rem; font-weight: 700; width: 21px; height: 21px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #374151; }
+        .att-cal-cell.today .att-cal-num { background: var(--accent-color); color: var(--text-sidebar); font-weight: 900; }
+        .att-cal-pill { font-size: 0.6rem; font-weight: 700; padding: 1px 5px; border-radius: 5px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        .att-cal-more { font-size: 0.58rem; color: #9ca3af; font-weight: 700; padding-left: 3px; }
+        @media (max-width: 768px) { .att-cal-cell { min-height: 56px; } .att-cal-pill { font-size: 0.52rem; padding: 1px 3px; } }
+        @media (max-width: 480px) { .att-cal-cell { min-height: 48px; padding: 3px 2px; } .att-cal-num { width: 18px; height: 18px; font-size: 0.62rem; } .att-cal-pill { font-size: 0.48rem; } }
 
         /* 학생 이름 버튼 카드 */
         .student-name-card { background: white; border: 1.5px solid rgba(115,146,193,0.18); border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
@@ -449,6 +472,7 @@
         <a href="#"          onclick="showPage('page-daily',this)"                  class="menu-item"><i class="fa-solid fa-mug-hot w-7 text-center"></i> 일상기록</a>
         <a href="#"          onclick="showPage('page-student-record',this)"         class="menu-item"><i class="fa-solid fa-user-pen w-7 text-center"></i> 학생기록</a>
         <a href="#"          onclick="showPage('page-counsel',this)"                class="menu-item"><i class="fa-solid fa-comments w-7 text-center"></i> 상담기록</a>
+        <a href="#"          onclick="showPage('page-assess',this)"                 class="menu-item"><i class="fa-solid fa-clipboard-list w-7 text-center"></i> 수행평가</a>
         <a href="#"          onclick="showPage('page-tools',this)"                  class="menu-item"><i class="fa-solid fa-toolbox w-7 text-center"></i> 디지털도구</a>
         <a href="#"          onclick="showPage('page-seating',this)"                class="menu-item"><i class="fa-solid fa-border-all w-7 text-center"></i> 자리배치</a>
         <a href="#"          onclick="showPage('page-submit',this)"                 class="menu-item"><i class="fa-solid fa-clipboard-check w-7 text-center"></i> 제출확인</a>
@@ -691,23 +715,51 @@
         <button type="submit" class="btn-primary w-full p-3 rounded-xl font-bold shadow-sm">출결 기록 저장하기</button>
     </form>
 
-    <h3 class="text-base font-bold mb-3"><i class="fa-solid fa-list-check mr-2 text-gray-400"></i> 출결 기록 보관함</h3>
-    <div class="filter-bar">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-            <input type="date" id="att-filter-start" class="filter-input" title="시작일" onchange="filterAttendanceList()">
-            <input type="date" id="att-filter-end"   class="filter-input" title="종료일" onchange="filterAttendanceList()">
-            <select id="att-filter-status" class="filter-input" onchange="filterAttendanceList()">
-                <option value="">전체 상태</option>
-                <option>질병결석</option><option>체험학습</option>
-                <option>미인정결석</option><option>질병조퇴</option>
-                <option>질병지각</option><option>미인정지각</option>
-                <option>미인정조퇴</option><option>기타결석</option>
-            </select>
-            <input type="text" id="att-filter-name" placeholder="학생 이름" class="filter-input" oninput="filterAttendanceList()">
-            <button onclick="resetAttendanceFilter()" class="filter-reset-btn"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
+    <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+        <h3 class="text-base font-bold"><i class="fa-solid fa-list-check mr-2 text-gray-400"></i> 출결 기록 보관함</h3>
+        <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+            <button id="att-btn-list" onclick="setAttView('list')" class="sch-view-btn active"><i class="fa-solid fa-list mr-1"></i>목록</button>
+            <button id="att-btn-cal"  onclick="setAttView('cal')"  class="sch-view-btn"><i class="fa-regular fa-calendar mr-1"></i>달력</button>
         </div>
     </div>
-    <div id="attendance-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
+
+    <!-- 월별 정산 필터 (목록·달력 공통) -->
+    <div id="att-month-nav" class="flex flex-wrap gap-1.5 mb-3 justify-center"></div>
+
+    <!-- 목록형 보기 -->
+    <div id="attendance-list-view">
+        <div class="filter-bar">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <input type="date" id="att-filter-start" class="filter-input" title="시작일" onchange="filterAttendanceList()">
+                <input type="date" id="att-filter-end"   class="filter-input" title="종료일" onchange="filterAttendanceList()">
+                <select id="att-filter-status" class="filter-input" onchange="filterAttendanceList()">
+                    <option value="">전체 상태</option>
+                    <option>질병결석</option><option>체험학습</option>
+                    <option>미인정결석</option><option>질병조퇴</option>
+                    <option>질병지각</option><option>미인정지각</option>
+                    <option>미인정조퇴</option><option>기타결석</option>
+                </select>
+                <input type="text" id="att-filter-name" placeholder="학생 이름" class="filter-input" oninput="filterAttendanceList()">
+                <button onclick="resetAttendanceFilter()" class="filter-reset-btn"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
+            </div>
+        </div>
+        <div id="attendance-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
+    </div>
+
+    <!-- 달력형 보기 (토스 '내 소비' 스타일) -->
+    <div id="attendance-cal-view" class="hidden">
+        <div class="flex items-center justify-between mb-3">
+            <button class="cal-nav-btn" onclick="attPrevMonth()"><i class="fa-solid fa-chevron-left text-gray-600"></i></button>
+            <span id="att-cal-month-label" class="font-bold text-lg text-gray-800"></span>
+            <button class="cal-nav-btn" onclick="attNextMonth()"><i class="fa-solid fa-chevron-right text-gray-600"></i></button>
+        </div>
+        <div id="att-cal-summary" class="mb-3"></div>
+        <div id="attendance-calendar"></div>
+        <div id="att-cal-day-detail" class="mt-4 hidden">
+            <h4 class="font-bold text-sm mb-2 border-b pb-2" id="att-cal-day-title"></h4>
+            <div id="att-cal-day-list" class="att-list-grid"></div>
+        </div>
+    </div>
 </section>
 
 <section id="page-class" class="page-section glass-panel p-6 rounded-2xl">
@@ -897,6 +949,31 @@
         </div>
     </div>
     <div id="counsel-list"><p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p></div>
+</section>
+
+<section id="page-assess" class="page-section glass-panel p-6 rounded-2xl">
+    <div class="flex justify-between items-center mb-5 border-b pb-3 flex-wrap gap-2">
+        <h2 class="text-xl font-bold"><i class="fa-solid fa-clipboard-list mr-2"></i> 수행평가</h2>
+        <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="downloadAssessTemplate()" class="btn-accent-soft px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1">
+                <i class="fa-solid fa-file-arrow-down"></i> 양식 받기
+            </button>
+            <input type="file" id="assess-xlsx-input" accept=".xlsx,.xls" style="display:none" onchange="handleAssessXlsx(this)">
+            <button onclick="document.getElementById('assess-xlsx-input').click()" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1 transition">
+                <i class="fa-solid fa-file-excel"></i> 엑셀 업로드
+            </button>
+            <button onclick="openAssessPlanModal()" class="btn-primary px-3 py-2 rounded-xl text-sm font-bold shadow-sm">
+                <i class="fa-solid fa-plus mr-1"></i>평가 계획 추가
+            </button>
+        </div>
+    </div>
+    <p class="text-xs text-gray-500 mb-4 bg-white bg-opacity-50 rounded-lg p-3 border border-white">
+        <i class="fa-solid fa-circle-info mr-1 text-gray-400"></i>
+        평가 계획은 직접 추가하거나 <b>엑셀 업로드</b>로 한 번에 등록할 수 있습니다. (양식: 구분·교과/활동영역·단원/주제명·성취기준·평가요소·평가영역·평가방법·수업·평가 연계 주안점·평가시기·매우잘함·잘함·보통·노력요함) 계획 카드를 눌러 학생별 결과(매우잘함·잘함·보통·노력요함·기타)를 입력하세요. 업로드한 데이터는 연동된 스프레드시트의 <b>수행평가계획</b> 시트에 저장됩니다.
+    </p>
+    <div id="assess-plan-list" class="space-y-3">
+        <p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p>
+    </div>
 </section>
 
 <section id="page-tools" class="page-section glass-panel p-6 rounded-2xl">
@@ -1283,6 +1360,112 @@
             <div class="flex gap-2">
                 <button onclick="saveCounselEdit()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
                 <button onclick="closeCounselCard()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 수행평가 계획 추가/수정 모달 -->
+<div id="assess-plan-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeAssessPlanModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="px-6 pt-5 pb-3 border-b flex justify-between items-center flex-shrink-0">
+            <h3 class="font-bold text-gray-800 text-base" id="assess-plan-modal-title">평가 계획 추가</h3>
+            <button onclick="closeAssessPlanModal()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
+        </div>
+        <div class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
+            <input type="hidden" id="assess-plan-id">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">구분</label>
+                    <input type="text" id="assess-plan-division" placeholder="예: 교과" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">교과/활동영역</label>
+                    <input type="text" id="assess-plan-subject" placeholder="예: 국어" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">평가시기</label>
+                    <input type="text" id="assess-plan-timing" placeholder="예: 4월" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">단원/주제명 <span class="text-red-400">*</span></label>
+                <input type="text" id="assess-plan-unit" placeholder="예: 2. 체험한 일을 글로 써요" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">성취기준</label>
+                <textarea id="assess-plan-standard" rows="2" placeholder="예: [6국03-03] 체험한 일에 대한 감상을 나타내는 글을 쓴다." class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">평가요소</label>
+                <input type="text" id="assess-plan-element" placeholder="예: 여정·견문·감상이 드러나게 기행문 쓰기" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">평가영역</label>
+                    <input type="text" id="assess-plan-area" placeholder="예: 쓰기" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">평가방법</label>
+                    <input type="text" id="assess-plan-method" placeholder="예: 논술형평가" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">수업·평가 연계 주안점</label>
+                <textarea id="assess-plan-focus" rows="2" placeholder="예: 여정, 견문, 감상 세 가지의 기행문 구성 요소가 드러나게 씀." class="w-full p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-2">
+                <h4 class="font-bold text-xs text-gray-600"><i class="fa-solid fa-list-ol mr-1"></i> 평가기준 (수준별 도달 내용)</h4>
+                <div class="flex items-start gap-2">
+                    <span class="badge bg-green-100 text-green-700 mt-1.5 flex-shrink-0 w-16 text-center">매우잘함</span>
+                    <textarea id="assess-plan-c1" rows="2" placeholder="매우잘함 수준의 도달 기준" class="flex-1 p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="badge bg-blue-100 text-blue-700 mt-1.5 flex-shrink-0 w-16 text-center">잘함</span>
+                    <textarea id="assess-plan-c2" rows="2" placeholder="잘함 수준의 도달 기준" class="flex-1 p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="badge bg-amber-100 text-amber-700 mt-1.5 flex-shrink-0 w-16 text-center">보통</span>
+                    <textarea id="assess-plan-c3" rows="2" placeholder="보통 수준의 도달 기준" class="flex-1 p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="badge bg-orange-100 text-orange-700 mt-1.5 flex-shrink-0 w-16 text-center">노력요함</span>
+                    <textarea id="assess-plan-c4" rows="2" placeholder="노력요함 수준의 도달 기준" class="flex-1 p-2 rounded-lg border text-sm resize-none focus:outline-none"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+            <button id="assess-plan-del" class="text-red-400 hover:text-red-600 text-sm font-bold transition hidden"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button>
+            <div class="flex gap-2 ml-auto">
+                <button onclick="saveAssessPlan()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>저장</button>
+                <button onclick="closeAssessPlanModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 수행평가 상세 / 학생별 결과 입력 모달 -->
+<div id="assess-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeAssessDetail()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="px-6 pt-5 pb-3 border-b flex justify-between items-start flex-shrink-0">
+            <div class="flex-1 min-w-0">
+                <span class="text-xs text-gray-400" id="assess-detail-area"></span>
+                <h3 class="font-bold text-gray-800 mt-0.5 text-base" id="assess-detail-unit"></h3>
+            </div>
+            <button onclick="closeAssessDetail()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
+        </div>
+        <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+            <div id="assess-detail-info"></div>
+            <div>
+                <h4 class="font-bold text-sm text-gray-700 mb-2"><i class="fa-solid fa-user-check mr-1"></i> 학생별 평가 결과</h4>
+                <div id="assess-detail-students" class="space-y-1.5"></div>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+            <button onclick="openAssessPlanModal(currentAssessPlanId)" class="text-gray-500 hover:text-gray-700 text-sm font-bold transition"><i class="fa-solid fa-pen mr-1"></i>계획 수정</button>
+            <div class="flex gap-2">
+                <button onclick="saveAssessResults()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>결과 저장</button>
+                <button onclick="closeAssessDetail()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition">닫기</button>
             </div>
         </div>
     </div>
@@ -1714,7 +1897,7 @@ function showPage(pageId, element) {
     var titles = {
         'page-home':'홈','page-schedule':'일정','page-students':'학생정보',
         'page-attendance':'출결기록','page-class':'수업기록','page-daily':'일상기록',
-        'page-student-record':'학생기록','page-counsel':'상담기록','page-tools':'디지털도구','page-seating':'자리배치','page-submit':'제출확인'
+        'page-student-record':'학생기록','page-counsel':'상담기록','page-assess':'수행평가','page-tools':'디지털도구','page-seating':'자리배치','page-submit':'제출확인'
     };
     document.getElementById('current-page-title').innerText = titles[pageId] || '';
     // 하단 내비 동기화
@@ -1738,6 +1921,7 @@ function showPage(pageId, element) {
     if (pageId === 'page-daily'    && !pagesLoaded.daily) { loadDailyList();         pagesLoaded.daily = true; }
     if (pageId === 'page-student-record' && !pagesLoaded.sr) { loadStudentRecordList(); pagesLoaded.sr = true; }
     if (pageId === 'page-counsel'  && !pagesLoaded.cns)  { loadCounselList();       pagesLoaded.cns = true; }
+    if (pageId === 'page-assess'   && !pagesLoaded.assess) { loadAssessment();       pagesLoaded.assess = true; }
     if (pageId === 'page-tools'    && !pagesLoaded.tools) { loadToolList();          pagesLoaded.tools = true; }
     if (pageId === 'page-submit') { if (!pagesLoaded.submit) { loadAssignments(); pagesLoaded.submit = true; } _applySubmitZoom(); }
     
@@ -2657,34 +2841,56 @@ function saveAttendance(event) {
 function loadAttendanceList() {
     if (typeof google !== 'undefined' && google.script) {
         google.script.run
-            .withSuccessHandler(function(data) { allAttendanceRecords = data; renderAttendanceList(data); })
+            .withSuccessHandler(function(data) { allAttendanceRecords = data; refreshAttViews(); })
             .withFailureHandler(function(e) { showErrInList('attendance-list', e.message); })
             .getAttendanceList();
     } else {
         allAttendanceRecords = [
-            {id:'ATT-1',date:'2026-03-01',studentNum:1,studentName:'학생1',status:'질병결석',reason:'감기',proof:'O'},
-            {id:'ATT-2',date:'2026-03-02',studentNum:3,studentName:'학생3',status:'질병조퇴',reason:'두통',proof:'X'}
+            {id:'ATT-1',date:'2026-04-01',studentNum:1,studentName:'학생1',status:'질병결석',reason:'감기',proof:'O'},
+            {id:'ATT-2',date:'2026-04-01',studentNum:3,studentName:'학생3',status:'질병조퇴',reason:'두통',proof:'X'},
+            {id:'ATT-3',date:'2026-04-15',studentNum:5,studentName:'학생5',status:'체험학습',reason:'가족여행',proof:'O'}
         ];
-        renderAttendanceList(allAttendanceRecords);
+        refreshAttViews();
     }
 }
 
 var currentAttCardList = [];
+// 출결 보관함 보기 상태 (월별 정산 필터 / 목록·달력 토글)
+var attMonthFilter = null;   // null=전체, 정수(3~12)=해당 월
+var attView = 'list';        // 'list' | 'cal'
+var attCalYear, attCalMonth; // 달력 표시 연·월
+var attSelDay = null;        // 달력에서 선택된 날짜(yyyy-mm-dd)
+
+// 데이터 로드/수정 후 현재 보기 상태에 맞춰 모든 출결 뷰 갱신
+function refreshAttViews() {
+    renderAttMonthNav();
+    filterAttendanceList();
+    if (attView === 'cal') {
+        if (attSelDay) selectAttCalDay(attSelDay);
+        else renderAttCalendar();
+    }
+}
 
 function renderAttendanceList(records) {
     var el = document.getElementById('attendance-list');
-    if (!records || records.length === 0) { el.innerHTML = emptyMsg('출결 기록이 없습니다.'); currentAttCardList = []; return; }
+    if (!records || records.length === 0) { el.className = ''; el.innerHTML = emptyMsg('출결 기록이 없습니다.'); currentAttCardList = []; return; }
+    el.className = 'att-list-grid';
     currentAttCardList = records.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
     el.innerHTML = currentAttCardList.map(function(r, idx) {
-        return '<div class="rec-card flex justify-between items-start gap-2 cursor-pointer hover:opacity-80 transition" onclick="openAttCard(' + idx + ')">' +
-            '<div><span class="meta mr-2">' + r.date + '</span>' +
-            '<span class="font-bold text-gray-800 text-sm mr-2">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
-            '<span class="badge ' + attStatusClass(r.status) + ' mr-1">' + escHtml(r.status) + '</span>' +
-            (r.reason ? '<span class="text-xs text-gray-500">' + escHtml(r.reason) + '</span>' : '') +
-            '<span class="text-xs text-gray-400 ml-2">증빙: ' + (r.proof||'-') + '</span></div>' +
-            '<button class="del-btn flex-shrink-0" onclick="event.stopPropagation();deleteRec(\'출결기록\',\'' + escAttr(r.id) + '\',loadAttendanceList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
-            '</div>';
+        return attRecCard(r, 'openAttCard(' + idx + ')');
     }).join('');
+}
+
+// 출결 기록 카드 HTML (목록·달력 상세 공용)
+function attRecCard(r, onclickExpr) {
+    return '<div class="rec-card flex justify-between items-start gap-2 cursor-pointer hover:opacity-80 transition" onclick="' + onclickExpr + '">' +
+        '<div><span class="meta mr-2">' + r.date + '</span>' +
+        '<span class="font-bold text-gray-800 text-sm mr-2">' + r.studentNum + '번 ' + escHtml(r.studentName) + '</span>' +
+        '<span class="badge ' + attStatusClass(r.status) + ' mr-1">' + escHtml(r.status) + '</span>' +
+        (r.reason ? '<span class="text-xs text-gray-500">' + escHtml(r.reason) + '</span>' : '') +
+        '<span class="text-xs text-gray-400 ml-2">증빙: ' + (r.proof||'-') + '</span></div>' +
+        '<button class="del-btn flex-shrink-0" onclick="event.stopPropagation();deleteRec(\'출결기록\',\'' + escAttr(r.id) + '\',loadAttendanceList)"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+        '</div>';
 }
 
 function filterAttendanceList() {
@@ -2693,6 +2899,7 @@ function filterAttendanceList() {
     var status = document.getElementById('att-filter-status').value;
     var name   = document.getElementById('att-filter-name').value.trim();
     renderAttendanceList(allAttendanceRecords.filter(function(r) {
+        if (attMonthFilter !== null) { var mm = parseInt(String(r.date||'').substring(5,7),10); if (mm !== attMonthFilter) return false; }
         if (start && r.date < start) return false;
         if (end   && r.date > end)   return false;
         if (status && r.status !== status) return false;
@@ -2703,7 +2910,149 @@ function filterAttendanceList() {
 function resetAttendanceFilter() {
     ['att-filter-start','att-filter-end','att-filter-name'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('att-filter-status').value = '';
-    renderAttendanceList(allAttendanceRecords);
+    filterAttendanceList();
+}
+
+// ─── 출결 월별 정산 필터 (3월~12월 버튼) ──────────────────
+function renderAttMonthNav() {
+    var nav = document.getElementById('att-month-nav');
+    if (!nav) return;
+    var months = [3,4,5,6,7,8,9,10,11,12];
+    var html = '<button onclick="setAttMonth(null)" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+        (attMonthFilter === null ? ' active' : '') + '">전체</button>';
+    html += months.map(function(m) {
+        return '<button onclick="setAttMonth(' + m + ')" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+            (attMonthFilter === m ? ' active' : '') + '">' + m + '월</button>';
+    }).join('');
+    nav.innerHTML = html;
+}
+
+// 월 버튼이 가리키는 학년도 기준 연도 계산 (3월 시작)
+function attYearForMonth(m) {
+    var now = new Date();
+    var syStart = (now.getMonth() + 1) >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    return m >= 3 ? syStart : syStart + 1;
+}
+
+function setAttMonth(m) {
+    attMonthFilter = m;
+    if (m !== null) { attCalYear = attYearForMonth(m); attCalMonth = m - 1; attSelDay = null; }
+    renderAttMonthNav();
+    filterAttendanceList();
+    if (attView === 'cal') renderAttCalendar();
+}
+
+// ─── 출결 보기 전환 (목록 / 달력) ─────────────────────────
+function setAttView(view) {
+    attView = view;
+    var listView = document.getElementById('attendance-list-view');
+    var calView  = document.getElementById('attendance-cal-view');
+    var btnList  = document.getElementById('att-btn-list');
+    var btnCal   = document.getElementById('att-btn-cal');
+    if (view === 'list') {
+        listView.classList.remove('hidden'); calView.classList.add('hidden');
+        btnList.classList.add('active'); btnCal.classList.remove('active');
+    } else {
+        listView.classList.add('hidden'); calView.classList.remove('hidden');
+        btnList.classList.remove('active'); btnCal.classList.add('active');
+        if (attCalYear === undefined) {
+            if (attMonthFilter !== null) { attCalYear = attYearForMonth(attMonthFilter); attCalMonth = attMonthFilter - 1; }
+            else { var t = new Date(); attCalYear = t.getFullYear(); attCalMonth = t.getMonth(); }
+        }
+        renderAttCalendar();
+    }
+}
+
+function attPrevMonth() { attCalMonth--; if (attCalMonth < 0) { attCalMonth = 11; attCalYear--; } attSelDay = null; document.getElementById('att-cal-day-detail').classList.add('hidden'); renderAttCalendar(); }
+function attNextMonth() { attCalMonth++; if (attCalMonth > 11) { attCalMonth = 0; attCalYear++; } attSelDay = null; document.getElementById('att-cal-day-detail').classList.add('hidden'); renderAttCalendar(); }
+
+// ─── 출결 달력형 렌더링 (토스 '내 소비' 스타일) ───────────
+function renderAttCalendar() {
+    var _nc = new Date();
+    var today = _nc.getFullYear() + '-' + String(_nc.getMonth()+1).padStart(2,'0') + '-' + String(_nc.getDate()).padStart(2,'0');
+    document.getElementById('att-cal-month-label').textContent = attCalYear + '년 ' + (attCalMonth + 1) + '월';
+
+    var monthPrefix = attCalYear + '-' + String(attCalMonth+1).padStart(2,'0');
+    var map = {};
+    var monthRecords = [];
+    allAttendanceRecords.forEach(function(r) {
+        if (!r.date) return;
+        if (!map[r.date]) map[r.date] = [];
+        map[r.date].push(r);
+        if (r.date.substring(0,7) === monthPrefix) monthRecords.push(r);
+    });
+    renderAttCalSummary(monthRecords);
+
+    var firstDay    = new Date(attCalYear, attCalMonth, 1).getDay();
+    var daysInMonth = new Date(attCalYear, attCalMonth + 1, 0).getDate();
+    var dayNames = ['일','월','화','수','목','금','토'];
+    var html = '<div class="att-cal-grid">';
+    dayNames.forEach(function(d, i) {
+        var c = i === 0 ? 'color:#ef4444' : (i === 6 ? 'color:#3b82f6' : 'color:#6b7280');
+        html += '<div class="att-cal-head" style="' + c + '">' + d + '</div>';
+    });
+    for (var i = 0; i < firstDay; i++) { html += '<div class="att-cal-cell empty"></div>'; }
+    for (var d = 1; d <= daysInMonth; d++) {
+        var ds = attCalYear + '-' + String(attCalMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+        var isToday = ds === today;
+        var dow     = (firstDay + d - 1) % 7;
+        var numColor = (isToday) ? '' : (dow === 0 ? 'color:#ef4444' : (dow === 6 ? 'color:#3b82f6' : ''));
+        var recs = map[ds] || [];
+        var pills = '';
+        if (recs.length) {
+            pills = recs.slice(0,2).map(function(r) {
+                return '<span class="att-cal-pill ' + attStatusClass(r.status) + '">' + escHtml(r.status) + '</span>';
+            }).join('');
+            if (recs.length > 2) pills += '<span class="att-cal-more">+' + (recs.length - 2) + '</span>';
+        }
+        html += '<div class="att-cal-cell' + (isToday ? ' today' : '') + (ds === attSelDay ? ' sel' : '') + '" onclick="selectAttCalDay(\'' + ds + '\')">' +
+            '<span class="att-cal-num" style="' + numColor + '">' + d + '</span>' + pills + '</div>';
+    }
+    html += '</div>';
+    document.getElementById('attendance-calendar').innerHTML = html;
+}
+
+function renderAttCalSummary(monthRecords) {
+    var box = document.getElementById('att-cal-summary');
+    var total = monthRecords.length;
+    if (!total) {
+        box.innerHTML = '<div class="att-cal-summary-box"><span class="att-cal-summary-total">이 달 출결 기록 0건</span></div>';
+        return;
+    }
+    var byStatus = {};
+    monthRecords.forEach(function(r) { byStatus[r.status] = (byStatus[r.status]||0) + 1; });
+    var chips = Object.keys(byStatus).map(function(s) {
+        return '<span class="att-cal-chip ' + attStatusClass(s) + '">' + escHtml(s) + ' ' + byStatus[s] + '</span>';
+    }).join('');
+    box.innerHTML = '<div class="att-cal-summary-box"><span class="att-cal-summary-total">이 달 출결 ' + total + '건</span>' + chips + '</div>';
+}
+
+function selectAttCalDay(ds) {
+    attSelDay = ds;
+    renderAttCalendar();
+    var recs = allAttendanceRecords.filter(function(r){ return r.date === ds; })
+        .sort(function(a,b){ return String(a.studentNum) - String(b.studentNum); });
+    var detail = document.getElementById('att-cal-day-detail');
+    var parts = ds.split('-');
+    document.getElementById('att-cal-day-title').textContent = parseInt(parts[1],10) + '월 ' + parseInt(parts[2],10) + '일 (' + recs.length + '건)';
+    var list = document.getElementById('att-cal-day-list');
+    if (!recs.length) {
+        list.className = '';
+        list.innerHTML = '<p class="text-gray-400 text-sm py-3 text-center">이 날의 출결 기록이 없습니다.</p>';
+    } else {
+        list.className = 'att-list-grid';
+        list.innerHTML = recs.map(function(r) {
+            return attRecCard(r, 'openAttCardById(\'' + escAttr(r.id) + '\')');
+        }).join('');
+    }
+    detail.classList.remove('hidden');
+}
+
+function openAttCardById(id) {
+    var r = allAttendanceRecords.filter(function(x){ return x.id === id; })[0];
+    if (!r) return;
+    currentAttCardList = [r];
+    openAttCard(0);
 }
 
 // ─── 출결기록 상세/수정 모달 ──────────────────────────────
@@ -3505,6 +3854,299 @@ function resetCounselFilter() {
     ['cns-filter-start','cns-filter-end','cns-filter-name'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('cns-filter-method').value = '';
     renderCounselList(allCounselRecords);
+}
+
+// ─── 수행평가 ────────────────────────────────────────────
+var assessPlans = [], assessResults = [], currentAssessPlanId = null;
+var ASSESS_LEVELS = ['매우잘함','잘함','보통','노력요함','기타'];
+function assessResultClass(level) {
+    var map = {
+        '매우잘함': 'bg-green-100 text-green-700',
+        '잘함':     'bg-blue-100 text-blue-700',
+        '보통':     'bg-amber-100 text-amber-700',
+        '노력요함': 'bg-orange-100 text-orange-700',
+        '기타':     'bg-gray-200 text-gray-600'
+    };
+    return map[level] || 'bg-gray-100 text-gray-500';
+}
+
+function loadAssessment() {
+    var el = document.getElementById('assess-plan-list');
+    el.innerHTML = '<p class="text-sm text-gray-400 text-center py-12"><i class="fa-solid fa-spinner fa-spin mr-1"></i> 수행평가 계획을 불러오는 중...</p>';
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(function(d) { assessPlans = d.plans || []; assessResults = d.results || []; renderAssessPlans(); })
+            .withFailureHandler(function(e) { showErrInList('assess-plan-list', e.message); })
+            .getAssessmentData();
+    } else {
+        assessPlans = [{
+            id:'PLAN-1', unit:'2. 체험한 일을 글로 써요',
+            standard:'[6국03-03] 체험한 일에 대한 감상을 나타내는 글을 쓴다.',
+            element:'여정, 견문, 감상이 드러나게 기행문 쓰기', area:'쓰기',
+            focus:'(논술형평가) 여정, 견문, 감상 세 가지의 기행문 구성 요소 드러나게 씀', timing:'4월',
+            criteria:{ '매우잘함':'체험한 일에 대한 여정, 견문, 감상이 풍부하고 효과적으로 드러나게 기행문을 짜임새 있게 쓸 수 있다.', '잘함':'체험한 일에 대한 여정, 견문, 감상이 풍부하게 기행문을 쓸 수 있다.', '보통':'체험한 일에 대한 여정, 견문, 감상이 드러나게 기행문을 쓸 수 있다.', '노력요함':'체험한 일에 대한 여정, 견문, 감상이 일부 드러나게 기행문을 쓸 수 있다.' }
+        }];
+        assessResults = [];
+        renderAssessPlans();
+    }
+}
+
+function renderAssessPlans() {
+    var el = document.getElementById('assess-plan-list');
+    if (!assessPlans || assessPlans.length === 0) {
+        el.innerHTML = '<div class="text-center text-gray-400 py-12">' +
+            '<i class="fa-solid fa-clipboard-list text-4xl mb-3 block opacity-40"></i>' +
+            '<p class="text-sm">등록된 수행평가 계획이 없습니다.<br>우측 상단 [평가 계획 추가] 버튼으로 추가해주세요.</p></div>';
+        return;
+    }
+    var totalStudents = students.length;
+    el.innerHTML = assessPlans.map(function(p) {
+        var done = assessResults.filter(function(r){ return r.planId === p.id && r.result; }).length;
+        var progressTxt = totalStudents ? (done + '/' + totalStudents + '명 입력') : (done + '명 입력');
+        return '<div class="rec-card cursor-pointer hover:shadow-md transition-shadow" onclick="openAssessDetail(\'' + escAttr(p.id) + '\')">' +
+            '<div class="flex justify-between items-start gap-2">' +
+            '<div class="min-w-0">' +
+                '<div class="flex items-center gap-2 flex-wrap mb-1">' +
+                    (p.subject ? '<span class="badge bg-sky-100 text-sky-700">' + escHtml(p.subject) + '</span>' : '') +
+                    '<span class="font-bold text-gray-800 text-sm">' + escHtml(p.unit || '(단원 미입력)') + '</span>' +
+                    (p.area ? '<span class="badge bg-indigo-100 text-indigo-700">' + escHtml(p.area) + '</span>' : '') +
+                    (p.method ? '<span class="badge bg-teal-100 text-teal-700">' + escHtml(p.method) + '</span>' : '') +
+                    (p.timing ? '<span class="badge bg-purple-100 text-purple-700">' + escHtml(p.timing) + '</span>' : '') +
+                '</div>' +
+                (p.standard ? '<p class="text-xs text-gray-600 mb-0.5"><b>성취기준</b> ' + escHtml(p.standard) + '</p>' : '') +
+                (p.element ? '<p class="text-xs text-gray-500"><b>평가요소</b> ' + escHtml(p.element) + '</p>' : '') +
+            '</div>' +
+            '<div class="flex flex-col items-end gap-1 flex-shrink-0">' +
+                '<span class="text-xs font-bold ' + (totalStudents && done >= totalStudents ? 'text-green-600' : 'text-gray-400') + '"><i class="fa-solid fa-user-check mr-1"></i>' + progressTxt + '</span>' +
+                '<button class="del-btn" onclick="event.stopPropagation();deleteAssessPlan(\'' + escAttr(p.id) + '\')"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+            '</div>' +
+            '</div></div>';
+    }).join('');
+}
+
+// ─── 평가 계획 추가/수정 모달 ────────────────────────────
+function openAssessPlanModal(planId) {
+    var titleEl = document.getElementById('assess-plan-modal-title');
+    var delBtn  = document.getElementById('assess-plan-del');
+    var p = planId ? assessPlans.filter(function(x){ return x.id === planId; })[0] : null;
+    document.getElementById('assess-plan-id').value = p ? p.id : '';
+    document.getElementById('assess-plan-division').value = p ? (p.division||'') : '';
+    document.getElementById('assess-plan-subject').value  = p ? (p.subject||'') : '';
+    document.getElementById('assess-plan-unit').value     = p ? (p.unit||'') : '';
+    document.getElementById('assess-plan-standard').value = p ? (p.standard||'') : '';
+    document.getElementById('assess-plan-element').value  = p ? (p.element||'') : '';
+    document.getElementById('assess-plan-area').value     = p ? (p.area||'') : '';
+    document.getElementById('assess-plan-method').value   = p ? (p.method||'') : '';
+    document.getElementById('assess-plan-focus').value    = p ? (p.focus||'') : '';
+    document.getElementById('assess-plan-timing').value   = p ? (p.timing||'') : '';
+    var c = (p && p.criteria) || {};
+    document.getElementById('assess-plan-c1').value = c['매우잘함'] || '';
+    document.getElementById('assess-plan-c2').value = c['잘함'] || '';
+    document.getElementById('assess-plan-c3').value = c['보통'] || '';
+    document.getElementById('assess-plan-c4').value = c['노력요함'] || '';
+    titleEl.textContent = p ? '평가 계획 수정' : '평가 계획 추가';
+    if (p) delBtn.classList.remove('hidden'); else delBtn.classList.add('hidden');
+    delBtn.onclick = function() { if (p) deleteAssessPlan(p.id); };
+    document.getElementById('assess-plan-modal').classList.remove('hidden');
+}
+function closeAssessPlanModal() { document.getElementById('assess-plan-modal').classList.add('hidden'); }
+
+function saveAssessPlan() {
+    var unit = document.getElementById('assess-plan-unit').value.trim();
+    if (!unit) { showToast('단원을 입력해주세요.'); return; }
+    var id = document.getElementById('assess-plan-id').value;
+    var payload = {
+        id: id,
+        division: document.getElementById('assess-plan-division').value.trim(),
+        subject:  document.getElementById('assess-plan-subject').value.trim(),
+        unit: unit,
+        standard: document.getElementById('assess-plan-standard').value.trim(),
+        element:  document.getElementById('assess-plan-element').value.trim(),
+        area:     document.getElementById('assess-plan-area').value.trim(),
+        method:   document.getElementById('assess-plan-method').value.trim(),
+        focus:    document.getElementById('assess-plan-focus').value.trim(),
+        timing:   document.getElementById('assess-plan-timing').value.trim(),
+        criteria: {
+            '매우잘함': document.getElementById('assess-plan-c1').value.trim(),
+            '잘함':     document.getElementById('assess-plan-c2').value.trim(),
+            '보통':     document.getElementById('assess-plan-c3').value.trim(),
+            '노력요함': document.getElementById('assess-plan-c4').value.trim()
+        }
+    };
+    var fn = id ? 'updateAssessmentPlan' : 'saveAssessmentPlan';
+    gasCall(fn, payload, id ? '수행평가 계획이 수정되었습니다.' : '수행평가 계획이 추가되었습니다.', function() {
+        closeAssessPlanModal();
+        if (document.getElementById('assess-detail-modal').classList.contains('hidden') === false) closeAssessDetail();
+        loadAssessment();
+    });
+}
+
+function deleteAssessPlan(id) {
+    if (!confirm('이 수행평가 계획과 입력된 학생 평가 결과가 모두 삭제됩니다. 계속할까요?')) return;
+    gasCall('deleteAssessmentPlan', id, '수행평가 계획이 삭제되었습니다.', function() {
+        closeAssessPlanModal();
+        closeAssessDetail();
+        loadAssessment();
+    });
+}
+
+// ─── 평가 상세 / 학생별 결과 입력 모달 ───────────────────
+function openAssessDetail(planId) {
+    var p = assessPlans.filter(function(x){ return x.id === planId; })[0];
+    if (!p) return;
+    currentAssessPlanId = planId;
+    document.getElementById('assess-detail-area').textContent = [p.subject, p.area, p.method, p.timing].filter(Boolean).join(' · ');
+    document.getElementById('assess-detail-unit').textContent = p.unit || '(단원 미입력)';
+
+    var info = '';
+    if (p.standard) info += '<p class="text-xs text-gray-600 mb-1"><b>성취기준</b> ' + escHtml(p.standard) + '</p>';
+    if (p.element)  info += '<p class="text-xs text-gray-600 mb-1"><b>평가요소</b> ' + escHtml(p.element) + '</p>';
+    if (p.focus)    info += '<p class="text-xs text-gray-600 mb-2"><b>주안점</b> ' + escHtml(p.focus) + '</p>';
+    var c = p.criteria || {};
+    var rows = ['매우잘함','잘함','보통','노력요함'].map(function(lv) {
+        if (!c[lv]) return '';
+        return '<tr><td class="align-top py-1.5 pr-2"><span class="badge ' + assessResultClass(lv) + '">' + lv + '</span></td>' +
+            '<td class="py-1.5 text-xs text-gray-600">' + escHtml(c[lv]) + '</td></tr>';
+    }).join('');
+    if (rows) info += '<div class="bg-gray-50 rounded-xl p-3 border border-gray-200"><h4 class="font-bold text-xs text-gray-600 mb-1"><i class="fa-solid fa-list-ol mr-1"></i> 평가기준</h4><table class="w-full"><tbody>' + rows + '</tbody></table></div>';
+    document.getElementById('assess-detail-info').innerHTML = info || '<p class="text-xs text-gray-400">등록된 평가 계획 상세 정보가 없습니다.</p>';
+
+    // 학생별 결과 입력 행 구성
+    var resMap = {};
+    assessResults.forEach(function(r) { if (r.planId === planId) resMap[String(r.studentNum)] = r; });
+    var box = document.getElementById('assess-detail-students');
+    if (!students.length) {
+        box.innerHTML = '<p class="text-xs text-gray-400 py-3 text-center">먼저 학생 정보를 등록해주세요.</p>';
+    } else {
+        box.innerHTML = students.map(function(s) {
+            var existing = resMap[String(s.num)] || {};
+            var cur = existing.result || '';
+            var note = existing.note || '';
+            var opts = '<option value="">미입력</option>' + ASSESS_LEVELS.map(function(lv) {
+                return '<option value="' + lv + '"' + (cur === lv ? ' selected' : '') + '>' + lv + '</option>';
+            }).join('');
+            return '<div class="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2.5 py-1.5" data-num="' + escAttr(s.num) + '" data-name="' + escAttr(s.name) + '">' +
+                '<span class="text-sm font-bold text-gray-700 w-20 flex-shrink-0">' + s.num + '번 ' + escHtml(s.name) + '</span>' +
+                '<select class="assess-res-select p-1.5 rounded-lg border text-sm focus:outline-none flex-shrink-0" style="width:110px" onchange="onAssessResultChange(this)">' + opts + '</select>' +
+                '<input type="text" class="assess-res-note flex-1 p-1.5 rounded-lg border text-sm focus:outline-none" placeholder="기타(주관식) 내용" value="' + escAttr(note) + '" style="display:' + (cur === '기타' ? '' : 'none') + '">' +
+                '</div>';
+        }).join('');
+    }
+    document.getElementById('assess-detail-modal').classList.remove('hidden');
+}
+function closeAssessDetail() { document.getElementById('assess-detail-modal').classList.add('hidden'); currentAssessPlanId = null; }
+
+function onAssessResultChange(sel) {
+    var note = sel.parentElement.querySelector('.assess-res-note');
+    if (sel.value === '기타') { note.style.display = ''; }
+    else { note.style.display = 'none'; }
+}
+
+function saveAssessResults() {
+    if (!currentAssessPlanId) return;
+    var rows = document.querySelectorAll('#assess-detail-students > div[data-num]');
+    var results = [];
+    rows.forEach(function(row) {
+        var sel = row.querySelector('.assess-res-select');
+        var note = row.querySelector('.assess-res-note');
+        results.push({
+            studentNum: row.getAttribute('data-num'),
+            studentName: row.getAttribute('data-name'),
+            result: sel ? sel.value : '',
+            note: (sel && sel.value === '기타' && note) ? note.value.trim() : ''
+        });
+    });
+    gasCall('saveAssessmentResults', { planId: currentAssessPlanId, results: results }, '평가 결과가 저장되었습니다.', function() {
+        closeAssessDetail();
+        loadAssessment();
+    });
+}
+
+// ─── 수행평가 계획 엑셀 업로드 ───────────────────────────
+// 업로드 양식 헤더(공백 제거 후) → 내부 필드 매핑
+var ASSESS_XLSX_HEADER_MAP = {
+    '구분': 'division',
+    '교과/활동영역': 'subject', '교과활동영역': 'subject', '교과': 'subject', '활동영역': 'subject', '교과명': 'subject',
+    '단원/주제명': 'unit', '단원주제명': 'unit', '단원': 'unit', '주제명': 'unit', '단원명': 'unit',
+    '성취기준': 'standard',
+    '평가요소': 'element',
+    '평가영역': 'area',
+    '평가방법': 'method',
+    '수업·평가연계주안점': 'focus', '수업평가연계주안점': 'focus', '주안점': 'focus', '연계주안점': 'focus',
+    '평가시기': 'timing', '시기': 'timing',
+    '매우잘함': 'c1', '잘함': 'c2', '보통': 'c3', '노력요함': 'c4'
+};
+function _normHeader(s) { return String(s == null ? '' : s).replace(/\s+/g, '').trim(); }
+
+function handleAssessXlsx(input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리를 불러오지 못했습니다. 네트워크를 확인해주세요.'); input.value = ''; return; }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            var ws = wb.Sheets[wb.SheetNames[0]];
+            var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
+            var plans = parseAssessAoa(aoa);
+            if (!plans.length) { showToast('엑셀에서 평가 계획을 찾지 못했습니다. 양식을 확인해주세요.'); input.value = ''; return; }
+            if (!confirm(plans.length + '개의 수행평가 계획을 불러왔습니다.\n연동된 스프레드시트에 저장할까요?\n(이미 등록된 동일 항목은 자동으로 건너뜁니다.)')) { input.value = ''; return; }
+            gasCall('saveAssessmentPlansBulk', plans, plans.length + '개의 수행평가 계획을 저장했습니다.', function() {
+                loadAssessment();
+            });
+        } catch (err) {
+            showToast('엑셀 처리 중 오류가 발생했습니다: ' + err.message);
+        }
+        input.value = '';
+    };
+    reader.onerror = function() { showToast('파일을 읽을 수 없습니다.'); input.value = ''; };
+    reader.readAsArrayBuffer(file);
+}
+
+// 2차원 배열(aoa)에서 헤더 행을 찾아 평가 계획 객체 배열로 변환
+function parseAssessAoa(aoa) {
+    if (!aoa || !aoa.length) return [];
+    // 헤더 행 탐색: '단원' 또는 '성취기준'을 포함하는 행
+    var headerIdx = -1, colMap = null;
+    for (var r = 0; r < Math.min(aoa.length, 10); r++) {
+        var row = aoa[r] || [];
+        var map = {};
+        for (var c = 0; c < row.length; c++) {
+            var key = ASSESS_XLSX_HEADER_MAP[_normHeader(row[c])];
+            if (key && map[key] === undefined) map[key] = c;
+        }
+        if (map.unit !== undefined || map.standard !== undefined) { headerIdx = r; colMap = map; break; }
+    }
+    if (headerIdx === -1) return [];
+    var plans = [];
+    for (var i = headerIdx + 1; i < aoa.length; i++) {
+        var line = aoa[i] || [];
+        function val(field) { var idx = colMap[field]; return idx === undefined ? '' : String(line[idx] == null ? '' : line[idx]).trim(); }
+        var unit = val('unit');
+        var standard = val('standard');
+        var element = val('element');
+        // 단원·성취기준·평가요소가 모두 비어있으면 빈 행으로 간주
+        if (!unit && !standard && !element) continue;
+        plans.push({
+            id: '',
+            division: val('division'), subject: val('subject'), unit: unit,
+            standard: standard, element: element, area: val('area'),
+            method: val('method'), focus: val('focus'), timing: val('timing'),
+            criteria: { '매우잘함': val('c1'), '잘함': val('c2'), '보통': val('c3'), '노력요함': val('c4') }
+        });
+    }
+    return plans;
+}
+
+// 업로드 양식과 동일한 빈 엑셀 양식 다운로드
+function downloadAssessTemplate() {
+    if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리를 불러오지 못했습니다.'); return; }
+    var headers = ['연번','구분','교과/활동영역','단원/주제명','성취기준','평가요소','평가영역','평가방법','수업·평가 연계 주안점','평가시기','매우 잘함','잘함','보통','노력 요함'];
+    var example = ['1','교과','국어','2. 체험한 일을 글로 써요','[6국03-03] 체험한 일에 대한 감상을 나타내는 글을 쓴다.','여정, 견문, 감상이 드러나게 기행문 쓰기','쓰기','논술형평가','여정, 견문, 감상 세 가지의 기행문 구성 요소가 드러나게 씀.','4월','체험한 일에 대한 여정, 견문, 감상이 풍부하고 효과적으로 드러나게 기행문을 짜임새있게 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 풍부하게 기행문을 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 드러나게 기행문을 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 일부 드러나게 기행문을 쓸 수 있다.'];
+    var ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '수행평가계획');
+    XLSX.writeFile(wb, '수행평가계획_업로드양식.xlsx');
 }
 
 // ─── 상담 학생 태그 ──────────────────────────────────────
