@@ -3905,39 +3905,102 @@ function loadAssessment() {
 }
 
 function renderAssessPlans() {
+    renderAssessSubjectNav();
     var el = document.getElementById('assess-plan-list');
     if (!assessPlans || assessPlans.length === 0) {
+        el.className = '';
         el.innerHTML = '<div class="text-center text-gray-400 py-12">' +
             '<i class="fa-solid fa-clipboard-list text-4xl mb-3 block opacity-40"></i>' +
-            '<p class="text-sm">등록된 수행평가 계획이 없습니다.<br>우측 상단 [평가 계획 추가] 버튼으로 추가해주세요.</p></div>';
+            '<p class="text-sm">등록된 수행평가 계획이 없습니다.<br>우측 상단 [평가 계획 추가] 또는 [엑셀 업로드]로 추가해주세요.</p></div>';
+        return;
+    }
+    var plans = assessSubjectFilter ? assessPlans.filter(function(p){ return assessSubjectKey(p) === assessSubjectFilter; }) : assessPlans;
+    if (!plans.length) {
+        el.className = '';
+        el.innerHTML = emptyMsg('"' + assessSubjectFilter + '" 과목으로 등록된 평가 계획이 없습니다.');
         return;
     }
     var totalStudents = students.length;
-    el.innerHTML = assessPlans.map(function(p) {
-        var done = assessResults.filter(function(r){ return r.planId === p.id && r.result; }).length;
-        var progressTxt = totalStudents ? (done + '/' + totalStudents + '명 입력') : (done + '명 입력');
-        return '<div class="rec-card cursor-pointer hover:shadow-md transition-shadow" onclick="openAssessDetail(\'' + escAttr(p.id) + '\')">' +
-            '<div class="flex justify-between items-start gap-2">' +
-            '<div class="min-w-0">' +
-                '<div class="flex items-center gap-2 flex-wrap mb-1">' +
-                    (p.subject ? '<span class="badge bg-sky-100 text-sky-700">' + escHtml(p.subject) + '</span>' : '') +
-                    '<span class="font-bold text-gray-800 text-sm">' + escHtml(p.unit || '(단원 미입력)') + '</span>' +
-                    (p.area ? '<span class="badge bg-indigo-100 text-indigo-700">' + escHtml(p.area) + '</span>' : '') +
-                    (p.method ? '<span class="badge bg-teal-100 text-teal-700">' + escHtml(p.method) + '</span>' : '') +
-                    (p.timing ? '<span class="badge bg-purple-100 text-purple-700">' + escHtml(p.timing) + '</span>' : '') +
-                '</div>' +
-                (p.standard ? '<p class="text-xs text-gray-600 mb-0.5"><b>성취기준</b> ' + escHtml(p.standard) + '</p>' : '') +
-                (p.element ? '<p class="text-xs text-gray-500"><b>평가요소</b> ' + escHtml(p.element) + '</p>' : '') +
-            '</div>' +
-            '<div class="flex flex-col items-end gap-1 flex-shrink-0">' +
-                '<span class="text-xs font-bold ' + (totalStudents && done >= totalStudents ? 'text-green-600' : 'text-gray-400') + '"><i class="fa-solid fa-user-check mr-1"></i>' + progressTxt + '</span>' +
-                '<button class="del-btn" onclick="event.stopPropagation();deleteAssessPlan(\'' + escAttr(p.id) + '\')"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
-            '</div>' +
-            '</div></div>';
-    }).join('');
+    if (assessView === 'list') {
+        el.className = '';
+        el.innerHTML = plans.map(function(p){ return assessListRowHtml(p, totalStudents); }).join('');
+    } else {
+        el.className = 'assess-card-grid';
+        el.innerHTML = plans.map(function(p){ return assessCardHtml(p, totalStudents); }).join('');
+    }
 }
 
-// ─── 평가 계획 추가/수정 모달 ────────────────────────────
+// 평가 계획의 필터용 과목 키 (교과 9과목 + 창체)
+var ASSESS_SUBJECTS = ['국어','사회','도덕','수학','과학','체육','음악','미술','영어','창체'];
+function assessSubjectKey(p) {
+    var subj = String(p.subject || '').replace(/\s+/g, '');
+    var div  = String(p.division || '');
+    if (div.indexOf('창의') >= 0 || /자율|자치|동아리|진로|창체/.test(subj)) return '창체';
+    for (var i = 0; i < ASSESS_SUBJECTS.length; i++) {
+        if (ASSESS_SUBJECTS[i] !== '창체' && subj.indexOf(ASSESS_SUBJECTS[i]) >= 0) return ASSESS_SUBJECTS[i];
+    }
+    return subj || '기타';
+}
+
+function renderAssessSubjectNav() {
+    var nav = document.getElementById('assess-subject-nav');
+    if (!nav) return;
+    var html = '<button onclick="setAssessSubject(null)" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+        (assessSubjectFilter === null ? ' active' : '') + '">전체</button>';
+    html += ASSESS_SUBJECTS.map(function(s) {
+        return '<button onclick="setAssessSubject(\'' + s + '\')" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+            (assessSubjectFilter === s ? ' active' : '') + '">' + s + '</button>';
+    }).join('');
+    nav.innerHTML = html;
+}
+function setAssessSubject(s) { assessSubjectFilter = s; renderAssessPlans(); }
+
+function setAssessView(v) {
+    assessView = v;
+    document.getElementById('assess-btn-card').classList.toggle('active', v === 'card');
+    document.getElementById('assess-btn-list').classList.toggle('active', v === 'list');
+    renderAssessPlans();
+}
+
+function assessProgress(p, totalStudents) {
+    var done = assessResults.filter(function(r){ return r.planId === p.id && r.result; }).length;
+    return {
+        cls: (totalStudents && done >= totalStudents) ? 'text-green-600' : 'text-gray-400',
+        txt: totalStudents ? (done + '/' + totalStudents + '명') : (done + '명')
+    };
+}
+
+// 카드형 (PC 3열 그리드)
+function assessCardHtml(p, totalStudents) {
+    var pr = assessProgress(p, totalStudents);
+    return '<div class="rec-card cursor-pointer hover:shadow-md transition-shadow flex flex-col" onclick="openAssessDetail(\'' + escAttr(p.id) + '\')">' +
+        '<div class="flex items-center gap-1.5 flex-wrap mb-1.5">' +
+            (p.subject ? '<span class="badge bg-sky-100 text-sky-700">' + escHtml(p.subject) + '</span>' : '') +
+            (p.area ? '<span class="badge bg-indigo-100 text-indigo-700">' + escHtml(p.area) + '</span>' : '') +
+            (p.timing ? '<span class="badge bg-purple-100 text-purple-700">' + escHtml(p.timing) + '</span>' : '') +
+        '</div>' +
+        '<p class="font-bold text-gray-800 text-sm mb-1 leading-snug">' + escHtml(p.unit || '(단원 미입력)') + '</p>' +
+        (p.standard ? '<p class="text-xs text-gray-500 mb-1 assess-clamp">' + escHtml(p.standard) + '</p>' : '') +
+        (p.element ? '<p class="text-xs text-gray-400 assess-clamp">' + escHtml(p.element) + '</p>' : '') +
+        '<div class="flex justify-between items-center mt-auto pt-2">' +
+            '<span class="text-xs font-bold ' + pr.cls + '"><i class="fa-solid fa-user-check mr-1"></i>' + pr.txt + '</span>' +
+            '<button class="del-btn" onclick="event.stopPropagation();deleteAssessPlan(\'' + escAttr(p.id) + '\')"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+        '</div></div>';
+}
+
+// 리스트형 (한 줄 요약)
+function assessListRowHtml(p, totalStudents) {
+    var pr = assessProgress(p, totalStudents);
+    return '<div class="rec-card flex items-center gap-2 cursor-pointer hover:opacity-80 transition" onclick="openAssessDetail(\'' + escAttr(p.id) + '\')">' +
+        (p.subject ? '<span class="badge bg-sky-100 text-sky-700 flex-shrink-0">' + escHtml(p.subject) + '</span>' : '') +
+        '<span class="font-bold text-gray-800 text-sm truncate">' + escHtml(p.unit || '(단원 미입력)') + '</span>' +
+        (p.area ? '<span class="badge bg-indigo-100 text-indigo-700 flex-shrink-0 hidden sm:inline-block">' + escHtml(p.area) + '</span>' : '') +
+        (p.timing ? '<span class="badge bg-purple-100 text-purple-700 flex-shrink-0 hidden sm:inline-block">' + escHtml(p.timing) + '</span>' : '') +
+        '<span class="text-xs font-bold ' + pr.cls + ' ml-auto flex-shrink-0"><i class="fa-solid fa-user-check mr-1"></i>' + pr.txt + '</span>' +
+        '<button class="del-btn flex-shrink-0" onclick="event.stopPropagation();deleteAssessPlan(\'' + escAttr(p.id) + '\')"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
+        '</div>';
+}
+
 function openAssessPlanModal(planId) {
     var titleEl = document.getElementById('assess-plan-modal-title');
     var delBtn  = document.getElementById('assess-plan-del');
