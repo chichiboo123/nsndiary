@@ -651,3 +651,137 @@ function clearWeeklyNotice() {
   PropertiesService.getScriptProperties().deleteProperty('WEEKLY_NOTICE');
   return '주간학습안내가 삭제되었습니다.';
 }
+
+// ==========================================
+// 16. 수행평가 (Performance Assessment)
+// ==========================================
+// ※ 기존 시트는 절대 변경하지 않고, 전용 시트가 없을 때만 새로 생성합니다.
+// 수행평가계획 시트: A=ID, B=단원, C=성취기준, D=평가요소, E=평가영역, F=주안점, G=평가시기,
+//                    H=매우잘함, I=잘함, J=보통, K=노력요함
+// 수행평가결과 시트: A=ID, B=계획ID, C=번호, D=이름, E=평가결과, F=기타내용, G=수정일시
+var _ASSESS_PLAN_SHEET = '수행평가계획';
+var _ASSESS_RESULT_SHEET = '수행평가결과';
+var _ASSESS_PLAN_HEADERS = ['ID','단원','성취기준','평가요소','평가영역','주안점','평가시기','매우잘함','잘함','보통','노력요함'];
+var _ASSESS_RESULT_HEADERS = ['ID','계획ID','번호','이름','평가결과','기타내용','수정일시'];
+
+// 시트가 없으면 헤더와 함께 새로 만들고, 있으면 그대로 반환 (데이터 보존)
+function _getOrCreateSheet(name, headers) {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    if (headers && headers.length) {
+      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+  }
+  return sheet;
+}
+
+function getAssessmentData() {
+  var planSheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var resultSheet = _getOrCreateSheet(_ASSESS_RESULT_SHEET, _ASSESS_RESULT_HEADERS);
+  var plans = [];
+  if (planSheet.getLastRow() > 1) {
+    var pd = planSheet.getDataRange().getValues();
+    for (var i = 1; i < pd.length; i++) {
+      if (!pd[i][0]) continue;
+      plans.push({
+        id: String(pd[i][0]), unit: String(pd[i][1] || ''), standard: String(pd[i][2] || ''),
+        element: String(pd[i][3] || ''), area: String(pd[i][4] || ''), focus: String(pd[i][5] || ''),
+        timing: String(pd[i][6] || ''),
+        criteria: {
+          '매우잘함': String(pd[i][7] || ''), '잘함': String(pd[i][8] || ''),
+          '보통': String(pd[i][9] || ''), '노력요함': String(pd[i][10] || '')
+        }
+      });
+    }
+  }
+  var results = [];
+  if (resultSheet.getLastRow() > 1) {
+    var rd = resultSheet.getDataRange().getValues();
+    for (var j = 1; j < rd.length; j++) {
+      if (!rd[j][0]) continue;
+      results.push({
+        id: String(rd[j][0]), planId: String(rd[j][1] || ''), studentNum: rd[j][2],
+        studentName: String(rd[j][3] || ''), result: String(rd[j][4] || ''), note: String(rd[j][5] || '')
+      });
+    }
+  }
+  return { plans: plans, results: results };
+}
+
+function _assessPlanRow(data) {
+  var c = data.criteria || {};
+  return [
+    data.unit || '', data.standard || '', data.element || '', data.area || '', data.focus || '', data.timing || '',
+    c['매우잘함'] || '', c['잘함'] || '', c['보통'] || '', c['노력요함'] || ''
+  ];
+}
+
+function saveAssessmentPlan(data) {
+  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var id = 'PLAN-' + new Date().getTime();
+  sheet.appendRow([id].concat(_assessPlanRow(data)));
+  return '수행평가 계획이 추가되었습니다.';
+}
+
+function updateAssessmentPlan(data) {
+  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      sheet.getRange(i + 1, 2, 1, 10).setValues([_assessPlanRow(data)]);
+      return '수행평가 계획이 수정되었습니다.';
+    }
+  }
+  throw new Error('수행평가 계획을 찾을 수 없습니다. (ID: ' + data.id + ')');
+}
+
+function deleteAssessmentPlan(id) {
+  var sheet = _getOrCreateSheet(_ASSESS_PLAN_SHEET, _ASSESS_PLAN_HEADERS);
+  var rows = sheet.getDataRange().getValues();
+  var found = false;
+  for (var i = rows.length - 1; i >= 1; i--) {
+    if (String(rows[i][0]) === String(id)) { sheet.deleteRow(i + 1); found = true; }
+  }
+  // 관련 평가 결과도 함께 삭제
+  var rsheet = _getOrCreateSheet(_ASSESS_RESULT_SHEET, _ASSESS_RESULT_HEADERS);
+  var rrows = rsheet.getDataRange().getValues();
+  for (var j = rrows.length - 1; j >= 1; j--) {
+    if (String(rrows[j][1]) === String(id)) { rsheet.deleteRow(j + 1); }
+  }
+  if (!found) throw new Error('수행평가 계획을 찾을 수 없습니다. (ID: ' + id + ')');
+  return '수행평가 계획이 삭제되었습니다.';
+}
+
+// payload: { planId, results: [{studentNum, studentName, result, note}] }
+function saveAssessmentResults(payload) {
+  var sheet = _getOrCreateSheet(_ASSESS_RESULT_SHEET, _ASSESS_RESULT_HEADERS);
+  var rows = sheet.getDataRange().getValues();
+  var now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  var planId = String(payload.planId);
+  // 기존 (계획ID + 번호) → 시트 행번호 매핑
+  var idxMap = {};
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][1]) === planId) idxMap[String(rows[i][2])] = i + 1;
+  }
+  var list = payload.results || [];
+  var ts = new Date().getTime();
+  for (var k = 0; k < list.length; k++) {
+    var r = list[k];
+    var key = String(r.studentNum);
+    var resultVal = r.result || '';
+    var noteVal = (resultVal === '기타') ? (r.note || '') : '';
+    if (idxMap[key]) {
+      // 기존 행 갱신 (결과를 미입력으로 바꾸면 빈 값으로 업데이트)
+      sheet.getRange(idxMap[key], 3, 1, 5).setValues([[r.studentNum, r.studentName || '', resultVal, noteVal, now]]);
+    } else if (resultVal) {
+      // 신규 입력 (결과가 있을 때만 행 추가)
+      var id = 'RES-' + (ts + k) + '-' + key;
+      sheet.appendRow([id, planId, r.studentNum, r.studentName || '', resultVal, noteVal, now]);
+    }
+  }
+  return '평가 결과가 저장되었습니다.';
+}
