@@ -171,6 +171,20 @@
         .month-nav-btn:hover { background: white; color: var(--accent-color); border-color: var(--accent-color); }
         .month-nav-btn.active { background: var(--accent-color); color: var(--text-sidebar); border-color: var(--accent-color); }
 
+        .assess-filter { border: 1px solid #e5e7eb; border-radius: 14px; background: rgba(255,255,255,0.55); padding: 8px 10px; }
+        .assess-filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .assess-filter-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; color: #6b7280; background: white; border: 1px solid #e5e7eb; border-radius: 9999px; padding: 5px 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .assess-filter-toggle:hover { color: var(--accent-color); border-color: var(--accent-color); }
+        .assess-filter-caret { font-size: 0.7rem; transition: transform 0.2s; }
+        .assess-filter-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9999px; background: var(--accent-color); color: var(--text-sidebar); font-size: 0.68rem; font-weight: 700; }
+        .assess-filter-chips { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; }
+        .assess-chip { font-size: 0.7rem; font-weight: 700; padding: 3px 9px; border-radius: 9999px; background: var(--accent-color); color: var(--text-sidebar); }
+        .assess-chip-m { background: #64748b; }
+        .assess-filter-reset { font-size: 0.72rem; font-weight: 700; color: #9ca3af; background: transparent; border: none; cursor: pointer; padding: 4px 6px; white-space: nowrap; }
+        .assess-filter-reset:hover { color: var(--accent-color); }
+        .assess-filter-body { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e7eb; }
+        .assess-filter.open .assess-filter-body { display: block; }
+
         .sch-view-btn { color: #6b7280; padding: 6px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; transition: all 0.2s; border: none; cursor: pointer; background: transparent; }
         .sch-view-btn.active { background: white; color: var(--accent-color); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
@@ -1002,8 +1016,21 @@
         <i class="fa-solid fa-circle-info mr-1 text-gray-400"></i>
         평가 계획을 직접 추가하거나 <b>엑셀로 업로드</b>하세요. 계획을 누르면 학생별 결과(매우잘함·잘함·보통·노력요함·기타)를 입력할 수 있습니다.
     </p>
-    <div id="assess-subject-nav" class="flex flex-wrap gap-1.5 mb-2 justify-center"></div>
-    <div id="assess-method-nav" class="flex flex-wrap gap-1.5 mb-3 justify-center items-center"></div>
+    <div id="assess-filter" class="assess-filter mb-3">
+        <div class="assess-filter-bar">
+            <button type="button" id="assess-filter-toggle" onclick="toggleAssessFilter()" class="assess-filter-toggle">
+                <i class="fa-solid fa-filter"></i><span>필터</span>
+                <span id="assess-filter-count" class="assess-filter-count" style="display:none;"></span>
+                <i id="assess-filter-caret" class="fa-solid fa-chevron-down assess-filter-caret"></i>
+            </button>
+            <div id="assess-filter-chips" class="assess-filter-chips"></div>
+            <button type="button" id="assess-filter-reset" onclick="resetAssessFilters()" class="assess-filter-reset" style="display:none;"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
+        </div>
+        <div id="assess-filter-body" class="assess-filter-body">
+            <div id="assess-subject-nav" class="flex flex-wrap gap-1.5 mb-2 justify-center"></div>
+            <div id="assess-method-nav" class="flex flex-wrap gap-1.5 justify-center items-center"></div>
+        </div>
+    </div>
     <div id="assess-plan-list">
         <p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p>
     </div>
@@ -3919,7 +3946,8 @@ function resetCounselFilter() {
 
 // ─── 수행평가 ────────────────────────────────────────────
 var assessPlans = [], assessResults = [], currentAssessPlanId = null;
-var assessView = 'card', assessSubjectFilters = [], assessMethodFilter = null;
+var assessView = 'card', assessSubjectFilters = [], assessMethodFilters = [];
+var assessFilterOpen = (typeof window !== 'undefined' && window.innerWidth >= 768);
 var ASSESS_LEVELS = ['매우잘함','잘함','보통','노력요함','기타'];
 function assessResultClass(level) {
     var map = {
@@ -3955,6 +3983,7 @@ function loadAssessment() {
 
 function renderAssessPlans() {
     renderAssessSubjectNav();
+    applyAssessFilterUI();
     var el = document.getElementById('assess-plan-list');
     if (!assessPlans || assessPlans.length === 0) {
         el.className = '';
@@ -4020,13 +4049,14 @@ function renderAssessMethodNav() {
     if (!nav) return;
     var methods = assessMethodList();
     if (!methods.length) { nav.innerHTML = ''; return; }
-    if (assessMethodFilter && methods.indexOf(assessMethodFilter) < 0) assessMethodFilter = null;
+    assessMethodFilters = assessMethodFilters.filter(function(m){ return methods.indexOf(m) >= 0; });
     var html = '<span class="text-xs font-bold text-gray-400 mr-1"><i class="fa-solid fa-pen-ruler mr-1"></i>평가방법</span>';
     html += '<button onclick="setAssessMethod(null)" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
-        (assessMethodFilter === null ? ' active' : '') + '">전체</button>';
+        (assessMethodFilters.length === 0 ? ' active' : '') + '">전체</button>';
     html += methods.map(function(m) {
+        var on = assessMethodFilters.indexOf(m) >= 0;
         return '<button onclick="setAssessMethod(\'' + escAttr(m) + '\')" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
-            (assessMethodFilter === m ? ' active' : '') + '">' + escHtml(m) + '</button>';
+            (on ? ' active' : '') + '">' + (on ? '<i class="fa-solid fa-check mr-1"></i>' : '') + escHtml(m) + '</button>';
     }).join('');
     nav.innerHTML = html;
 }
@@ -4034,7 +4064,7 @@ function renderAssessMethodNav() {
 function getFilteredAssessPlans() {
     return (assessPlans || []).filter(function(p) {
         if (assessSubjectFilters.length && assessSubjectFilters.indexOf(assessSubjectKey(p)) < 0) return false;
-        if (assessMethodFilter && String(p.method || '').trim() !== assessMethodFilter) return false;
+        if (assessMethodFilters.length && assessMethodFilters.indexOf(String(p.method || '').trim()) < 0) return false;
         return true;
     });
 }
@@ -4047,7 +4077,47 @@ function setAssessSubject(s) {
     }
     renderAssessPlans();
 }
-function setAssessMethod(m) { assessMethodFilter = m; renderAssessPlans(); }
+function setAssessMethod(m) {
+    if (m === null) { assessMethodFilters = []; }
+    else {
+        var i = assessMethodFilters.indexOf(m);
+        if (i >= 0) assessMethodFilters.splice(i, 1); else assessMethodFilters.push(m);
+    }
+    renderAssessPlans();
+}
+
+function resetAssessFilters() {
+    assessSubjectFilters = [];
+    assessMethodFilters = [];
+    renderAssessPlans();
+}
+
+function toggleAssessFilter() {
+    assessFilterOpen = !assessFilterOpen;
+    applyAssessFilterUI();
+}
+
+// 필터 패널 열림/닫힘 상태와 활성 필터 요약(칩) 갱신
+function applyAssessFilterUI() {
+    var wrap = document.getElementById('assess-filter');
+    if (!wrap) return;
+    wrap.classList.toggle('open', assessFilterOpen);
+    var caret = document.getElementById('assess-filter-caret');
+    if (caret) caret.style.transform = assessFilterOpen ? 'rotate(180deg)' : '';
+
+    var n = assessSubjectFilters.length + assessMethodFilters.length;
+    var cnt = document.getElementById('assess-filter-count');
+    if (cnt) { cnt.textContent = n; cnt.style.display = n ? '' : 'none'; }
+    var reset = document.getElementById('assess-filter-reset');
+    if (reset) reset.style.display = n ? '' : 'none';
+
+    var chips = document.getElementById('assess-filter-chips');
+    if (!chips) return;
+    if (assessFilterOpen || !n) { chips.innerHTML = ''; return; }
+    var parts = assessSubjectFilters.map(function(s){ return '<span class="assess-chip">' + escHtml(s) + '</span>'; })
+        .concat(assessMethodFilters.map(function(m){ return '<span class="assess-chip assess-chip-m">' + escHtml(m) + '</span>'; }));
+    chips.innerHTML = parts.join('');
+}
 
 function setAssessView(v) {
     assessView = v;
@@ -4313,7 +4383,7 @@ function assessResultFor(planId, studentNum) {
 function assessSummarySub(plans) {
     var parts = [];
     if (assessSubjectFilters.length) parts.push(assessSubjectFilters.join('·'));
-    if (assessMethodFilter) parts.push(assessMethodFilter);
+    if (assessMethodFilters.length) parts.push(assessMethodFilters.join('·'));
     return (parts.length ? parts.join(' / ') + ' · ' : '') + plans.length + '개 계획 · 학생 ' + students.length + '명';
 }
 
