@@ -203,6 +203,19 @@
         @media (min-width: 1280px) { .assess-card-grid { grid-template-columns: 1fr 1fr 1fr; } }
         .assess-card-grid .rec-card { margin-bottom: 0; }
         .assess-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .assess-copy-btn { color: #9ca3af; font-size: 0.78rem; padding: 3px 6px; border-radius: 6px; transition: all 0.15s; flex-shrink: 0; }
+        .assess-copy-btn:hover { color: var(--accent-color); background: #eef2ff; }
+        /* 평가 미입력 학생 행 강조 */
+        .assess-student-row.unentered { background: #fff7ed !important; border-color: #fed7aa !important; }
+        .assess-unentered-tag { font-size: 0.6rem; font-weight: 800; color: #c2630a; background: #ffedd5; padding: 1px 6px; border-radius: 999px; flex-shrink: 0; }
+        /* 학생별 종합 매트릭스 테이블 */
+        .assess-matrix-wrap { overflow: auto; max-height: 100%; border: 1px solid #eef0f3; border-radius: 12px; }
+        .assess-matrix { border-collapse: separate; border-spacing: 0; font-size: 0.72rem; width: max-content; min-width: 100%; }
+        .assess-matrix th, .assess-matrix td { padding: 6px 8px; border-bottom: 1px solid #f1f3f5; border-right: 1px solid #f1f3f5; white-space: nowrap; text-align: center; }
+        .assess-matrix thead th { position: sticky; top: 0; background: #f8fafc; z-index: 2; font-weight: 800; color: #475569; max-width: 140px; white-space: normal; line-height: 1.25; }
+        .assess-matrix tbody th, .assess-matrix .stick-col { position: sticky; left: 0; background: white; z-index: 1; text-align: left; font-weight: 700; color: #1f2937; }
+        .assess-matrix thead th.stick-col { z-index: 3; }
+        .assess-matrix tbody tr:hover td, .assess-matrix tbody tr:hover th { background: #f5f7fa; }
 
         /* 출결 달력형 보기 (토스 '내 소비' 스타일) */
         .att-cal-summary-box { background: white; border: 1px solid #eef0f3; border-radius: 14px; padding: 12px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
@@ -976,6 +989,9 @@
             <button onclick="openAssessPlanModal()" class="btn-primary px-3 py-2 rounded-xl text-sm font-bold shadow-sm">
                 <i class="fa-solid fa-plus mr-1"></i>평가 계획 추가
             </button>
+            <button onclick="openAssessSummary()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1 transition">
+                <i class="fa-solid fa-table-list"></i> 학생별 종합
+            </button>
             <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
                 <button id="assess-btn-card" onclick="setAssessView('card')" class="sch-view-btn active"><i class="fa-solid fa-grip mr-1"></i>카드형</button>
                 <button id="assess-btn-list" onclick="setAssessView('list')" class="sch-view-btn"><i class="fa-solid fa-list mr-1"></i>리스트형</button>
@@ -986,7 +1002,8 @@
         <i class="fa-solid fa-circle-info mr-1 text-gray-400"></i>
         평가 계획을 직접 추가하거나 <b>엑셀로 업로드</b>하세요. 계획을 누르면 학생별 결과(매우잘함·잘함·보통·노력요함·기타)를 입력할 수 있습니다.
     </p>
-    <div id="assess-subject-nav" class="flex flex-wrap gap-1.5 mb-3 justify-center"></div>
+    <div id="assess-subject-nav" class="flex flex-wrap gap-1.5 mb-2 justify-center"></div>
+    <div id="assess-method-nav" class="flex flex-wrap gap-1.5 mb-3 justify-center items-center"></div>
     <div id="assess-plan-list">
         <p class="text-gray-400 text-sm text-center py-6">페이지 진입 시 자동으로 불러옵니다.</p>
     </div>
@@ -1466,7 +1483,10 @@
         <div class="px-6 pt-5 pb-3 border-b flex justify-between items-start flex-shrink-0">
             <div class="flex-1 min-w-0">
                 <span class="text-xs text-gray-400" id="assess-detail-area"></span>
-                <h3 class="font-bold text-gray-800 mt-0.5 text-base" id="assess-detail-unit"></h3>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                    <h3 class="font-bold text-gray-800 text-base" id="assess-detail-unit"></h3>
+                    <button onclick="copyAssessField('unit','단원')" title="단원 복사" class="assess-copy-btn flex-shrink-0"><i class="fa-regular fa-copy"></i></button>
+                </div>
             </div>
             <button onclick="closeAssessDetail()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
         </div>
@@ -1474,6 +1494,7 @@
             <div id="assess-detail-info"></div>
             <div>
                 <h4 class="font-bold text-sm text-gray-700 mb-2"><i class="fa-solid fa-user-check mr-1"></i> 학생별 평가 결과</h4>
+                <div id="assess-detail-unentered-banner" class="hidden text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2"></div>
                 <div id="assess-detail-students" class="space-y-1.5"></div>
             </div>
         </div>
@@ -1484,6 +1505,29 @@
                 <button onclick="closeAssessDetail()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition">닫기</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- 수행평가 학생별 종합 모달 -->
+<div id="assess-summary-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this)closeAssessSummary()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+        <div class="px-6 pt-5 pb-3 border-b flex justify-between items-center flex-shrink-0">
+            <div>
+                <h3 class="font-bold text-gray-800 text-base"><i class="fa-solid fa-table-list mr-2 text-amber-600"></i>학생별 평가 결과 종합</h3>
+                <p class="text-xs text-gray-400 mt-0.5" id="assess-summary-sub"></p>
+            </div>
+            <button onclick="closeAssessSummary()" class="text-gray-400 hover:text-gray-700 text-xl ml-4 flex-shrink-0 leading-none">&times;</button>
+        </div>
+        <div class="px-4 sm:px-6 py-3 border-b flex-shrink-0 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-gray-500">보기</span>
+            <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+                <button id="assess-sum-btn-matrix" onclick="setAssessSummaryView('matrix')" class="sch-view-btn active"><i class="fa-solid fa-border-all mr-1"></i>전체 매트릭스</button>
+                <button id="assess-sum-btn-student" onclick="setAssessSummaryView('student')" class="sch-view-btn"><i class="fa-solid fa-user mr-1"></i>학생별</button>
+            </div>
+            <select id="assess-sum-student-sel" onchange="renderAssessSummary()" class="p-1.5 rounded-lg border text-sm focus:outline-none hidden"></select>
+            <button onclick="downloadAssessSummary()" class="btn-accent-soft px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 ml-auto"><i class="fa-solid fa-file-excel"></i> 엑셀 내보내기</button>
+        </div>
+        <div class="px-4 sm:px-6 py-4 overflow-hidden flex-1 flex flex-col" id="assess-summary-body"></div>
     </div>
 </div>
 
@@ -3875,7 +3919,7 @@ function resetCounselFilter() {
 
 // ─── 수행평가 ────────────────────────────────────────────
 var assessPlans = [], assessResults = [], currentAssessPlanId = null;
-var assessView = 'card', assessSubjectFilter = null;
+var assessView = 'card', assessSubjectFilters = [], assessMethodFilter = null;
 var ASSESS_LEVELS = ['매우잘함','잘함','보통','노력요함','기타'];
 function assessResultClass(level) {
     var map = {
@@ -3919,10 +3963,10 @@ function renderAssessPlans() {
             '<p class="text-sm">등록된 수행평가 계획이 없습니다.<br>우측 상단 [평가 계획 추가] 또는 [엑셀 업로드]로 추가해주세요.</p></div>';
         return;
     }
-    var plans = assessSubjectFilter ? assessPlans.filter(function(p){ return assessSubjectKey(p) === assessSubjectFilter; }) : assessPlans;
+    var plans = getFilteredAssessPlans();
     if (!plans.length) {
         el.className = '';
-        el.innerHTML = emptyMsg('"' + assessSubjectFilter + '" 과목으로 등록된 평가 계획이 없습니다.');
+        el.innerHTML = emptyMsg('선택한 조건으로 등록된 평가 계획이 없습니다.');
         return;
     }
     var totalStudents = students.length;
@@ -3951,14 +3995,59 @@ function renderAssessSubjectNav() {
     var nav = document.getElementById('assess-subject-nav');
     if (!nav) return;
     var html = '<button onclick="setAssessSubject(null)" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
-        (assessSubjectFilter === null ? ' active' : '') + '">전체</button>';
+        (assessSubjectFilters.length === 0 ? ' active' : '') + '">전체</button>';
     html += ASSESS_SUBJECTS.map(function(s) {
+        var on = assessSubjectFilters.indexOf(s) >= 0;
         return '<button onclick="setAssessSubject(\'' + s + '\')" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
-            (assessSubjectFilter === s ? ' active' : '') + '">' + s + '</button>';
+            (on ? ' active' : '') + '">' + (on ? '<i class="fa-solid fa-check mr-1"></i>' : '') + s + '</button>';
+    }).join('');
+    nav.innerHTML = html;
+    renderAssessMethodNav();
+}
+
+// 등록된 계획에서 사용된 평가방법 목록(중복 제거)
+function assessMethodList() {
+    var seen = {}, list = [];
+    (assessPlans || []).forEach(function(p) {
+        var m = String(p.method || '').trim();
+        if (m && !seen[m]) { seen[m] = 1; list.push(m); }
+    });
+    return list;
+}
+
+function renderAssessMethodNav() {
+    var nav = document.getElementById('assess-method-nav');
+    if (!nav) return;
+    var methods = assessMethodList();
+    if (!methods.length) { nav.innerHTML = ''; return; }
+    if (assessMethodFilter && methods.indexOf(assessMethodFilter) < 0) assessMethodFilter = null;
+    var html = '<span class="text-xs font-bold text-gray-400 mr-1"><i class="fa-solid fa-pen-ruler mr-1"></i>평가방법</span>';
+    html += '<button onclick="setAssessMethod(null)" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+        (assessMethodFilter === null ? ' active' : '') + '">전체</button>';
+    html += methods.map(function(m) {
+        return '<button onclick="setAssessMethod(\'' + escAttr(m) + '\')" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+            (assessMethodFilter === m ? ' active' : '') + '">' + escHtml(m) + '</button>';
     }).join('');
     nav.innerHTML = html;
 }
-function setAssessSubject(s) { assessSubjectFilter = s; renderAssessPlans(); }
+
+function getFilteredAssessPlans() {
+    return (assessPlans || []).filter(function(p) {
+        if (assessSubjectFilters.length && assessSubjectFilters.indexOf(assessSubjectKey(p)) < 0) return false;
+        if (assessMethodFilter && String(p.method || '').trim() !== assessMethodFilter) return false;
+        return true;
+    });
+}
+
+function setAssessSubject(s) {
+    if (s === null) { assessSubjectFilters = []; }
+    else {
+        var i = assessSubjectFilters.indexOf(s);
+        if (i >= 0) assessSubjectFilters.splice(i, 1); else assessSubjectFilters.push(s);
+    }
+    renderAssessPlans();
+}
+function setAssessMethod(m) { assessMethodFilter = m; renderAssessPlans(); }
 
 function setAssessView(v) {
     assessView = v;
@@ -3982,11 +4071,12 @@ function assessCardHtml(p, totalStudents) {
         '<div class="flex items-center gap-1.5 flex-wrap mb-1.5">' +
             (p.subject ? '<span class="badge bg-sky-100 text-sky-700">' + escHtml(p.subject) + '</span>' : '') +
             (p.area ? '<span class="badge bg-indigo-100 text-indigo-700">' + escHtml(p.area) + '</span>' : '') +
+            (p.method ? '<span class="badge bg-teal-100 text-teal-700">' + escHtml(p.method) + '</span>' : '') +
             (p.timing ? '<span class="badge bg-purple-100 text-purple-700">' + escHtml(p.timing) + '</span>' : '') +
         '</div>' +
         '<p class="font-bold text-gray-800 text-sm mb-1 leading-snug">' + escHtml(p.unit || '(단원 미입력)') + '</p>' +
-        (p.standard ? '<p class="text-xs text-gray-500 mb-1 assess-clamp">' + escHtml(p.standard) + '</p>' : '') +
-        (p.element ? '<p class="text-xs text-gray-400 assess-clamp">' + escHtml(p.element) + '</p>' : '') +
+        (p.element ? '<p class="text-xs text-gray-600 font-semibold mb-1 assess-clamp">' + escHtml(p.element) + '</p>' : '') +
+        (p.standard ? '<p class="text-xs text-gray-400 assess-clamp">' + escHtml(p.standard) + '</p>' : '') +
         '<div class="flex justify-between items-center mt-auto pt-2">' +
             '<span class="text-xs font-bold ' + pr.cls + '"><i class="fa-solid fa-user-check mr-1"></i>' + pr.txt + '</span>' +
             '<button class="del-btn" onclick="event.stopPropagation();deleteAssessPlan(\'' + escAttr(p.id) + '\')"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
@@ -4000,6 +4090,7 @@ function assessListRowHtml(p, totalStudents) {
         (p.subject ? '<span class="badge bg-sky-100 text-sky-700 flex-shrink-0">' + escHtml(p.subject) + '</span>' : '') +
         '<span class="font-bold text-gray-800 text-sm truncate">' + escHtml(p.unit || '(단원 미입력)') + '</span>' +
         (p.area ? '<span class="badge bg-indigo-100 text-indigo-700 flex-shrink-0 hidden sm:inline-block">' + escHtml(p.area) + '</span>' : '') +
+        (p.method ? '<span class="badge bg-teal-100 text-teal-700 flex-shrink-0 hidden sm:inline-block">' + escHtml(p.method) + '</span>' : '') +
         (p.timing ? '<span class="badge bg-purple-100 text-purple-700 flex-shrink-0 hidden sm:inline-block">' + escHtml(p.timing) + '</span>' : '') +
         '<span class="text-xs font-bold ' + pr.cls + ' ml-auto flex-shrink-0"><i class="fa-solid fa-user-check mr-1"></i>' + pr.txt + '</span>' +
         '<button class="del-btn flex-shrink-0" onclick="event.stopPropagation();deleteAssessPlan(\'' + escAttr(p.id) + '\')"><i class="fa-solid fa-trash-can text-xs"></i></button>' +
@@ -4080,9 +4171,9 @@ function openAssessDetail(planId) {
     document.getElementById('assess-detail-unit').textContent = p.unit || '(단원 미입력)';
 
     var info = '';
-    if (p.standard) info += '<p class="text-xs text-gray-600 mb-1"><b>성취기준</b> ' + escHtml(p.standard) + '</p>';
-    if (p.element)  info += '<p class="text-xs text-gray-600 mb-1"><b>평가요소</b> ' + escHtml(p.element) + '</p>';
-    if (p.focus)    info += '<p class="text-xs text-gray-600 mb-2"><b>주안점</b> ' + escHtml(p.focus) + '</p>';
+    if (p.element)  info += assessCopyLine('평가요소', p.element, 'element', true);
+    if (p.standard) info += assessCopyLine('성취기준', p.standard, 'standard', false);
+    if (p.focus)    info += assessCopyLine('주안점', p.focus, 'focus', false);
     var c = p.criteria || {};
     var rows = ['매우잘함','잘함','보통','노력요함'].map(function(lv) {
         if (!c[lv]) return '';
@@ -4095,6 +4186,9 @@ function openAssessDetail(planId) {
     // 학생별 결과 입력 행 구성
     var resMap = {};
     assessResults.forEach(function(r) { if (r.planId === planId) resMap[String(r.studentNum)] = r; });
+    // 이 계획에 한 번이라도 결과가 저장된 적이 있으면 미입력 학생을 강조
+    var planHasResults = assessResults.some(function(r){ return r.planId === planId && r.result; });
+    var unenteredCount = 0;
     var box = document.getElementById('assess-detail-students');
     if (!students.length) {
         box.innerHTML = '<p class="text-xs text-gray-400 py-3 text-center">먼저 학생 정보를 등록해주세요.</p>';
@@ -4103,24 +4197,42 @@ function openAssessDetail(planId) {
             var existing = resMap[String(s.num)] || {};
             var cur = existing.result || '';
             var note = existing.note || '';
+            if (!cur) unenteredCount++;
+            var markUnentered = planHasResults && !cur;
             var opts = '<option value="">미입력</option>' + ASSESS_LEVELS.map(function(lv) {
                 return '<option value="' + lv + '"' + (cur === lv ? ' selected' : '') + '>' + lv + '</option>';
             }).join('');
-            return '<div class="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2.5 py-1.5" data-num="' + escAttr(s.num) + '" data-name="' + escAttr(s.name) + '">' +
+            return '<div class="assess-student-row flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2.5 py-1.5' + (markUnentered ? ' unentered' : '') + '" data-num="' + escAttr(s.num) + '" data-name="' + escAttr(s.name) + '">' +
                 '<span class="text-sm font-bold text-gray-700 w-20 flex-shrink-0">' + s.num + '번 ' + escHtml(s.name) + '</span>' +
+                '<span class="assess-unentered-tag' + (markUnentered ? '' : ' hidden') + '">미입력</span>' +
                 '<select class="assess-res-select p-1.5 rounded-lg border text-sm focus:outline-none flex-shrink-0" style="width:110px" onchange="onAssessResultChange(this)">' + opts + '</select>' +
                 '<input type="text" class="assess-res-note flex-1 p-1.5 rounded-lg border text-sm focus:outline-none" placeholder="기타(주관식) 내용" value="' + escAttr(note) + '" style="display:' + (cur === '기타' ? '' : 'none') + '">' +
                 '</div>';
         }).join('');
+    }
+    // 미입력 안내 배너
+    var banner = document.getElementById('assess-detail-unentered-banner');
+    if (banner) {
+        if (planHasResults && unenteredCount > 0) {
+            banner.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i>아직 평가를 입력하지 않은 학생이 <b>' + unenteredCount + '명</b> 있습니다. (주황색 표시)';
+            banner.classList.remove('hidden');
+        } else {
+            banner.classList.add('hidden');
+        }
     }
     document.getElementById('assess-detail-modal').classList.remove('hidden');
 }
 function closeAssessDetail() { document.getElementById('assess-detail-modal').classList.add('hidden'); currentAssessPlanId = null; }
 
 function onAssessResultChange(sel) {
-    var note = sel.parentElement.querySelector('.assess-res-note');
+    var row = sel.parentElement;
+    var note = row.querySelector('.assess-res-note');
     if (sel.value === '기타') { note.style.display = ''; }
     else { note.style.display = 'none'; }
+    // 입력하면 미입력 표시 해제, 비우면 다시 표시
+    var tag = row.querySelector('.assess-unentered-tag');
+    if (sel.value) { row.classList.remove('unentered'); if (tag) tag.classList.add('hidden'); }
+    else { row.classList.add('unentered'); if (tag) tag.classList.remove('hidden'); }
 }
 
 function saveAssessResults() {
@@ -4141,6 +4253,137 @@ function saveAssessResults() {
         closeAssessDetail();
         loadAssessment();
     });
+}
+
+// ─── 복사 / 클립보드 유틸 ────────────────────────────────
+function assessCopyLine(label, value, field, strong) {
+    var textCls = strong ? 'text-gray-700 font-semibold' : 'text-gray-500';
+    return '<div class="flex items-start gap-1.5 mb-1">' +
+        '<p class="text-xs ' + textCls + ' flex-1 leading-relaxed"><b class="text-gray-400 mr-1">' + label + '</b>' + escHtml(value) + '</p>' +
+        '<button onclick="copyAssessField(\'' + field + '\',\'' + label + '\')" title="' + label + ' 복사" class="assess-copy-btn"><i class="fa-regular fa-copy"></i></button>' +
+        '</div>';
+}
+function copyAssessField(field, label) {
+    var p = assessPlans.filter(function(x){ return x.id === currentAssessPlanId; })[0];
+    if (!p) return;
+    copyText(String(p[field] || ''), label || '내용');
+}
+function copyText(text, label) {
+    if (!text) { showToast('복사할 내용이 없습니다.'); return; }
+    var done = function(){ showToast((label || '내용') + '이(가) 복사되었습니다.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function(){ fallbackCopyText(text, done); });
+    } else { fallbackCopyText(text, done); }
+}
+function fallbackCopyText(text, done) {
+    try {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        done();
+    } catch (e) { showToast('복사에 실패했습니다.'); }
+}
+
+// ─── 학생별 평가 결과 종합 ───────────────────────────────
+var assessSummaryView = 'matrix';
+function openAssessSummary() {
+    if (!assessPlans.length) { showToast('등록된 평가 계획이 없습니다.'); return; }
+    if (!students.length) { showToast('먼저 학생 정보를 등록해주세요.'); return; }
+    var sel = document.getElementById('assess-sum-student-sel');
+    sel.innerHTML = students.map(function(s){ return '<option value="' + escAttr(s.num) + '">' + s.num + '번 ' + escHtml(s.name) + '</option>'; }).join('');
+    document.getElementById('assess-summary-modal').classList.remove('hidden');
+    renderAssessSummary();
+}
+function closeAssessSummary() { document.getElementById('assess-summary-modal').classList.add('hidden'); }
+function setAssessSummaryView(v) {
+    assessSummaryView = v;
+    document.getElementById('assess-sum-btn-matrix').classList.toggle('active', v === 'matrix');
+    document.getElementById('assess-sum-btn-student').classList.toggle('active', v === 'student');
+    document.getElementById('assess-sum-student-sel').classList.toggle('hidden', v !== 'student');
+    renderAssessSummary();
+}
+
+// 현재 필터(과목·평가방법) 적용된 계획을 종합 대상으로 사용
+function assessSummaryPlans() { return getFilteredAssessPlans(); }
+function assessResultFor(planId, studentNum) {
+    var r = assessResults.filter(function(x){ return x.planId === planId && String(x.studentNum) === String(studentNum); })[0];
+    return r || null;
+}
+function assessSummarySub(plans) {
+    var parts = [];
+    if (assessSubjectFilters.length) parts.push(assessSubjectFilters.join('·'));
+    if (assessMethodFilter) parts.push(assessMethodFilter);
+    return (parts.length ? parts.join(' / ') + ' · ' : '') + plans.length + '개 계획 · 학생 ' + students.length + '명';
+}
+
+function renderAssessSummary() {
+    var plans = assessSummaryPlans();
+    var body = document.getElementById('assess-summary-body');
+    document.getElementById('assess-summary-sub').textContent = assessSummarySub(plans);
+    if (!plans.length) { body.innerHTML = emptyMsg('선택한 조건으로 표시할 평가 계획이 없습니다.'); return; }
+    if (assessSummaryView === 'student') { body.innerHTML = assessSummaryStudentHtml(plans); }
+    else { body.innerHTML = assessSummaryMatrixHtml(plans); }
+}
+
+function assessCellHtml(r) {
+    if (!r || !r.result) return '<span class="text-gray-300">-</span>';
+    var txt = r.result === '기타' && r.note ? '기타: ' + r.note : r.result;
+    return '<span class="badge ' + assessResultClass(r.result) + '">' + escHtml(txt) + '</span>';
+}
+
+function assessSummaryMatrixHtml(plans) {
+    var head = '<tr><th class="stick-col">학생</th>' + plans.map(function(p){
+        return '<th>' + escHtml(p.unit || '(단원)') + (p.timing ? '<br><span class="text-gray-400 font-normal">' + escHtml(p.timing) + '</span>' : '') + '</th>';
+    }).join('') + '</tr>';
+    var rows = students.map(function(s){
+        var cells = plans.map(function(p){ return '<td>' + assessCellHtml(assessResultFor(p.id, s.num)) + '</td>'; }).join('');
+        return '<tr><th class="stick-col">' + s.num + '번 ' + escHtml(s.name) + '</th>' + cells + '</tr>';
+    }).join('');
+    return '<div class="assess-matrix-wrap flex-1"><table class="assess-matrix"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+function assessSummaryStudentHtml(plans) {
+    var sel = document.getElementById('assess-sum-student-sel');
+    var num = sel.value || (students[0] && students[0].num);
+    var s = students.filter(function(x){ return String(x.num) === String(num); })[0];
+    if (!s) return emptyMsg('학생을 선택해주세요.');
+    var counts = {};
+    var rows = plans.map(function(p){
+        var r = assessResultFor(p.id, s.num);
+        if (r && r.result) counts[r.result] = (counts[r.result] || 0) + 1;
+        return '<tr>' +
+            '<td class="stick-col text-left">' + escHtml(p.unit || '(단원)') +
+                (p.subject || p.method ? '<br><span class="text-gray-400 font-normal text-[0.65rem]">' + escHtml([p.subject, p.method, p.timing].filter(Boolean).join(' · ')) + '</span>' : '') +
+            '</td>' +
+            '<td>' + assessCellHtml(r) + '</td></tr>';
+    }).join('');
+    var summary = ASSESS_LEVELS.map(function(lv){
+        if (!counts[lv]) return '';
+        return '<span class="badge ' + assessResultClass(lv) + '">' + lv + ' ' + counts[lv] + '</span>';
+    }).filter(Boolean).join(' ');
+    return '<div class="mb-3 flex flex-wrap items-center gap-1.5"><span class="text-sm font-bold text-gray-700 mr-1">' + s.num + '번 ' + escHtml(s.name) + '</span>' + (summary || '<span class="text-xs text-gray-400">입력된 결과 없음</span>') + '</div>' +
+        '<div class="assess-matrix-wrap flex-1"><table class="assess-matrix" style="width:100%"><thead><tr><th class="stick-col text-left">평가 계획</th><th>결과</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+function downloadAssessSummary() {
+    if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리를 불러오지 못했습니다.'); return; }
+    var plans = assessSummaryPlans();
+    if (!plans.length) { showToast('내보낼 데이터가 없습니다.'); return; }
+    var header = ['번호', '이름'].concat(plans.map(function(p){ return (p.unit || '(단원)') + (p.timing ? '(' + p.timing + ')' : ''); }));
+    var aoa = [header];
+    students.forEach(function(s){
+        var row = [s.num, s.name];
+        plans.forEach(function(p){
+            var r = assessResultFor(p.id, s.num);
+            row.push(r && r.result ? (r.result === '기타' && r.note ? '기타: ' + r.note : r.result) : '');
+        });
+        aoa.push(row);
+    });
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, '학생별평가종합');
+    XLSX.writeFile(wb, '수행평가_학생별종합.xlsx');
 }
 
 // ─── 수행평가 계획 엑셀 업로드 ───────────────────────────
