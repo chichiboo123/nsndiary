@@ -171,6 +171,12 @@
         .month-nav-btn:hover { background: white; color: var(--accent-color); border-color: var(--accent-color); }
         .month-nav-btn.active { background: var(--accent-color); color: var(--text-sidebar); border-color: var(--accent-color); }
 
+        .assess-semester-tabs { display: inline-flex; align-items: center; gap: 4px; background: #f1f5f9; border-radius: 12px; padding: 5px; }
+        .assess-sem-tab { font-size: 0.85rem; font-weight: 700; color: #64748b; background: transparent; border: none; border-radius: 9px; padding: 7px 22px; cursor: pointer; transition: all 0.2s; }
+        .assess-sem-tab.active { background: var(--accent-color); color: var(--text-sidebar); box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+        .assess-sem-tab:not(.active):hover { color: var(--accent-color); }
+        .assess-sem-count { font-size: 0.74rem; color: #94a3b8; font-weight: 600; }
+
         .assess-filter { border: 1px solid #e5e7eb; border-radius: 14px; background: rgba(255,255,255,0.55); padding: 8px 10px; }
         .assess-filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .assess-filter-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; color: #6b7280; background: white; border: 1px solid #e5e7eb; border-radius: 9999px; padding: 5px 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
@@ -1016,6 +1022,13 @@
         <i class="fa-solid fa-circle-info mr-1 text-gray-400"></i>
         평가 계획을 직접 추가하거나 <b>엑셀로 업로드</b>하세요. 계획을 누르면 학생별 결과(매우잘함·잘함·보통·노력요함·기타)를 입력할 수 있습니다.
     </p>
+    <div class="flex items-center gap-3 flex-wrap mb-3">
+        <div class="assess-semester-tabs">
+            <button type="button" id="assess-sem-1" onclick="setAssessSemester('1학기')" class="assess-sem-tab active">1학기</button>
+            <button type="button" id="assess-sem-2" onclick="setAssessSemester('2학기')" class="assess-sem-tab">2학기</button>
+        </div>
+        <span id="assess-sem-count" class="assess-sem-count"></span>
+    </div>
     <div id="assess-filter" class="assess-filter mb-3">
         <div class="assess-filter-bar">
             <button type="button" id="assess-filter-toggle" onclick="toggleAssessFilter()" class="assess-filter-toggle">
@@ -1434,7 +1447,14 @@
         </div>
         <div class="px-6 py-4 space-y-3 overflow-y-auto flex-1">
             <input type="hidden" id="assess-plan-id">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">학기</label>
+                    <select id="assess-plan-semester" class="w-full p-2 rounded-lg border text-sm focus:outline-none bg-white">
+                        <option value="1학기">1학기</option>
+                        <option value="2학기">2학기</option>
+                    </select>
+                </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">구분</label>
                     <input type="text" id="assess-plan-division" placeholder="예: 교과" class="w-full p-2 rounded-lg border text-sm focus:outline-none">
@@ -3948,6 +3968,16 @@ function resetCounselFilter() {
 var assessPlans = [], assessResults = [], currentAssessPlanId = null;
 var assessView = 'card', assessSubjectFilters = [], assessMethodFilters = [];
 var assessFilterOpen = (typeof window !== 'undefined' && window.innerWidth >= 768);
+// 현재 월 기준 기본 학기 (3~7월: 1학기, 그 외: 2학기)
+function defaultAssessSemester() { var m = new Date().getMonth() + 1; return (m >= 3 && m <= 7) ? '1학기' : '2학기'; }
+var assessSemester = defaultAssessSemester();
+function normSemester(v, fallback) {
+    var s = String(v == null ? '' : v).replace(/\s+/g, '');
+    if (!s) return fallback || '1학기';
+    if (s.indexOf('2') >= 0 || /이학기|후기|하반기/.test(s)) return '2학기';
+    if (s.indexOf('1') >= 0 || /일학기|전기|상반기/.test(s)) return '1학기';
+    return fallback || '1학기';
+}
 var ASSESS_LEVELS = ['매우잘함','잘함','보통','노력요함','기타'];
 function assessResultClass(level) {
     var map = {
@@ -3982,6 +4012,7 @@ function loadAssessment() {
 }
 
 function renderAssessPlans() {
+    renderAssessSemesterUI();
     renderAssessSubjectNav();
     applyAssessFilterUI();
     var el = document.getElementById('assess-plan-list');
@@ -3995,7 +4026,10 @@ function renderAssessPlans() {
     var plans = getFilteredAssessPlans();
     if (!plans.length) {
         el.className = '';
-        el.innerHTML = emptyMsg('선택한 조건으로 등록된 평가 계획이 없습니다.');
+        var noFilter = !assessSubjectFilters.length && !assessMethodFilters.length;
+        el.innerHTML = emptyMsg(noFilter
+            ? (assessSemester + '에 등록된 평가 계획이 없습니다. [평가 계획 추가] 또는 [엑셀 업로드]로 추가해주세요.')
+            : (assessSemester + ' · 선택한 조건으로 등록된 평가 계획이 없습니다.'));
         return;
     }
     var totalStudents = students.length;
@@ -4063,10 +4097,28 @@ function renderAssessMethodNav() {
 
 function getFilteredAssessPlans() {
     return (assessPlans || []).filter(function(p) {
+        if ((p.semester || '1학기') !== assessSemester) return false;
         if (assessSubjectFilters.length && assessSubjectFilters.indexOf(assessSubjectKey(p)) < 0) return false;
         if (assessMethodFilters.length && assessMethodFilters.indexOf(String(p.method || '').trim()) < 0) return false;
         return true;
     });
+}
+
+function setAssessSemester(s) {
+    if (s !== '1학기' && s !== '2학기') return;
+    assessSemester = s;
+    renderAssessPlans();
+}
+
+// 학기 탭 활성 상태 및 학기별 계획 수 표시
+function renderAssessSemesterUI() {
+    var s1 = document.getElementById('assess-sem-1'), s2 = document.getElementById('assess-sem-2');
+    if (s1) s1.classList.toggle('active', assessSemester === '1학기');
+    if (s2) s2.classList.toggle('active', assessSemester === '2학기');
+    var c1 = 0, c2 = 0;
+    (assessPlans || []).forEach(function(p){ if ((p.semester || '1학기') === '2학기') c2++; else c1++; });
+    var cnt = document.getElementById('assess-sem-count');
+    if (cnt) cnt.innerHTML = '<i class="fa-solid fa-box-archive mr-1 text-gray-300"></i>1학기 <b>' + c1 + '</b>개 · 2학기 <b>' + c2 + '</b>개';
 }
 
 function setAssessSubject(s) {
@@ -4181,6 +4233,7 @@ function openAssessPlanModal(planId) {
     document.getElementById('assess-plan-method').value   = p ? (p.method||'') : '';
     document.getElementById('assess-plan-focus').value    = p ? (p.focus||'') : '';
     document.getElementById('assess-plan-timing').value   = p ? (p.timing||'') : '';
+    document.getElementById('assess-plan-semester').value = p ? (p.semester || '1학기') : assessSemester;
     var c = (p && p.criteria) || {};
     document.getElementById('assess-plan-c1').value = c['매우잘함'] || '';
     document.getElementById('assess-plan-c2').value = c['잘함'] || '';
@@ -4208,6 +4261,7 @@ function saveAssessPlan() {
         method:   document.getElementById('assess-plan-method').value.trim(),
         focus:    document.getElementById('assess-plan-focus').value.trim(),
         timing:   document.getElementById('assess-plan-timing').value.trim(),
+        semester: document.getElementById('assess-plan-semester').value || '1학기',
         criteria: {
             '매우잘함': document.getElementById('assess-plan-c1').value.trim(),
             '잘함':     document.getElementById('assess-plan-c2').value.trim(),
@@ -4219,6 +4273,8 @@ function saveAssessPlan() {
     gasCall(fn, payload, id ? '수행평가 계획이 수정되었습니다.' : '수행평가 계획이 추가되었습니다.', function() {
         closeAssessPlanModal();
         if (document.getElementById('assess-detail-modal').classList.contains('hidden') === false) closeAssessDetail();
+        // 저장한 계획의 학기로 화면을 맞춰 바로 확인할 수 있게 함
+        if (payload.semester) assessSemester = payload.semester;
         loadAssessment();
     });
 }
@@ -4381,10 +4437,10 @@ function assessResultFor(planId, studentNum) {
     return r || null;
 }
 function assessSummarySub(plans) {
-    var parts = [];
+    var parts = [assessSemester];
     if (assessSubjectFilters.length) parts.push(assessSubjectFilters.join('·'));
     if (assessMethodFilters.length) parts.push(assessMethodFilters.join('·'));
-    return (parts.length ? parts.join(' / ') + ' · ' : '') + plans.length + '개 계획 · 학생 ' + students.length + '명';
+    return parts.join(' / ') + ' · ' + plans.length + '개 계획 · 학생 ' + students.length + '명';
 }
 
 function renderAssessSummary() {
@@ -4452,13 +4508,14 @@ function downloadAssessSummary() {
     });
     var wb = XLSX.utils.book_new();
     var ws = XLSX.utils.aoa_to_sheet(aoa);
-    XLSX.utils.book_append_sheet(wb, ws, '학생별평가종합');
-    XLSX.writeFile(wb, '수행평가_학생별종합.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, assessSemester + ' 평가종합');
+    XLSX.writeFile(wb, '수행평가_학생별종합_' + assessSemester + '.xlsx');
 }
 
 // ─── 수행평가 계획 엑셀 업로드 ───────────────────────────
 // 업로드 양식 헤더(공백 제거 후) → 내부 필드 매핑
 var ASSESS_XLSX_HEADER_MAP = {
+    '학기': 'semester',
     '구분': 'division',
     '교과/활동영역': 'subject', '교과활동영역': 'subject', '교과': 'subject', '활동영역': 'subject', '교과명': 'subject',
     '단원/주제명': 'unit', '단원주제명': 'unit', '단원': 'unit', '주제명': 'unit', '단원명': 'unit',
@@ -4484,7 +4541,9 @@ function handleAssessXlsx(input) {
             var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
             var plans = parseAssessAoa(aoa);
             if (!plans.length) { showToast('엑셀에서 평가 계획을 찾지 못했습니다. 양식을 확인해주세요.'); input.value = ''; return; }
-            if (!confirm(plans.length + '개의 수행평가 계획을 불러왔습니다.\n연동된 스프레드시트에 저장할까요?\n(이미 등록된 동일 항목은 자동으로 건너뜁니다.)')) { input.value = ''; return; }
+            // 엑셀에 '학기' 값이 없으면 현재 선택한 학기로 저장
+            plans.forEach(function(p){ p.semester = normSemester(p.semester, assessSemester); });
+            if (!confirm(plans.length + '개의 수행평가 계획을 불러왔습니다. (학기 미기재 항목은 ' + assessSemester + '로 저장)\n연동된 스프레드시트에 저장할까요?\n(이미 등록된 동일 항목은 자동으로 건너뜁니다.)')) { input.value = ''; return; }
             gasCall('saveAssessmentPlansBulk', plans, plans.length + '개의 수행평가 계획을 저장했습니다.', function() {
                 loadAssessment();
             });
@@ -4526,6 +4585,7 @@ function parseAssessAoa(aoa) {
             division: val('division'), subject: val('subject'), unit: unit,
             standard: standard, element: element, area: val('area'),
             method: val('method'), focus: val('focus'), timing: val('timing'),
+            semester: val('semester'),
             criteria: { '매우잘함': val('c1'), '잘함': val('c2'), '보통': val('c3'), '노력요함': val('c4') }
         });
     }
@@ -4535,8 +4595,8 @@ function parseAssessAoa(aoa) {
 // 업로드 양식과 동일한 빈 엑셀 양식 다운로드
 function downloadAssessTemplate() {
     if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리를 불러오지 못했습니다.'); return; }
-    var headers = ['연번','구분','교과/활동영역','단원/주제명','성취기준','평가요소','평가영역','평가방법','수업·평가 연계 주안점','평가시기','매우 잘함','잘함','보통','노력 요함'];
-    var example = ['1','교과','국어','2. 체험한 일을 글로 써요','[6국03-03] 체험한 일에 대한 감상을 나타내는 글을 쓴다.','여정, 견문, 감상이 드러나게 기행문 쓰기','쓰기','논술형평가','여정, 견문, 감상 세 가지의 기행문 구성 요소가 드러나게 씀.','4월','체험한 일에 대한 여정, 견문, 감상이 풍부하고 효과적으로 드러나게 기행문을 짜임새있게 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 풍부하게 기행문을 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 드러나게 기행문을 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 일부 드러나게 기행문을 쓸 수 있다.'];
+    var headers = ['연번','학기','구분','교과/활동영역','단원/주제명','성취기준','평가요소','평가영역','평가방법','수업·평가 연계 주안점','평가시기','매우 잘함','잘함','보통','노력 요함'];
+    var example = ['1','1학기','교과','국어','2. 체험한 일을 글로 써요','[6국03-03] 체험한 일에 대한 감상을 나타내는 글을 쓴다.','여정, 견문, 감상이 드러나게 기행문 쓰기','쓰기','논술형평가','여정, 견문, 감상 세 가지의 기행문 구성 요소가 드러나게 씀.','4월','체험한 일에 대한 여정, 견문, 감상이 풍부하고 효과적으로 드러나게 기행문을 짜임새있게 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 풍부하게 기행문을 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 드러나게 기행문을 쓸 수 있다.','체험한 일에 대한 여정, 견문, 감상이 일부 드러나게 기행문을 쓸 수 있다.'];
     var ws = XLSX.utils.aoa_to_sheet([headers, example]);
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '수행평가계획');
