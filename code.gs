@@ -879,9 +879,31 @@ function _detectRelevantSheets(question) {
   return sheets;
 }
 
-// 시트 데이터를 텍스트로 직렬화
-function _sheetToText(sheetName, maxRows) {
-  maxRows = maxRows || 150;
+// 질문에서 날짜 필터 추출 (예: "6월", "2026-06", "2026년 6월")
+function _extractDateFilter(question) {
+  var q = String(question || '');
+  // 연-월 (2026-06, 2026.6, 2026년 6월)
+  var m1 = q.match(/(20\d{2})\s*[년.\-\/]\s*(\d{1,2})\s*월?/);
+  if (m1) return { type: 'ym', y: m1[1], m: ('0' + m1[2]).slice(-2) };
+  // 월만 (6월) → 연도 무관하게 해당 월 매칭
+  var m2 = q.match(/(\d{1,2})\s*월/);
+  if (m2) return { type: 'm', m: ('0' + m2[1]).slice(-2) };
+  return null;
+}
+
+// 날짜 문자열(yyyy-MM-dd)이 필터와 일치하는지
+function _matchDate(ds, f) {
+  if (!f) return true;
+  if (!ds || ds.length < 7) return false;
+  if (f.type === 'ym') return ds.substring(0, 4) === f.y && ds.substring(5, 7) === f.m;
+  if (f.type === 'm') return ds.substring(5, 7) === f.m;
+  return true;
+}
+
+// 시트 데이터를 텍스트로 직렬화 (날짜 필터 + 글자수 예산 적용)
+var _CHAT_MAX_FIELD = 180;   // 셀 1개 최대 글자수
+function _sheetToText(sheetName, dateFilter, budget) {
+  budget = budget || 6000;
   try {
     var ss = getSpreadsheet();
     var sheet = ss.getSheetByName(sheetName);
@@ -889,18 +911,38 @@ function _sheetToText(sheetName, maxRows) {
     var data = sheet.getDataRange().getValues();
     var headers = data[0];
     var tz = Session.getScriptTimeZone();
+    // 날짜/일시 컬럼 위치 탐색
+    var dateCol = -1;
+    for (var h = 0; h < headers.length; h++) {
+      var hn = String(headers[h]);
+      if (hn.indexOf('날짜') >= 0 || hn.indexOf('일시') >= 0) { dateCol = h; break; }
+    }
     var lines = ['[' + sheetName + ']'];
+    var used = lines[0].length;
     var count = 0;
-    for (var i = 1; i < data.length && count < maxRows; i++) {
+    for (var i = 1; i < data.length; i++) {
       if (!data[i][0]) continue;
+      // 날짜 필터 (날짜 컬럼이 있는 시트만 적용)
+      if (dateFilter && dateCol >= 0) {
+        var dv = data[i][dateCol];
+        var ds = (dv instanceof Date) ? Utilities.formatDate(dv, tz, 'yyyy-MM-dd') : String(dv || '');
+        if (!_matchDate(ds, dateFilter)) continue;
+      }
       var cols = [];
       for (var j = 0; j < headers.length; j++) {
         var v = data[i][j];
         if (v instanceof Date) v = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
         var s = String(v === null || v === undefined ? '' : v).trim();
-        if (s) cols.push(headers[j] + ':' + s);
+        if (!s) continue;
+        if (s.length > _CHAT_MAX_FIELD) s = s.substring(0, _CHAT_MAX_FIELD) + '…';
+        cols.push(headers[j] + ':' + s);
       }
-      if (cols.length) { lines.push(cols.join(' | ')); count++; }
+      if (!cols.length) continue;
+      var line = cols.join(' | ');
+      if (used + line.length > budget) { lines.push('…(이하 생략)'); break; }
+      lines.push(line);
+      used += line.length + 1;
+      count++;
     }
     return count ? lines.join('\n') : '';
   } catch(e) { return ''; }
@@ -923,7 +965,7 @@ function _callGroq(messages) {
           model: models[m],
           messages: messages,
           temperature: 0.3,
-          max_tokens: 1024
+          max_tokens: 800
         }),
         muteHttpExceptions: true
       });
@@ -941,24 +983,31 @@ function _callGroq(messages) {
 }
 
 // 프론트에서 google.script.run.chatWithData(question, historyJson) 으로 호출
+var _CHAT_CTX_BUDGET = 5500;  // 전체 데이터 컨텍스트 최대 글자수 (TPM 한도 대응)
 function chatWithData(question, historyJson) {
   if (!question || !question.trim()) return { text: '질문을 입력해주세요.', model: '' };
+  var dateFilter = _extractDateFilter(question);
   var relevantSheets = _detectRelevantSheets(question);
   var dataCtx = '';
   for (var i = 0; i < relevantSheets.length; i++) {
-    var t = _sheetToText(relevantSheets[i], 150);
+    var remain = _CHAT_CTX_BUDGET - dataCtx.length;
+    if (remain <= 200) break;  // 예산 소진 시 중단
+    var t = _sheetToText(relevantSheets[i], dateFilter, remain);
     if (t) dataCtx += t + '\n\n';
   }
   var history = [];
   try { history = historyJson ? JSON.parse(historyJson) : []; } catch(_e) {}
+  var filterNote = dateFilter
+    ? '\n(참고: 질문에서 ' + (dateFilter.type === 'ym' ? dateFilter.y + '년 ' : '') + parseInt(dateFilter.m, 10) + '월 데이터만 추렸습니다.)'
+    : '';
   var systemPrompt =
     '당신은 초등학교 담임 교사를 돕는 학급 관리 AI 어시스턴트입니다.\n' +
     '아래 학급 데이터를 바탕으로 교사의 질문에 한국어로 친절하고 정확하게 답변하세요.\n' +
     '데이터에 없는 내용은 솔직히 모른다고 말하고 추측하지 마세요.\n' +
-    '답변은 핵심만 간결하게 작성하고, 목록이 필요하면 번호나 • 형식을 사용하세요.\n\n' +
+    '답변은 핵심만 간결하게 작성하고, 목록이 필요하면 번호나 • 형식을 사용하세요.' + filterNote + '\n\n' +
     '=== 학급 데이터 ===\n' + (dataCtx.trim() || '(조회된 데이터 없음)');
   var messages = [{ role: 'system', content: systemPrompt }];
-  var recent = history.slice(-8);
+  var recent = history.slice(-4);  // 최근 2쌍만 유지 (토큰 절약)
   for (var j = 0; j < recent.length; j++) messages.push(recent[j]);
   messages.push({ role: 'user', content: question });
   return _callGroq(messages);
