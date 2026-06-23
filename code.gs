@@ -822,6 +822,132 @@ function deleteAssessmentPlan(id) {
   return '수행평가 계획이 삭제되었습니다.';
 }
 
+// ==========================================
+// 17. AI 챗봇 (GROQ API)
+// ==========================================
+
+// 질문 키워드 → 관련 시트 선택 (스마트 로딩)
+function _detectRelevantSheets(question) {
+  var q = question.toLowerCase();
+  var sheets = [];
+  var rules = [
+    { kw: ['학생정보', '연락처', '이름', '번호', '특이사항', '보호자'], sheet: '학생정보' },
+    { kw: ['출결', '결석', '지각', '조퇴', '출석', '무단', '인정결석', '병결'], sheet: '출결기록' },
+    { kw: ['수업', '수업기록', '교시', '교과', '단원', '배움주제', '성찰', '차시'], sheet: '수업기록' },
+    { kw: ['일상', '일상기록', '학급일지', '키워드'], sheet: '일상기록' },
+    { kw: ['학생기록', '행동', '관찰', '지도'], sheet: '학생기록' },
+    { kw: ['상담', '상담기록', '학부모', '방문상담', '전화상담'], sheet: '상담기록' },
+    { kw: ['수행평가', '평가계획', '채점기준', '잘함', '보통', '노력요함', '성취기준', '평가방법'], sheetArr: ['수행평가계획', '수행평가결과'] },
+    { kw: ['일정', '행사', '학교일정', '학급일정', '날짜', '계획'], sheet: '일정' }
+  ];
+  var anyMatch = false;
+  for (var i = 0; i < rules.length; i++) {
+    var r = rules[i];
+    for (var j = 0; j < r.kw.length; j++) {
+      if (q.indexOf(r.kw[j]) >= 0) {
+        anyMatch = true;
+        if (r.sheetArr) {
+          for (var k = 0; k < r.sheetArr.length; k++) {
+            if (sheets.indexOf(r.sheetArr[k]) < 0) sheets.push(r.sheetArr[k]);
+          }
+        } else if (sheets.indexOf(r.sheet) < 0) {
+          sheets.push(r.sheet);
+        }
+        break;
+      }
+    }
+  }
+  if (!anyMatch || sheets.length === 0) {
+    sheets = ['학생정보', '출결기록', '수업기록', '일상기록', '학생기록', '상담기록', '일정'];
+  }
+  return sheets;
+}
+
+// 시트 데이터를 텍스트로 직렬화
+function _sheetToText(sheetName, maxRows) {
+  maxRows = maxRows || 150;
+  try {
+    var ss = getSpreadsheet();
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet || sheet.getLastRow() <= 1) return '';
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var tz = Session.getScriptTimeZone();
+    var lines = ['[' + sheetName + ']'];
+    var count = 0;
+    for (var i = 1; i < data.length && count < maxRows; i++) {
+      if (!data[i][0]) continue;
+      var cols = [];
+      for (var j = 0; j < headers.length; j++) {
+        var v = data[i][j];
+        if (v instanceof Date) v = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+        var s = String(v === null || v === undefined ? '' : v).trim();
+        if (s) cols.push(headers[j] + ':' + s);
+      }
+      if (cols.length) { lines.push(cols.join(' | ')); count++; }
+    }
+    return count ? lines.join('\n') : '';
+  } catch(e) { return ''; }
+}
+
+// GROQ API 호출 — openai/gpt-oss-120b → openai/gpt-oss-20b → llama-3.3-70b-versatile 순 폴백
+function _callGroq(messages) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty('GROQ_API_KEY');
+  if (!apiKey) throw new Error('GROQ_API_KEY가 설정되지 않았습니다. 스크립트 속성에서 추가해주세요.');
+  var models = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'llama-3.3-70b-versatile'];
+  var url = 'https://api.groq.com/openai/v1/chat/completions';
+  var lastError = '알 수 없는 오류';
+  for (var m = 0; m < models.length; m++) {
+    try {
+      var resp = UrlFetchApp.fetch(url, {
+        method: 'POST',
+        contentType: 'application/json',
+        headers: { 'Authorization': 'Bearer ' + apiKey },
+        payload: JSON.stringify({
+          model: models[m],
+          messages: messages,
+          temperature: 0.3,
+          max_tokens: 1024
+        }),
+        muteHttpExceptions: true
+      });
+      var code = resp.getResponseCode();
+      var body = resp.getContentText();
+      if (code === 200) {
+        var parsed = JSON.parse(body);
+        return { text: parsed.choices[0].message.content, model: models[m] };
+      }
+      // 모델 사용 불가(400/404) · 과부하(503) · rate limit(429) → 다음 모델 시도
+      try { lastError = JSON.parse(body).error.message || body; } catch(_e) { lastError = body; }
+    } catch(e) { lastError = e.message; }
+  }
+  throw new Error('모든 모델 호출 실패. 마지막 오류: ' + lastError);
+}
+
+// 프론트에서 google.script.run.chatWithData(question, historyJson) 으로 호출
+function chatWithData(question, historyJson) {
+  if (!question || !question.trim()) return { text: '질문을 입력해주세요.', model: '' };
+  var relevantSheets = _detectRelevantSheets(question);
+  var dataCtx = '';
+  for (var i = 0; i < relevantSheets.length; i++) {
+    var t = _sheetToText(relevantSheets[i], 150);
+    if (t) dataCtx += t + '\n\n';
+  }
+  var history = [];
+  try { history = historyJson ? JSON.parse(historyJson) : []; } catch(_e) {}
+  var systemPrompt =
+    '당신은 초등학교 담임 교사를 돕는 학급 관리 AI 어시스턴트입니다.\n' +
+    '아래 학급 데이터를 바탕으로 교사의 질문에 한국어로 친절하고 정확하게 답변하세요.\n' +
+    '데이터에 없는 내용은 솔직히 모른다고 말하고 추측하지 마세요.\n' +
+    '답변은 핵심만 간결하게 작성하고, 목록이 필요하면 번호나 • 형식을 사용하세요.\n\n' +
+    '=== 학급 데이터 ===\n' + (dataCtx.trim() || '(조회된 데이터 없음)');
+  var messages = [{ role: 'system', content: systemPrompt }];
+  var recent = history.slice(-8);
+  for (var j = 0; j < recent.length; j++) messages.push(recent[j]);
+  messages.push({ role: 'user', content: question });
+  return _callGroq(messages);
+}
+
 // payload: { planId, results: [{studentNum, studentName, result, note}] }
 function saveAssessmentResults(payload) {
   var sheet = _getOrCreateSheet(_ASSESS_RESULT_SHEET, _ASSESS_RESULT_HEADERS);
