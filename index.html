@@ -5706,6 +5706,52 @@ function clearChatHistory() {
     msgs.innerHTML = '';
     _appendChatMsg('ai', '대화가 초기화되었습니다. 다시 질문해 주세요!');
 }
+
+function _buildChatText() {
+    var lines = ['[AI 학급 도우미 대화 기록]', new Date().toLocaleString('ko-KR'), ''];
+    var wraps = document.querySelectorAll('#chat-messages .chat-msg-wrap');
+    wraps.forEach(function(wrap) {
+        var bubble = wrap.querySelector('.chat-bubble');
+        if (!bubble) return;
+        var isUser = bubble.classList.contains('user');
+        var model = wrap.querySelector('.chat-model-tag');
+        var prefix = isUser ? '나: ' : 'AI: ';
+        lines.push(prefix + bubble.textContent.trim());
+        if (model) lines.push('    (' + model.textContent.trim() + ')');
+        lines.push('');
+    });
+    return lines.join('\n');
+}
+
+function copyChatHistory(btn) {
+    var text = _buildChatText();
+    navigator.clipboard.writeText(text).then(function() {
+        var orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> 완료';
+        setTimeout(function() { btn.innerHTML = orig; }, 1500);
+    }).catch(function() {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        var orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> 완료';
+        setTimeout(function() { btn.innerHTML = orig; }, 1500);
+    });
+}
+
+function downloadChatHistory() {
+    var text = _buildChatText();
+    var date = new Date().toISOString().slice(0, 10);
+    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'AI학급도우미_' + date + '.txt';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+}
 </script>
 
 <!-- 모바일 하단 내비게이션 바 -->
@@ -5740,6 +5786,12 @@ function clearChatHistory() {
             AI 학급 도우미
         </div>
         <div style="display:flex;align-items:center;gap:2px;">
+            <button class="chat-clear-btn" onclick="copyChatHistory(this)" title="대화 복사">
+                <i class="fa-solid fa-copy"></i> 복사
+            </button>
+            <button class="chat-clear-btn" onclick="downloadChatHistory()" title="텍스트 파일로 저장">
+                <i class="fa-solid fa-download"></i> 저장
+            </button>
             <button class="chat-clear-btn" onclick="clearChatHistory()" title="대화 초기화">
                 <i class="fa-solid fa-rotate-left"></i> 초기화
             </button>
