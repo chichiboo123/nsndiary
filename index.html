@@ -575,6 +575,15 @@
         #chat-send-btn:disabled { background: #d1d5db; cursor: not-allowed; }
         .chat-clear-btn { background: none; border: none; color: #b0bec5; font-size: 0.72rem; cursor: pointer; padding: 2px 7px; border-radius: 6px; }
         .chat-clear-btn:hover { color: #ef4444; background: #fef2f2; }
+        .chat-msg-copy { opacity: 0; background: none; border: none; color: #c0c8d4; cursor: pointer; font-size: 0.7rem; padding: 1px 5px; align-self: flex-start; border-radius: 5px; transition: opacity 0.18s, color 0.18s; }
+        .chat-msg-wrap:hover .chat-msg-copy { opacity: 1; }
+        .chat-msg-copy:hover { color: var(--accent-color); background: #f1f5f9; }
+        .chat-table-wrap { overflow-x: auto; margin: 6px 0; border-radius: 8px; }
+        .chat-table { border-collapse: collapse; font-size: 0.78rem; width: 100%; min-width: 180px; }
+        .chat-table th { background: var(--accent-color); color: white; padding: 5px 9px; text-align: left; font-weight: 700; white-space: nowrap; }
+        .chat-table td { padding: 4px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+        .chat-table tr:last-child td { border-bottom: none; }
+        .chat-table tr:nth-child(even) td { background: #f8fafc; }
     </style>
 </head>
 <body>
@@ -5681,6 +5690,88 @@ function sendChatMessage() {
         .chatWithData(q, JSON.stringify(_chatHistory));
 }
 
+// ── 마크다운 렌더러 (표 → HTML table, 나머지는 텍스트) ──
+function _escH(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _inlineRender(s) {
+    // HTML 이스케이프 후 **bold** 만 <strong>으로 변환
+    return _escH(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+}
+function _parseTableRow(line) {
+    var parts = line.split('|');
+    if (parts[0].trim() === '') parts = parts.slice(1);
+    if (parts.length && parts[parts.length-1].trim() === '') parts = parts.slice(0,-1);
+    return parts.map(function(p){ return p.trim(); });
+}
+function _buildHtmlTable(tLines) {
+    var html = '<div class="chat-table-wrap"><table class="chat-table">';
+    var inHead = true;
+    for (var i = 0; i < tLines.length; i++) {
+        // 구분선 (|---|---|) → thead 닫고 tbody 시작
+        if (/^\s*\|[\s\-:|]+\|\s*$/.test(tLines[i])) {
+            html += '</thead><tbody>'; inHead = false; continue;
+        }
+        var cells = _parseTableRow(tLines[i]);
+        if (!cells.length) continue;
+        html += '<tr>';
+        cells.forEach(function(c) {
+            var tag = inHead ? 'th' : 'td';
+            html += '<' + tag + '>' + _inlineRender(c) + '</' + tag + '>';
+        });
+        html += '</tr>';
+    }
+    if (inHead) html += '</thead><tbody>';
+    return html + '</tbody></table></div>';
+}
+function _renderChatText(text) {
+    var lines = text.split('\n');
+    var html = '';
+    var i = 0;
+    while (i < lines.length) {
+        var line = lines[i];
+        if (/^\s*\|/.test(line)) {
+            // 표 블록 수집
+            var tLines = [];
+            while (i < lines.length && /^\s*\|/.test(lines[i])) { tLines.push(lines[i]); i++; }
+            html += _buildHtmlTable(tLines);
+            continue;
+        }
+        // 일반 텍스트: 마크다운 기호 제거 후 이스케이프
+        var cleaned = line
+            .replace(/^#{1,6}\s+/, '')
+            .replace(/\*\*(.+?)\*\*/g, '$1')
+            .replace(/\*(.+?)\*/g, '$1')
+            .replace(/__(.+?)__/g, '$1')
+            .replace(/`(.+?)`/g, '$1');
+        html += (cleaned.trim() === '' ? '<br>' : _escH(cleaned) + '<br>');
+        i++;
+    }
+    return html.replace(/(<br>\s*)+$/, '');
+}
+
+function _copyMsgText(btn) {
+    var text = btn.getAttribute('data-copy-text');
+    var done = function() {
+        var orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        setTimeout(function() { btn.innerHTML = orig; }, 1500);
+    };
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(done).catch(function() {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+            document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+            document.body.removeChild(ta); done();
+        });
+    } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); done();
+    }
+}
+
 function _appendChatMsg(type, text, id, model) {
     var msgs = document.getElementById('chat-messages');
     var wrap = document.createElement('div');
@@ -5688,8 +5779,22 @@ function _appendChatMsg(type, text, id, model) {
     if (id) wrap.id = id;
     var bubble = document.createElement('div');
     bubble.className = 'chat-bubble ' + type;
-    bubble.textContent = text;
+    if (type === 'ai') {
+        bubble.innerHTML = _renderChatText(text);
+    } else {
+        bubble.textContent = text;
+    }
     wrap.appendChild(bubble);
+    // AI 답변에만 개별 복사 버튼 (로딩 버블 제외)
+    if (type === 'ai' && !id) {
+        var copyBtn = document.createElement('button');
+        copyBtn.className = 'chat-msg-copy';
+        copyBtn.title = '이 답변 복사';
+        copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i>';
+        copyBtn.setAttribute('data-copy-text', text);
+        copyBtn.onclick = function() { _copyMsgText(this); };
+        wrap.appendChild(copyBtn);
+    }
     if (model) {
         var tag = document.createElement('div');
         tag.className = 'chat-model-tag';
@@ -5712,11 +5817,13 @@ function _buildChatText() {
     var wraps = document.querySelectorAll('#chat-messages .chat-msg-wrap');
     wraps.forEach(function(wrap) {
         var bubble = wrap.querySelector('.chat-bubble');
-        if (!bubble) return;
+        if (!bubble || bubble.classList.contains('loading')) return;
         var isUser = bubble.classList.contains('user');
+        // AI 메시지는 data-copy-text(원본 텍스트)에서 가져옴
+        var copyBtn = wrap.querySelector('.chat-msg-copy');
+        var text = copyBtn ? copyBtn.getAttribute('data-copy-text') : (bubble.innerText || bubble.textContent);
         var model = wrap.querySelector('.chat-model-tag');
-        var prefix = isUser ? '나: ' : 'AI: ';
-        lines.push(prefix + bubble.textContent.trim());
+        lines.push((isUser ? '나: ' : 'AI: ') + text.trim());
         if (model) lines.push('    (' + model.textContent.trim() + ')');
         lines.push('');
     });
