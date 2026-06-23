@@ -1,6 +1,22 @@
 // ==========================================
 // 1. 웹앱 화면 표시
 // ==========================================
+
+// ※ GROQ API 권한 최초 승인용 함수
+// Apps Script 편집기에서 이 함수를 선택 후 ▶ 실행하면 권한 다이얼로그가 뜹니다.
+// 승인 완료 후 재배포(새 버전)하면 챗봇이 정상 동작합니다.
+function authorizeGroqAccess() {
+  try {
+    UrlFetchApp.fetch('https://api.groq.com/openai/v1/models', {
+      headers: { 'Authorization': 'Bearer test' },
+      muteHttpExceptions: true
+    });
+    Logger.log('외부 요청 권한이 승인되었습니다. 웹앱을 재배포해주세요.');
+  } catch(e) {
+    Logger.log('오류: ' + e.message);
+  }
+}
+
 function doGet(e) {
   return HtmlService.createHtmlOutputFromFile('Index')
       .setTitle('나세나반 다이어리')
