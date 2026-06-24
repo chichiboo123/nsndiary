@@ -957,23 +957,34 @@ function _callGroq(messages) {
   var lastError = '알 수 없는 오류';
   for (var m = 0; m < models.length; m++) {
     try {
+      var payload = {
+        model: models[m],
+        messages: messages,
+        temperature: 0.3,
+        max_tokens: 2048
+      };
+      // gpt-oss는 추론(reasoning) 모델 → 추론량을 낮춰 답변 토큰 확보
+      if (models[m].indexOf('openai/') === 0) payload.reasoning_effort = 'low';
       var resp = UrlFetchApp.fetch(url, {
         method: 'POST',
         contentType: 'application/json',
         headers: { 'Authorization': 'Bearer ' + apiKey },
-        payload: JSON.stringify({
-          model: models[m],
-          messages: messages,
-          temperature: 0.3,
-          max_tokens: 800
-        }),
+        payload: JSON.stringify(payload),
         muteHttpExceptions: true
       });
       var code = resp.getResponseCode();
       var body = resp.getContentText();
       if (code === 200) {
         var parsed = JSON.parse(body);
-        return { text: parsed.choices[0].message.content, model: models[m] };
+        var choice = (parsed.choices && parsed.choices[0]) ? parsed.choices[0] : {};
+        var msg = choice.message || {};
+        var content = String(msg.content || '').trim();
+        // content가 비면 reasoning 필드라도 사용
+        if (!content && msg.reasoning) content = String(msg.reasoning).trim();
+        if (content) return { text: content, model: models[m] };
+        // 빈 응답(추론에 토큰 소진 등) → 다음 모델 시도
+        lastError = '빈 응답 (finish_reason: ' + (choice.finish_reason || '?') + ')';
+        continue;
       }
       // 모델 사용 불가(400/404) · 과부하(503) · rate limit(429) → 다음 모델 시도
       try { lastError = JSON.parse(body).error.message || body; } catch(_e) { lastError = body; }

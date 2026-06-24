@@ -5676,8 +5676,9 @@ function sendChatMessage() {
         .withSuccessHandler(function(res) {
             var el = document.getElementById(loadId);
             if (el) el.remove();
-            _appendChatMsg('ai', res.text, null, res.model);
-            _chatHistory.push({ role: 'user', content: q }, { role: 'assistant', content: res.text });
+            var answer = (res && res.text) ? res.text : '답변을 생성하지 못했습니다. 질문 범위를 좁혀 다시 시도해 주세요.';
+            _appendChatMsg('ai', answer, null, res && res.model);
+            _chatHistory.push({ role: 'user', content: q }, { role: 'assistant', content: answer });
             if (_chatHistory.length > 20) _chatHistory = _chatHistory.slice(-20);
             sendBtn.disabled = false;
         })
