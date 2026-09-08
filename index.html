@@ -2,8 +2,124 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>나세나반 다이어리</title>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         기기 감지 → 모바일 모드 스위치 (렌더링 전에 실행)
+         ───────────────────────────────────────────────────────────────
+         Apps Script 웹앱은 iframe 안에서 실행되기 때문에, 바깥 래퍼
+         페이지에 viewport 메타가 없으면 window.innerWidth 가 실제 기기
+         폭(예: 390px)이 아니라 브라우저 기본값(980px)으로 잡힙니다.
+         그러면 @media (max-width: 480px) 같은 규칙이 아예 발동하지 않아
+         모바일 CSS가 통째로 무시됩니다.
+
+         그래서 폭 미디어쿼리에만 의존하지 않고, screen 크기 + 포인터
+         종류 + UA 로 "진짜 기기"를 판별해 <html> 에 아래 속성을 붙입니다.
+
+           data-mode = "mobile" | "desktop"   ← 모바일 모드 on/off
+           data-vw   = "xs" | "sm" | "md" | "lg"  ← 체감 폭 구간
+           data-touch= "1"                    ← 터치 기기(hover 효과 제거)
+
+         모바일 전용 CSS는 전부 이 속성으로 걸려 있어서, 미디어쿼리가
+         깨진 환경에서도 모바일 모드가 확실히 켜집니다.
+         ═══════════════════════════════════════════════════════════════ -->
+    <script>
+    (function () {
+        var de = document.documentElement;
+
+        function mq(q) {
+            try { return !!(window.matchMedia && window.matchMedia(q).matches); }
+            catch (e) { return false; }
+        }
+
+        function measure() {
+            var ua = navigator.userAgent || '';
+            var iw = window.innerWidth || 1024;
+            var sw = (window.screen && window.screen.width)  || iw;
+            var sh = (window.screen && window.screen.height) || (window.innerHeight || 768);
+
+            var landscape = mq('(orientation: landscape)');
+            // 기기의 "물리적 CSS 폭". 회전 시 screen.width/height 가 바뀌지 않는
+            // 브라우저가 있어서, 방향에 따라 긴 변/짧은 변을 직접 골라 씁니다.
+            var deviceW = landscape ? Math.max(sw, sh) : Math.min(sw, sh);
+
+            var coarse   = mq('(pointer: coarse)') || mq('(any-pointer: coarse)');
+            var uaMobile = /Android|iPhone|iPod|IEMobile|Opera Mini|Mobile|Silk|Windows Phone/i.test(ua)
+                        || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); // iPadOS 데스크탑 모드
+            var isDevice = !!(coarse || uaMobile);
+
+            // 뷰포트 메타가 상위 프레임에 적용되지 않은 "깨진 상태" 감지:
+            // 실제 기기는 좁은데 innerWidth 만 900px 이상으로 잡히는 경우.
+            var broken = isDevice && iw >= 900 && iw > deviceW * 1.3;
+
+            return {
+                isDevice: isDevice,
+                broken: broken,
+                innerW: iw,
+                deviceW: deviceW,
+                // 사용자가 체감하는 실제 폭
+                effW: broken ? deviceW : iw
+            };
+        }
+
+        // 기존 미디어쿼리 경계(360 / 480 / 768)와 동일하게 맞춰
+        // 뷰포트가 정상일 때와 보정 모드일 때 화면이 똑같이 보이도록 합니다.
+        function bucket(w) {
+            if (w <= 360) return 'xs';   // Z Fold 커버 등 초협폭
+            if (w <= 480) return 'sm';   // 일반 스마트폰
+            if (w < 768)  return 'md';   // 대형 폰 · 폴더블 펼침
+            return 'lg';                 // 태블릿
+        }
+
+        function apply() {
+            var m = measure();
+            var mobile = m.effW < 1100;
+
+            de.setAttribute('data-mode', mobile ? 'mobile' : 'desktop');
+            de.setAttribute('data-vw', bucket(m.effW));
+            if (m.isDevice) de.setAttribute('data-touch', '1');
+            else de.removeAttribute('data-touch');
+
+            // ── 폴백: 상위 프레임 viewport 메타가 없어 화면이 축소된 경우 ──
+            // (code.gs 의 doGet 에 addMetaTag('viewport', ...) 를 넣고 재배포하면
+            //  이 분기는 더 이상 실행되지 않습니다. 재배포 전 응급 보정용입니다.)
+            if (m.broken) {
+                var zf = m.innerW / m.deviceW;          // 예: 980 / 390 ≈ 2.51
+                zf = Math.max(1, Math.min(zf, 3.2));    // 과보정 방지
+                de.style.zoom = zf;
+                de.style.setProperty('--zf', zf);
+                de.setAttribute('data-viewport-fallback', '1');
+            } else {
+                de.style.zoom = '';
+                de.style.setProperty('--zf', 1);
+                de.removeAttribute('data-viewport-fallback');
+            }
+            syncWarningHeight();
+        }
+
+        // 안내 배너는 고정 위치라, 실제 높이만큼 앱 셸을 아래로 밀어준다.
+        function syncWarningHeight() {
+            var w = document.getElementById('viewport-warning');
+            if (!w) return;                                   // 아직 body 파싱 전
+            var h = (de.getAttribute('data-viewport-fallback') === '1') ? w.offsetHeight : 0;
+            de.style.setProperty('--warn-h', h + 'px');
+        }
+        window.__nsnSyncWarningHeight = syncWarningHeight;
+
+        apply();
+        window.__nsnApplyDeviceMode = apply;
+        document.addEventListener('DOMContentLoaded', syncWarningHeight);
+
+        var t = null;
+        function reapply() { clearTimeout(t); t = setTimeout(apply, 120); }
+        window.addEventListener('resize', reapply, { passive: true });
+        window.addEventListener('orientationchange', reapply, { passive: true });
+    })();
+    </script>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📔</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -70,9 +186,14 @@
 
         /* ── 메인 레이아웃 ── */
         /* dvh: 모바일 주소창 변화에도 안정적 (미지원 시 vh fallback) */
-        body > .app-wrap { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
-        .main-area { flex: 1; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
-        .main-scroll { flex: 1; overflow-y: auto; padding: 16px; }
+        /* --zf: 상위 프레임 viewport 메타가 없을 때만 1이 아닌 값(폴백 보정).
+           평상시에는 1이라 calc() 가 그대로 100dvh 가 됩니다. */
+        :root { --zf: 1; }
+        html, body { height: 100%; }
+        body { overflow-x: hidden; overscroll-behavior-y: none; }
+        body > .app-wrap { display: flex; height: calc(100vh / var(--zf)); height: calc(100dvh / var(--zf)); overflow: hidden; }
+        .main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; height: calc(100vh / var(--zf)); height: calc(100dvh / var(--zf)); overflow: hidden; }
+        .main-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 
         /* ── 공통 컴포넌트 ── */
         .btn-primary {
@@ -305,7 +426,6 @@
         /* ── 모바일 레이아웃 최적화 (< 1100px) ── */
         @media (max-width: 1099px) {
             header { padding: 8px 12px !important; background: rgba(255,255,255,0.95) !important; backdrop-filter: blur(8px); }
-            #current-page-title { display: none !important; }
             .main-scroll { padding: 10px; }
             .max-w-4xl { max-width: 100%; }
             .glass-panel { border-radius: 1rem !important; }
@@ -359,7 +479,6 @@
             /* ── 헤더 ── */
             header { padding: 6px 10px !important; gap: 6px; }
             header h1 { font-size: 0.95rem !important; letter-spacing: -0.01em; }
-            #current-page-title { display: none !important; }
 
             /* ── 기능 버튼 그리드: 3열 → 2열 ── */
             #feature-btn-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.55rem; }
@@ -584,15 +703,284 @@
         .chat-table td { padding: 4px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
         .chat-table tr:last-child td { border-bottom: none; }
         .chat-table tr:nth-child(even) td { background: #f8fafc; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MOBILE APP MODE
+           ───────────────────────────────────────────────────────────────
+           <html data-mode="mobile"> 일 때만 적용됩니다. 이 속성은 head 의
+           감지 스크립트가 "실제 기기 폭" 기준으로 붙이므로, Apps Script
+           iframe 때문에 폭 미디어쿼리가 어긋나는 상황에서도 확실히 켜집니다.
+           data-vw = xs(<380) / sm(<480) / md(<768) / lg(>=768)
+           ═══════════════════════════════════════════════════════════════ */
+
+        /* ── 1. 기본 셸 · 안전영역 ────────────────────────────────── */
+        [data-mode="mobile"] { -webkit-text-size-adjust: 100%; }
+        [data-mode="mobile"] body {
+            -webkit-tap-highlight-color: rgba(115,146,193,0.15);
+            overscroll-behavior: none;
+        }
+        [data-mode="mobile"] .app-wrap { padding-top: env(safe-area-inset-top, 0px); }
+        [data-mode="mobile"] .main-scroll {
+            padding: 10px 12px calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+        }
+        [data-mode="mobile"] #main-content-wrap { max-width: 100% !important; padding-bottom: 0 !important; }
+        [data-mode="mobile"] .max-w-4xl,
+        [data-mode="mobile"] .max-w-2xl,
+        [data-mode="mobile"] .max-w-xl { max-width: 100% !important; }
+
+        /* ── 2. 상단 앱바 ─────────────────────────────────────────── */
+        [data-mode="mobile"] header {
+            padding: 8px 10px !important;
+            gap: 8px;
+            background: rgba(255,255,255,0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        [data-mode="mobile"] #mobile-menu-btn {
+            display: flex !important; align-items: center; justify-content: center;
+            width: 40px; height: 40px; padding: 0;
+        }
+        /* 현재 위치를 항상 알 수 있도록 앱바 가운데에 페이지 제목 표시 */
+        [data-mode="mobile"] #current-page-title {
+            display: block !important;
+            font-size: 1rem; font-weight: 800; letter-spacing: -0.02em;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: var(--text-main);
+        }
+        [data-mode="mobile"] #current-page-title-wrap { text-align: center; }
+        [data-mode="desktop"] #current-page-title-wrap { text-align: right; }
+
+        /* ── 3. 좌측 드로어(사이드바) ─────────────────────────────── */
+        [data-mode="mobile"] #sidebar {
+            width: min(82vw, 300px);
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            border-radius: 0 20px 20px 0;
+            overscroll-behavior: contain;
+        }
+        [data-mode="mobile"] #sidebar .menu-item {
+            min-height: 48px; font-size: 0.95rem; padding: 10px 14px; border-radius: 12px;
+        }
+        [data-mode="mobile"] #sidebar .menu-item i { font-size: 1.05rem; }
+        [data-mode="mobile"] #mobile-overlay { backdrop-filter: blur(2px); }
+        [data-mode="mobile"] #drawer-close-btn { display: flex !important; }
+        #drawer-close-btn { display: none; }
+
+        /* ── 4. 하단 탭 내비게이션 ────────────────────────────────── */
+        [data-mode="mobile"] #bottom-nav {
+            display: flex !important;
+            height: calc(58px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            box-shadow: 0 -1px 12px rgba(0,0,0,0.06);
+        }
+        [data-mode="mobile"] .bnav-btn {
+            font-size: 10px; gap: 3px; padding: 7px 2px 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        [data-mode="mobile"] .bnav-btn i { font-size: 1.22rem; }
+        [data-mode="mobile"] .bnav-btn.active i { transform: translateY(-1px); }
+        [data-mode="mobile"] .bnav-btn:active { opacity: 0.55; }
+        [data-mode="desktop"] #bottom-nav { display: none !important; }
+
+        /* ── 5. 모달 → 바텀시트 ───────────────────────────────────── */
+        @keyframes nsn-sheet-up {
+            from { transform: translateY(100%); }
+            to   { transform: translateY(0); }
+        }
+        [data-mode="mobile"] [id$="-modal"] {
+            align-items: flex-end !important;
+            justify-content: center !important;
+            padding: 0 !important;
+        }
+        [data-mode="mobile"] [id$="-modal"] > div {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            border-radius: 20px 20px 0 0 !important;
+            max-height: calc(92dvh / var(--zf)) !important;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
+            position: relative;
+            animation: nsn-sheet-up 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        /* 시트 상단 손잡이 — 헤더 색이 있는 모달도 있어서 레이아웃을 밀지 않고 겹쳐 띄운다 */
+        [data-mode="mobile"] [id$="-modal"] > div::before {
+            content: '';
+            position: absolute; top: 6px; left: 50%;
+            width: 38px; height: 4px; margin-left: -19px;
+            border-radius: 99px;
+            background: rgba(120, 132, 148, 0.42);
+            pointer-events: none;
+            z-index: 5;
+        }
+        /* 내부에 자체 스크롤 영역(flex-col)이 있는 시트는 바깥 스크롤을 끔 */
+        [data-mode="mobile"] [id$="-modal"] > div.flex.flex-col { overflow-y: hidden; }
+
+        /* ── 6. 입력 폼 · 터치 타겟 ───────────────────────────────── */
+        /* 16px 미만이면 iOS 사파리가 포커스 시 화면을 확대해버립니다. */
+        [data-mode="mobile"] input:not([type="checkbox"]):not([type="radio"]),
+        [data-mode="mobile"] select,
+        [data-mode="mobile"] textarea {
+            font-size: 16px !important;
+            min-height: 44px;
+            border-radius: 12px;
+        }
+        [data-mode="mobile"] textarea { min-height: 88px; line-height: 1.5; }
+        [data-mode="mobile"] input[type="checkbox"],
+        [data-mode="mobile"] input[type="radio"] { width: 20px; height: 20px; }
+        [data-mode="mobile"] button,
+        [data-mode="mobile"] .btn-primary,
+        [data-mode="mobile"] a.menu-item { touch-action: manipulation; }
+        [data-mode="mobile"] .btn-primary,
+        [data-mode="mobile"] button[type="submit"] { min-height: 46px; font-size: 0.92rem; }
+        [data-mode="mobile"] label { font-size: 0.8rem; }
+
+        /* ── 7. 가로로 넘치는 콘텐츠 처리 ─────────────────────────── */
+        [data-mode="mobile"] .nsn-xscroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+        [data-mode="mobile"] .nsn-xscroll > table { min-width: 520px; }
+        [data-mode="mobile"] #student-list-view > table { min-width: 560px; }
+        [data-viewport-fallback="1"] .app-wrap { padding-top: var(--warn-h, 42px); }
+        /* 드로어가 열려 있는 동안 뒤쪽 본문 스크롤 차단 */
+        body.drawer-open { overflow: hidden; }
+        [data-mode="mobile"] body.drawer-open .main-scroll { overflow: hidden; }
+        [data-mode="mobile"] .assess-matrix-wrap { max-height: calc(62dvh / var(--zf)); }
+        /* 자리배치: 좌우 스크롤하되 여유가 있으면 가운데 정렬 유지 */
+        [data-mode="mobile"] .desk-grid-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 6px;
+        }
+        [data-mode="mobile"] .desk-grid-wrap::before,
+        [data-mode="mobile"] .desk-grid-wrap::after { content: ''; margin: auto; }
+        [data-mode="mobile"] .desk-grid-wrap > * { flex-shrink: 0; }
+        /* 긴 URL·파일명이 레이아웃을 밀어내지 않도록 */
+        [data-mode="mobile"] .rec-card, [data-mode="mobile"] .glass-panel { overflow-wrap: anywhere; }
+
+        /* ── 8. AI 챗봇: 모바일에서는 전체화면 시트 ───────────────── */
+        [data-mode="mobile"] #chat-fab {
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            right: 14px; width: 52px; height: 52px;
+        }
+        /* 드로어나 모달(바텀시트)이 열려 있으면 FAB 을 숨긴다 */
+        body.drawer-open #chat-fab { display: none; }
+        body:has([id$="-modal"]:not(.hidden)) #chat-fab { display: none; }
+        /* 자리배치 가로 스크롤 영역(#seating-container)의 터치 스크롤 개선 */
+        [data-mode="mobile"] #seating-container {
+            -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+        }
+        [data-mode="mobile"] #chat-panel {
+            max-width: 100%;
+            height: calc(88dvh / var(--zf));
+            border-radius: 20px 20px 0 0;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        [data-mode="mobile"] #chat-input { font-size: 16px !important; min-height: 44px; }
+        [data-mode="mobile"] .chat-bubble { max-width: 90%; font-size: 0.9rem; }
+
+        /* ── 9. 터치 기기: hover 잔상 제거 ────────────────────────── */
+        [data-touch="1"] .feature-btn:hover,
+        [data-touch="1"] .student-name-card:hover,
+        [data-touch="1"] .desk-box:hover,
+        [data-touch="1"] #chat-fab:hover {
+            transform: none;
+            box-shadow: inherit;
+        }
+        [data-touch="1"] .feature-btn:active,
+        [data-touch="1"] .student-name-card:active { transform: scale(0.97); opacity: 0.85; }
+
+        /* ── 10. 체감 폭 구간별 조정 ──────────────────────────────── */
+        /* lg (>= 768): 태블릿 — 사이드바가 안 나오는 폭이라 모바일 모드로 동작 */
+        [data-mode="mobile"][data-vw="lg"] #feature-btn-grid { grid-template-columns: repeat(4, 1fr) !important; }
+        [data-mode="mobile"][data-vw="lg"] .att-list-grid { grid-template-columns: 1fr 1fr; }
+        [data-mode="mobile"][data-vw="lg"] .assess-card-grid { grid-template-columns: 1fr 1fr; }
+        [data-mode="mobile"][data-vw="lg"] .main-scroll { padding-left: 20px !important; padding-right: 20px !important; }
+
+        /* md (480 ~ 767): 대형 폰 · 태블릿 세로 */
+        [data-mode="mobile"][data-vw="md"] #feature-btn-grid { grid-template-columns: repeat(4, 1fr) !important; }
+        [data-mode="mobile"][data-vw="md"] .att-list-grid { grid-template-columns: 1fr 1fr; }
+
+        /* sm (380 ~ 479): 일반적인 스마트폰 */
+        [data-mode="mobile"][data-vw="sm"] #feature-btn-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 0.6rem; }
+        [data-mode="mobile"][data-vw="sm"] #student-grid-view { grid-template-columns: repeat(4, 1fr) !important; }
+        [data-mode="mobile"][data-vw="sm"] .glass-panel { padding: 1rem !important; border-radius: 1rem !important; }
+        [data-mode="mobile"][data-vw="sm"] .filter-bar .grid { grid-template-columns: 1fr 1fr; }
+        [data-mode="mobile"][data-vw="sm"] .filter-bar .grid > :last-child { grid-column: 1 / -1; }
+        [data-mode="mobile"][data-vw="sm"] .att-cal-cell { min-height: 76px; padding: 3px 2px; }
+        [data-mode="mobile"][data-vw="sm"] .att-cal-num { width: 18px; height: 18px; font-size: 0.62rem; }
+        [data-mode="mobile"][data-vw="sm"] .att-cal-pill { font-size: 0.48rem; }
+        [data-mode="mobile"][data-vw="sm"] .cal-cell { min-height: 46px; }
+        [data-mode="mobile"][data-vw="sm"] #clock-time { font-size: 2rem; }
+        [data-mode="mobile"][data-vw="sm"] .desk-box { width: 50px; height: 42px; border-width: 1px; }
+        [data-mode="mobile"][data-vw="sm"] .feature-btn { padding: 1rem 0.4rem; }
+        [data-mode="mobile"][data-vw="sm"] .feature-btn i { font-size: 1.6rem !important; }
+        [data-mode="mobile"][data-vw="sm"] .feature-btn p { font-size: 0.7rem; }
+        [data-mode="mobile"][data-vw="sm"] .filter-bar { padding: 10px; }
+        [data-mode="mobile"][data-vw="sm"] .schedule-card { gap: 10px; padding: 10px 12px; }
+        [data-mode="mobile"][data-vw="sm"] .rec-card { padding: 10px 12px; }
+
+        /* xs (< 380): Z Fold 커버 등 초협폭 */
+        [data-mode="mobile"][data-vw="xs"] { font-size: 14.5px; }
+        [data-mode="mobile"][data-vw="xs"] .main-scroll { padding: 8px 8px calc(74px + env(safe-area-inset-bottom, 0px)) !important; }
+        [data-mode="mobile"][data-vw="xs"] .glass-panel { padding: 0.85rem !important; border-radius: 0.9rem !important; }
+        [data-mode="mobile"][data-vw="xs"] #feature-btn-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.55rem; }
+        [data-mode="mobile"][data-vw="xs"] #student-grid-view { grid-template-columns: repeat(3, 1fr) !important; }
+        [data-mode="mobile"][data-vw="xs"] .subm-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        [data-mode="mobile"][data-vw="xs"] .filter-bar .grid { grid-template-columns: 1fr !important; gap: 6px; }
+        [data-mode="mobile"][data-vw="xs"] .filter-bar .grid > :last-child { grid-column: auto; }
+        [data-mode="mobile"][data-vw="xs"] #current-page-title { font-size: 0.92rem; }
+        [data-mode="mobile"][data-vw="xs"] .cal-cell { min-height: 38px; }
+        [data-mode="mobile"][data-vw="xs"] #clock-time { font-size: 1.7rem; }
+        [data-mode="mobile"][data-vw="xs"] .desk-box { width: 46px; height: 40px; }
+        [data-mode="mobile"][data-vw="xs"] .feature-btn { padding: 0.9rem 0.3rem; min-height: 76px; }
+        [data-mode="mobile"][data-vw="xs"] .feature-btn i { font-size: 1.4rem !important; margin-bottom: 3px !important; }
+        [data-mode="mobile"][data-vw="xs"] .feature-btn p { font-size: 0.7rem; }
+        [data-mode="mobile"][data-vw="xs"] .rec-card { padding: 9px 11px; }
+        [data-mode="mobile"][data-vw="xs"] .schedule-card { padding: 8px 10px; gap: 8px; }
+        [data-mode="mobile"][data-vw="xs"] .cls-row { gap: 4px; padding: 7px 8px; }
+
+        /* ── 11. 가로 모드 폰: 세로 공간이 부족하므로 압축 ────────── */
+        [data-mode="mobile"] .att-cal-cell,
+        [data-mode="mobile"] .cal-cell { touch-action: manipulation; }
+        @media (orientation: landscape) and (max-height: 480px) {
+            [data-mode="mobile"] header { padding: 4px 10px !important; }
+            [data-mode="mobile"] #bottom-nav { height: calc(48px + env(safe-area-inset-bottom, 0px)); }
+            [data-mode="mobile"] .bnav-btn i { font-size: 1rem; }
+            [data-mode="mobile"] .bnav-btn { font-size: 9px; }
+            [data-mode="mobile"] .main-scroll { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important; }
+            [data-mode="mobile"] [id$="-modal"] > div { max-height: calc(96dvh / var(--zf)) !important; }
+        }
+
+        /* ── 12. 재배포 전 응급 보정 안내 (--zf 폴백이 동작 중일 때) ── */
+        [data-viewport-fallback="1"] #viewport-warning { display: block; }
+        #viewport-warning { display: none; }
     </style>
 </head>
 <body>
+<!-- doGet 에 viewport 메타가 없어 응급 보정이 동작 중일 때만 표시됩니다. -->
+<div id="viewport-warning" style="position:fixed;top:0;left:0;right:0;z-index:200;background:#fff4e5;color:#8a5a00;
+     font-size:11.5px;line-height:1.4;padding:6px 34px 6px 10px;border-bottom:1px solid #ffd9a0;">
+    화면 보정 모드 · Apps Script <b>doGet</b>에 viewport 메타 적용 후 <b>재배포</b>하세요.
+    <button onclick="this.parentNode.style.display='none';window.__nsnSyncWarningHeight&amp;&amp;setTimeout(window.__nsnSyncWarningHeight,0)" aria-label="닫기"
+        style="position:absolute;top:4px;right:8px;background:none;border:none;font-size:17px;color:#8a5a00;cursor:pointer;">&times;</button>
+</div>
+
 <div class="app-wrap">
 
 <div id="mobile-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30" onclick="closeMobileMenu()"></div>
 
 <aside id="sidebar">
-    <div class="px-4 pt-5 pb-3 text-center">
+    <div class="px-4 pt-5 pb-3 text-center relative">
+        <button id="drawer-close-btn" onclick="closeMobileMenu()" aria-label="메뉴 닫기"
+            class="absolute top-3 right-3 w-9 h-9 rounded-full items-center justify-center transition"
+            style="background:rgba(255,255,255,0.2);color:var(--text-sidebar)">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
         <h1 class="title-font text-2xl font-bold mb-1 sidebar-title cursor-pointer hover:opacity-80 transition select-none leading-snug"
             onclick="refreshApp()" title="새로고침 및 홈으로">
             나세나반<br>다이어리
@@ -624,15 +1012,17 @@
 
 <div class="main-area">
     <header class="px-4 py-3 flex justify-between items-center z-10 flex-shrink-0" style="background:rgba(255,255,255,0.3);backdrop-filter:blur(6px);">
-        <div class="flex items-center gap-3">
-            <button id="mobile-menu-btn" onclick="openMobileMenu()"
+        <div class="flex items-center gap-3 flex-shrink-0">
+            <button id="mobile-menu-btn" onclick="openMobileMenu()" aria-label="메뉴 열기"
                 class="p-2 rounded-xl bg-white bg-opacity-60 hover:bg-opacity-90 shadow-sm transition">
                 <i class="fa-solid fa-bars text-gray-700 text-lg"></i>
             </button>
         </div>
-        <div class="flex items-center gap-2">
+        <div id="current-page-title-wrap" class="flex-1 min-w-0 px-2">
             <span id="current-page-title" class="font-bold text-sm hidden md:block">홈</span>
-            <div class="relative ml-2">
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="relative">
                 <button onclick="toggleThemeMenu()" class="flex items-center justify-center w-9 h-9 bg-white bg-opacity-60 hover:bg-opacity-90 rounded-full shadow-sm transition">
                     <i class="fa-solid fa-palette text-gray-600"></i>
                 </button>
@@ -1979,15 +2369,53 @@ let currentStudentCardNum = null;
 const classPeriodsList  = ['1교시','2교시','3교시','4교시','5교시','6교시'];
 const classSubjectsList = ['국어','도덕','사회','수학','과학','실과','체육','음악','미술','영어','창체','융합'];
 
-// ─── 모바일 메뉴 ─────────────────────────────────────────
+// ─── 모바일 메뉴 (드로어) ────────────────────────────────
+function isMobileMode() {
+    return document.documentElement.getAttribute('data-mode') === 'mobile';
+}
 function openMobileMenu() {
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('mobile-overlay').classList.remove('hidden');
+    document.body.classList.add('drawer-open');
+    var more = document.getElementById('bn-more');
+    if (more) more.classList.add('active');
 }
 function closeMobileMenu() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('mobile-overlay').classList.add('hidden');
+    document.body.classList.remove('drawer-open');
+    var more = document.getElementById('bn-more');
+    if (more) more.classList.remove('active');
 }
+
+// 드로어를 왼쪽으로 밀어서 닫기
+(function () {
+    var startX = null, startY = null, moved = false;
+    document.addEventListener('touchstart', function (ev) {
+        var sb = document.getElementById('sidebar');
+        if (!isMobileMode() || !sb || !sb.classList.contains('open')) return;
+        if (!sb.contains(ev.target)) return;
+        startX = ev.touches[0].clientX;
+        startY = ev.touches[0].clientY;
+        moved = false;
+    }, { passive: true });
+    document.addEventListener('touchmove', function (ev) {
+        if (startX === null) return;
+        var dx = ev.touches[0].clientX - startX;
+        var dy = ev.touches[0].clientY - startY;
+        // 세로 스크롤과 충돌하지 않도록 가로 이동이 확실할 때만
+        if (dx < -45 && Math.abs(dx) > Math.abs(dy) * 1.5) moved = true;
+    }, { passive: true });
+    document.addEventListener('touchend', function () {
+        if (moved) closeMobileMenu();
+        startX = startY = null; moved = false;
+    }, { passive: true });
+})();
+
+// ESC 로 드로어 닫기
+document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') closeMobileMenu();
+});
 
 // ─── 초기화 ──────────────────────────────────────────────
 window.onload = function() {
@@ -2111,6 +2539,9 @@ function showPage(pageId, element) {
     document.querySelectorAll('.bnav-btn').forEach(function(b){ b.classList.remove('active'); });
     if (bnMap[pageId]) { var bel=document.getElementById(bnMap[pageId]); if(bel) bel.classList.add('active'); }
     closeMobileMenu();
+    // 모바일에서는 페이지를 바꿀 때마다 본문 최상단으로 이동
+    var _ms = document.querySelector('.main-scroll');
+    if (_ms) _ms.scrollTop = 0;
 
     if (pageId === 'page-schedule') {
         startScheduleClock();

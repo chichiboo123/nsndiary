@@ -18,8 +18,24 @@ function authorizeGroqAccess() {
 }
 
 function doGet(e) {
+  // ─────────────────────────────────────────────────────────────
+  // [중요] Apps Script 웹앱은 "바깥 래퍼 페이지 + 내 HTML이 담긴 iframe"
+  // 2중 구조로 서빙됩니다. Index.html 안에 직접 적어둔
+  // <meta name="viewport"> 는 iframe 내부에만 적용되고, 브라우저가 실제로
+  // 참조하는 바깥 페이지에는 반영되지 않습니다.
+  // 그 결과 모바일 브라우저가 기본값(980px)으로 레이아웃한 뒤 화면 폭에
+  // 맞춰 축소해버려서 앱 전체가 아주 작게 보이게 됩니다.
+  // 아래 addMetaTag('viewport', ...) 가 바깥 페이지에 뷰포트를 심어주는
+  // 유일한 방법이며, 모바일 모드 동작의 전제 조건입니다.
+  //
+  // 참고: addMetaTag 로 허용되는 name 은 viewport / mobile-web-app-capable /
+  //       apple-mobile-web-app-capable / google-site-verification 뿐입니다.
+  // ─────────────────────────────────────────────────────────────
   return HtmlService.createHtmlOutputFromFile('Index')
       .setTitle('나세나반 다이어리')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
+      .addMetaTag('mobile-web-app-capable', 'yes')
+      .addMetaTag('apple-mobile-web-app-capable', 'yes')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
