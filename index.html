@@ -309,8 +309,18 @@
         .assess-chip-m { background: #64748b; }
         .assess-filter-reset { font-size: 0.72rem; font-weight: 700; color: #9ca3af; background: transparent; border: none; cursor: pointer; padding: 4px 6px; white-space: nowrap; }
         .assess-filter-reset:hover { color: var(--accent-color); }
-        .assess-filter-body { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e7eb; }
+        .assess-filter-body { display: none; margin-top: 8px; padding-top: 4px; border-top: 1px dashed #e5e7eb; }
         .assess-filter.open .assess-filter-body { display: block; }
+
+        /* 필터 한 줄 = 왼쪽 항목명 + 오른쪽 칩 목록 (좌측 정렬) */
+        .afilter-row { display: flex; align-items: flex-start; gap: 12px; padding: 7px 0; }
+        .afilter-row + .afilter-row { border-top: 1px solid #f1f3f5; }
+        .afilter-label {
+            flex: 0 0 64px; display: flex; align-items: center; gap: 5px; padding-top: 5px;
+            font-size: 0.74rem; font-weight: 800; color: #8b95a4; white-space: nowrap; letter-spacing: -0.01em;
+        }
+        .afilter-label i { font-size: 0.7rem; color: #c3cad4; }
+        .afilter-chips { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 5px; }
 
         .sch-view-btn { color: #6b7280; padding: 6px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; transition: all 0.2s; border: none; cursor: pointer; background: transparent; }
         .sch-view-btn.active { background: white; color: var(--accent-color); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
@@ -836,6 +846,20 @@
         [data-mode="mobile"] .btn-primary,
         [data-mode="mobile"] button[type="submit"] { min-height: 46px; font-size: 0.92rem; }
         [data-mode="mobile"] label { font-size: 0.8rem; }
+
+        /* ── 6-1. 수행평가 필터: 모바일에서는 줄바꿈 대신 가로 스크롤 ── */
+        [data-mode="mobile"] .afilter-row { flex-direction: column; gap: 4px; padding: 8px 0; }
+        [data-mode="mobile"] .afilter-label { flex: none; padding-top: 0; }
+        [data-mode="mobile"] .afilter-chips {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scrollbar-width: none;
+            padding-bottom: 3px;
+        }
+        [data-mode="mobile"] .afilter-chips::-webkit-scrollbar { display: none; }
+        [data-mode="mobile"] .afilter-chips > button { flex: 0 0 auto; }
 
         /* ── 7. 가로로 넘치는 콘텐츠 처리 ─────────────────────────── */
         [data-mode="mobile"] .nsn-xscroll {
@@ -1528,8 +1552,14 @@
             <button type="button" id="assess-filter-reset" onclick="resetAssessFilters()" class="assess-filter-reset" style="display:none;"><i class="fa-solid fa-rotate-left mr-1"></i>초기화</button>
         </div>
         <div id="assess-filter-body" class="assess-filter-body">
-            <div id="assess-subject-nav" class="flex flex-wrap gap-1.5 mb-2 justify-center"></div>
-            <div id="assess-method-nav" class="flex flex-wrap gap-1.5 justify-center items-center"></div>
+            <div class="afilter-row">
+                <span class="afilter-label"><i class="fa-solid fa-book-open"></i>과목</span>
+                <div id="assess-subject-nav" class="afilter-chips"></div>
+            </div>
+            <div class="afilter-row" id="assess-method-row">
+                <span class="afilter-label"><i class="fa-solid fa-pen-ruler"></i>평가방법</span>
+                <div id="assess-method-nav" class="afilter-chips"></div>
+            </div>
         </div>
     </div>
     <div id="assess-plan-list">
@@ -4599,12 +4629,50 @@ function renderAssessSubjectNav() {
     renderAssessMethodNav();
 }
 
-// 등록된 계획에서 사용된 평가방법 목록(중복 제거)
+// ─── 평가방법 필터 ───────────────────────────────────────
+// 계획에 입력되는 평가방법 문구는 '실험·실습평가·서술형평가' 처럼 여러 방법이
+// 섞여 있고 표기도 제각각이라, 그대로 나열하면 필터가 수십 개로 불어납니다.
+// 그래서 아래 14개 대표 항목만 노출하고, 입력값에 keys 중 하나라도 들어 있으면
+// 그 항목에 해당하는 것으로 봅니다(한 계획이 여러 항목에 동시에 걸릴 수 있음).
+var ASSESS_METHODS = [
+    { label: '논술형',                keys: ['논술'] },
+    { label: '서술형',                keys: ['서술'] },
+    { label: '정의적 능력 평가',      keys: ['정의적'] },
+    { label: '협력적 문제해결력 평가', keys: ['협력적', '문제해결'] },
+    { label: '자기평가',              keys: ['자기평가', '자기성찰'] },
+    { label: '동료평가',              keys: ['동료'] },
+    { label: '구술',                  keys: ['구술'] },
+    { label: '발표',                  keys: ['발표'] },
+    { label: '실기',                  keys: ['실기'] },
+    { label: '토의·토론',             keys: ['토의', '토론'] },
+    { label: '실험·실습',             keys: ['실험', '실습'] },
+    { label: '보고서법',              keys: ['보고서'] },
+    { label: '프로젝트',              keys: ['프로젝트'] },
+    { label: '포트폴리오',            keys: ['포트폴리오'] }
+];
+var ASSESS_METHOD_KEYS = {};
+ASSESS_METHODS.forEach(function(m) { ASSESS_METHOD_KEYS[m.label] = m.keys; });
+
+// 계획 하나가 특정 대표 평가방법에 해당하는지 (공백·구분기호 무시)
+function assessPlanHasMethod(p, label) {
+    var keys = ASSESS_METHOD_KEYS[label];
+    if (!keys) return false;
+    var raw = String((p && p.method) || '').replace(/\s+/g, '');
+    if (!raw) return false;
+    for (var i = 0; i < keys.length; i++) {
+        if (raw.indexOf(keys[i]) >= 0) return true;
+    }
+    return false;
+}
+
+// 실제 등록된 계획에 존재하는 대표 평가방법만 (정해진 순서대로) 반환
 function assessMethodList() {
-    var seen = {}, list = [];
-    (assessPlans || []).forEach(function(p) {
-        var m = String(p.method || '').trim();
-        if (m && !seen[m]) { seen[m] = 1; list.push(m); }
+    var plans = assessPlans || [];
+    var list = [];
+    ASSESS_METHODS.forEach(function(m) {
+        for (var i = 0; i < plans.length; i++) {
+            if (assessPlanHasMethod(plans[i], m.label)) { list.push(m.label); return; }
+        }
     });
     return list;
 }
@@ -4613,10 +4681,11 @@ function renderAssessMethodNav() {
     var nav = document.getElementById('assess-method-nav');
     if (!nav) return;
     var methods = assessMethodList();
+    var row = document.getElementById('assess-method-row');
+    if (row) row.style.display = methods.length ? '' : 'none';
     if (!methods.length) { nav.innerHTML = ''; return; }
     assessMethodFilters = assessMethodFilters.filter(function(m){ return methods.indexOf(m) >= 0; });
-    var html = '<span class="text-xs font-bold text-gray-400 mr-1"><i class="fa-solid fa-pen-ruler mr-1"></i>평가방법</span>';
-    html += '<button onclick="setAssessMethod(null)" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
+    var html = '<button onclick="setAssessMethod(null)" class="month-nav-btn px-3 py-1 rounded-full text-xs font-bold border transition' +
         (assessMethodFilters.length === 0 ? ' active' : '') + '">전체</button>';
     html += methods.map(function(m) {
         var on = assessMethodFilters.indexOf(m) >= 0;
@@ -4630,7 +4699,13 @@ function getFilteredAssessPlans() {
     return (assessPlans || []).filter(function(p) {
         if ((p.semester || '1학기') !== assessSemester) return false;
         if (assessSubjectFilters.length && assessSubjectFilters.indexOf(assessSubjectKey(p)) < 0) return false;
-        if (assessMethodFilters.length && assessMethodFilters.indexOf(String(p.method || '').trim()) < 0) return false;
+        if (assessMethodFilters.length) {
+            var hit = false;
+            for (var i = 0; i < assessMethodFilters.length; i++) {
+                if (assessPlanHasMethod(p, assessMethodFilters[i])) { hit = true; break; }
+            }
+            if (!hit) return false;
+        }
         return true;
     });
 }
